@@ -99,7 +99,7 @@ const sources:Source[]=[
   {name:"제주순복음교회",pastor:"표순호 목사",region:"제주 제주",denomination:"기독교대한하나님의성회",channelId:"UCkR0487FW1G7iC46Jmfodng"},
   {name:"광림교회",pastor:"김정석 목사",region:"서울 강남",denomination:"기독교대한감리회",channelId:"UCV1aWMg0Q5sXmpLiK4Rih6A"},
   {name:"금란교회",pastor:"김정민 목사",region:"서울 중랑",denomination:"기독교대한감리회",channelId:"UCRqUsmAoeQL9_o-mxOXeo6A"},
-  {name:"한신교회",pastor:"양신 목사",region:"서울 서초",denomination:"한국기독교장로회",channelId:"UC5cJiN3oUx4bwhsUJDTQ"},
+  {name:"오륜교회",pastor:"주경훈 목사",region:"서울 강동",denomination:"대한예수교장로회 합동",channelId:"UCCATFGVyXoa361VN6lELz3w"},
   {name:"새에덴교회",pastor:"소강석 목사",region:"경기 용인",denomination:"대한예수교장로회 합동",channelId:"UCapBxZyEfCAjx0udd3DWsgQ"},
   {name:"대전중앙교회",pastor:"고석찬 목사",region:"대전 중구",denomination:"대한예수교장로회 합동",channelId:"UCw9HD9N5O7ZkTxKS2RjyF2g"},
   {name:"경산중앙교회",pastor:"김종원 목사",region:"경북 경산",denomination:"대한예수교장로회 고신",channelId:"UCK3Q4MGiowIcDX8Y0vPI5HQ"},
