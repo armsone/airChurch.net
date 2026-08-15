@@ -51,7 +51,7 @@ export default function Home() {
     const haystack = `${praise.church} ${praise.pastor} ${praise.region} ${praise.denomination} ${praise.title}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체 지역" || praise.region.startsWith(region));
   }), [praiseItems, query, region]);
-  const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 3)).slice(0, 12);
+  const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 6)).slice(0, 12);
 
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
@@ -140,10 +140,10 @@ export default function Home() {
 
       <section className="content-section praise-section" id="praises">
         <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><span className="result-count">{filteredPraises.length}개의 찬양</span></div>
-        <div className="sermon-grid praise-grid">{visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
+        <div className={`praise-preview${!showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           <div className="sermon-thumb" style={{backgroundImage:`url(${praise.thumbnailUrl})`}}><span className="rank">♪</span><a className="play" href={`https://www.youtube.com/watch?v=${praise.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${praise.church} 찬양 재생`}>▶</a><span className="duration">{new Date(praise.publishedAt).toLocaleDateString("ko-KR")}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>setNotice(`${praise.church} 찬양을 응원했습니다.`)}>♡ 응원</button><button type="button" onClick={()=>void shareVideo(praise)}>↗ 공유</button></div></div>
-        </article>)}</div>
+        </article>)}</div></div>
         {!visiblePraises.length && <div className="empty">공식 채널의 최신 찬양을 불러오고 있습니다.</div>}
         {filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
       </section>
