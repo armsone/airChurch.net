@@ -15,7 +15,9 @@ test("server-renders the Airchurch portal", async () => {
 });
 
 test("keeps safety and discovery requirements in the product source", async () => {
-  const [page,layout,hosting]=await Promise.all([readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/layout.tsx",import.meta.url),"utf8"),readFile(new URL("../.openai/hosting.json",import.meta.url),"utf8")]);
+  const [page,layout,hosting,selection]=await Promise.all([readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),readFile(new URL("../app/layout.tsx",import.meta.url),"utf8"),readFile(new URL("../.openai/hosting.json",import.meta.url),"utf8"),readFile(new URL("../app/api/sermons/_selection.ts",import.meta.url),"utf8")]);
   for(const phrase of ["교회명, 목사님, 지역","작은 교회 살리기","은퇴 목회자 동행","내 달란트","소속 확인","이의제기"]) assert.match(page,new RegExp(phrase));
+  for(const region of ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"]) assert.match(page,new RegExp(`"${region}"`));
+  for(const excluded of ["찬양","광고","성경통독","쇼츠"]) assert.match(selection,new RegExp(excluded));
   assert.match(layout,/og\.png/); assert.equal(JSON.parse(hosting).d1,"DB");
 });

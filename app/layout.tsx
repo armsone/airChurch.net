@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import VisitorTracker from "./visitor-tracker";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://airchurch.net"),
@@ -23,6 +24,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko"><body>{children}</body></html>
+    <html lang="ko"><body>{children}<VisitorTracker /></body></html>
   );
 }
