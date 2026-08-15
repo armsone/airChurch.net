@@ -56,7 +56,7 @@ const sources:Source[]=[
   {name:"용인기쁨의교회",pastor:"정의호 목사",region:"경기 용인",denomination:"대한예수교장로회 합동",channelId:"UCDrtkGynzAMwdryP_pA1xNA"},
   {name:"일산광림교회",pastor:"박동찬 목사",region:"경기 고양",denomination:"기독교대한감리회",channelId:"UCOenUFkUR2OIg1UMZQs0mKQ"},
   {name:"효성중앙교회",pastor:"정연수 목사",region:"인천 계양",denomination:"기독교대한감리회",channelId:"UCxIvngefJnr1Ogq9Yf3mpdA"},
-  {name:"숭의교회",pastor:"이선목 목사",region:"인천 미추홀",denomination:"기독교대한감리회",channelId:"UChZA3XKXj9OZsdQshLUfPZA"},
+  {name:"연동교회",pastor:"김주용 목사",region:"서울 종로",denomination:"대한예수교장로회 통합",channelId:"UCd5exyISA9wKSdz8z5403gQ"},
   {name:"포도원교회",pastor:"전남수 목사",region:"부산 북구",denomination:"대한예수교장로회 고신",channelId:"UC27RSfE21eJq27lQ7p84TaQ"},
   {name:"부산중앙교회",pastor:"최현범 목사",region:"부산 중구",denomination:"대한예수교장로회 고신",channelId:"UCpTEWDW7a-x_2ok-DIlvsHA"},
   {name:"구덕교회",pastor:"이종훈 목사",region:"부산 서구",denomination:"대한예수교장로회 고신",channelId:"UCGb2K1-6yjpyqHQOh3cZJcQ"},
@@ -87,7 +87,7 @@ const sources:Source[]=[
   {name:"목포사랑의교회",pastor:"백동조 목사",region:"전남 목포",denomination:"대한예수교장로회 합동",channelId:"UCd8A9MamNETNRXozW0Yjrlg"},
   {name:"순천중앙교회",pastor:"홍인식 목사",region:"전남 순천",denomination:"대한예수교장로회 통합",channelId:"UCWQlu1wJIIAxZqdWfanwkdw"},
   {name:"여수은파교회",pastor:"고만호 목사",region:"전남 여수",denomination:"독립교회",channelId:"UCqMG1OjNP1zkA-zUpxMfFCg"},
-  {name:"광양대광교회",pastor:"신정 목사",region:"전남 광양",denomination:"대한예수교장로회 통합",channelId:"UCYyuZRCrTUQXY5Vn771BMIA"},
+  {name:"향상교회",pastor:"김석홍 목사",region:"경기 용인",denomination:"대한예수교장로회 고신",handle:"@hyangsangchurch-2382"},
   {name:"포항기쁨의교회",pastor:"박진석 목사",region:"경북 포항",denomination:"대한예수교장로회 통합",channelId:"UC0vmi1mhBMndVy0n6kPZOJg"},
   {name:"포항중앙교회",pastor:"손병렬 목사",region:"경북 포항",denomination:"대한예수교장로회 통합",channelId:"UCIQjKnCZhRSSn0Sci7XmD_A"},
   {name:"경주제일교회",pastor:"정영택 목사",region:"경북 경주",denomination:"대한예수교장로회 통합",channelId:"UCZ27Owsi-yW_Ye1ojUE9hFg"},
@@ -114,7 +114,7 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 export async function POST() {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db);
-  const syncKey="youtube-v5-verified-100";
+  const syncKey="youtube-v6-verified-100";
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed' WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
