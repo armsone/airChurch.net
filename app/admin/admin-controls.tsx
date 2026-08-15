@@ -16,15 +16,19 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try { await updateAdmin({ kind: "church", id: props.id, ...values }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  async function toggle() {
-    const removing = props.status === "approved";
-    if (removing && !window.confirm("이 교회를 공개 목록에서 내릴까요? 관련 설교도 함께 숨겨집니다.")) return;
+  async function changeStatus(next: "approved" | "removed" | "deleted") {
+    const message = next === "removed"
+      ? "이 교회를 보류 목록으로 옮길까요? 관련 설교도 함께 숨겨집니다."
+      : next === "deleted"
+        ? "보류 목록에서 이 교회를 삭제할까요? 삭제 후에는 관리자 화면에 표시되지 않습니다."
+        : "이 교회를 다시 공개할까요? 숨겨진 설교는 자동 공개되지 않습니다.";
+    if (!window.confirm(message)) return;
     setBusy(true); setError("");
-    try { await updateAdmin({ kind: "church", id: props.id, status: removing ? "removed" : "approved" }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
+    try { await updateAdmin({ kind: "church", id: props.id, status: next }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
   return <form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
-    <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button><button disabled={busy} className={props.status === "approved" ? "danger" : "restore"} type="button" onClick={() => void toggle()}>{props.status === "approved" ? "목록에서 내리기" : "다시 공개"}</button></div>{error && <p className="admin-error">{error}</p>}
+    <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button>{props.status === "approved" ? <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button> : <><button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></>}</div>{error && <p className="admin-error">{error}</p>}
   </form>;
 }
 

@@ -26,8 +26,14 @@ export async function PATCH(request: Request) {
   if (kind === "church") {
     const status = clean(data.status, 20);
     if (status) {
-      if (!["approved", "removed"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
+      if (!["approved", "removed", "deleted"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
+      if (status === "deleted") {
+        const church = await db.prepare("SELECT review_status FROM churches WHERE id=?").bind(id).first<{ review_status: string }>();
+        if (!church) return Response.json({ error: "교회를 찾을 수 없습니다." }, { status: 404 });
+        if (church.review_status !== "removed") return Response.json({ error: "보류된 교회만 삭제할 수 있습니다." }, { status: 409 });
+      }
       await db.prepare("UPDATE churches SET review_status=? WHERE id=?").bind(status, id).run();
+      if (status === "removed" || status === "deleted") await db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(id).run();
     } else {
       const name = clean(data.name, 100), pastor = clean(data.pastor, 80), region = clean(data.region, 80), denomination = clean(data.denomination, 120);
       if (!name || !pastor || !region || !denomination) return Response.json({ error: "교회 정보를 모두 입력해 주세요." }, { status: 400 });

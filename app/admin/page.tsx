@@ -20,7 +20,7 @@ async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
 }
 
 function koreanTime(value: string) { return new Date(`${value}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }); }
-function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : "비공개"; }
+function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : status === "removed" ? "보류" : "비공개"; }
 
 export default async function AdminPage() {
   const temporaryAdmin = await hasTemporaryAdminAccess();
@@ -43,12 +43,14 @@ export default async function AdminPage() {
     db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved'").first<{ count: number }>(),
     db.prepare("SELECT COUNT(*) AS count FROM community_posts WHERE status='pending'").first<{ count: number }>(),
     db.prepare("SELECT COUNT(*) AS count FROM talent_offers WHERE status='pending'").first<{ count: number }>(),
-    db.prepare("SELECT id,name,pastor,region,denomination,review_status FROM churches ORDER BY CASE review_status WHEN 'approved' THEN 0 ELSE 1 END,name LIMIT 100").all<ChurchRow>(),
+    db.prepare("SELECT id,name,pastor,region,denomination,review_status FROM churches WHERE review_status IN ('approved','removed') ORDER BY CASE review_status WHEN 'approved' THEN 0 ELSE 1 END,name LIMIT 200").all<ChurchRow>(),
     db.prepare("SELECT s.id,s.title,s.youtube_id,s.published_at,s.status,c.name AS church FROM sermons s JOIN churches c ON c.id=s.church_id ORDER BY s.published_at DESC LIMIT 80").all<SermonRow>(),
     db.prepare("SELECT id,category,nickname,content,status,created_at FROM community_posts ORDER BY created_at DESC LIMIT 50").all<PostRow>(),
     db.prepare("SELECT id,title,region,description,status,created_at FROM talent_offers ORDER BY created_at DESC LIMIT 50").all<TalentRow>(),
   ]);
   const maxViews = Math.max(1, ...daily.results.map((row) => Number(row.views)));
+  const publicChurchRows = churchRows.results.filter((church) => church.review_status === "approved");
+  const heldChurchRows = churchRows.results.filter((church) => church.review_status === "removed");
 
   return <main className="admin-shell">
     <header className="admin-header">
@@ -69,7 +71,8 @@ export default async function AdminPage() {
     <section className="admin-operations"><a className="admin-operation-card" href="#church-management"><small>공개 교회</small><strong>{churches?.count ?? 0}</strong><span>수정·관리 ↓</span></a><a className="admin-operation-card" href="#sermon-management"><small>공개 영상</small><strong>{sermons?.count ?? 0}</strong><span>긴급 관리 ↓</span></a><a className="admin-operation-card" href="#pending-posts"><small>검토할 익명 글</small><strong>{posts?.count ?? 0}</strong><span>검토하기 ↓</span></a><a className="admin-operation-card" href="#pending-talents"><small>검토할 달란트</small><strong>{talents?.count ?? 0}</strong><span>검토하기 ↓</span></a></section>
 
     <section className="admin-management-grid">
-      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>교회 목록 관리</h2></div><span>{churchRows.results.length}곳</span></div><div className="admin-manage-list">{churchRows.results.map((church) => <article key={church.id}><div className="admin-record-heading"><strong>{church.name}</strong><span className={`status-${church.review_status}`}>{statusLabel(church.review_status)}</span></div><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status={church.review_status} /></article>)}</div></article>
+      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>공개 교회 관리</h2></div><span>{publicChurchRows.length}곳</span></div><div className="admin-manage-list">{publicChurchRows.length ? publicChurchRows.map((church) => <article key={church.id}><div className="admin-record-heading"><strong>{church.name}</strong><span className={`status-${church.review_status}`}>{statusLabel(church.review_status)}</span></div><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status={church.review_status} /></article>) : <p className="admin-empty">공개 중인 교회가 없습니다.</p>}</div></article>
+      <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2></div><span>{heldChurchRows.length}곳</span></div><div className="admin-manage-list">{heldChurchRows.length ? heldChurchRows.map((church) => <article key={church.id}><div className="admin-record-heading"><strong>{church.name}</strong><span className={`status-${church.review_status}`}>{statusLabel(church.review_status)}</span></div><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status={church.review_status} /></article>) : <p className="admin-empty">보류된 교회가 없습니다.</p>}</div></article>
       <article className="admin-panel" id="sermon-management"><div className="admin-panel-title"><div><small>SERMON MANAGEMENT</small><h2>수집 영상 긴급 관리</h2></div><span>최근 {sermonRows.results.length}개</span></div><div className="admin-manage-list compact">{sermonRows.results.map((sermon) => <article key={sermon.id}><div className="admin-record-heading"><div><strong>{sermon.title}</strong><small>{sermon.church} · {new Date(sermon.published_at).toLocaleDateString("ko-KR")}</small></div><a href={`https://www.youtube.com/watch?v=${sermon.youtube_id}`} target="_blank" rel="noreferrer">영상 ↗</a></div><SermonControls id={sermon.id} status={sermon.status} /></article>)}</div></article>
     </section>
 
