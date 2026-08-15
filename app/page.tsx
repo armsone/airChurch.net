@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
 
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
+type Church = { id:number; name:string; pastor:string; region:string; denomination:string };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 
@@ -33,15 +34,22 @@ export default function Home() {
   const [ranking, setRanking] = useState("말씀");
   const [notice, setNotice] = useState("");
   const [sermonItems,setSermonItems]=useState<Sermon[]>(sermons);
+  const [churchItems,setChurchItems]=useState<Church[]>([]);
+  const [showAllChurches,setShowAllChurches]=useState(false);
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
-  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/sermons/sync",{method:"POST"}).catch(()=>null); const response=await fetch("/api/sermons").catch(()=>null); if(!response?.ok) return; const data=await response.json() as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}; if(alive&&data.items?.length) setSermonItems(data.items.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId}))); })(); return()=>{alive=false}; },[]);
+  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/sermons/sync",{method:"POST"}).catch(()=>null); const [sermonResponse,churchResponse]=await Promise.all([fetch("/api/sermons").catch(()=>null),fetch("/api/churches").catch(()=>null)]); if(sermonResponse?.ok){const data=await sermonResponse.json() as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}; if(alive&&data.items?.length) setSermonItems(data.items.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})));} if(churchResponse?.ok){const data=await churchResponse.json() as {items?:Church[]}; if(alive) setChurchItems(data.items||[]);} })(); return()=>{alive=false}; },[]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   useEffect(()=>{ let alive=true; Promise.all([fetch("/api/posts").then((r)=>r.ok?r.json():{items:[]}),fetch("/api/talents").then((r)=>r.ok?r.json():{items:[]})]).then(([posts,talents])=>{ if(alive){setApprovedPosts(posts.items||[]);setApprovedTalents(talents.items||[]);} }).catch(()=>null); return()=>{alive=false}; },[]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
     const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체 지역" || s.region.startsWith(region));
   }), [query, region, sermonItems]);
+  const filteredChurches = useMemo(() => churchItems.filter((church) => {
+    const haystack = `${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLowerCase();
+    return haystack.includes(query.trim().toLowerCase()) && (region === "전체 지역" || church.region.startsWith(region));
+  }), [churchItems, query, region]);
+  const visibleChurches = query.trim() || region !== "전체 지역" || showAllChurches ? filteredChurches : filteredChurches.slice(0, 12);
 
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
@@ -100,7 +108,7 @@ export default function Home() {
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
       <header className="site-header">
         <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
-        <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
+        <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#church-directory">교회</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
         <a className="support-button" href="#talent">내 달란트 나누기</a>
       </header>
 
@@ -112,13 +120,13 @@ export default function Home() {
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" value={query} onChange={(e) => handleSearchChange(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
           <select aria-label="지역 선택" value={region} onChange={(e) => setRegion(e.target.value)}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
-          <a href="#sermons">찾기</a>
+          <a href={query.trim() || region !== "전체 지역" ? "#church-directory" : "#sermons"}>찾기</a>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
       </section>
 
       <section className="content-section" id="sermons">
-        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">{filtered.length}개의 교회</span></div>
+        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">{filtered.length}개의 설교</span></div>
         <div className="sermon-grid">
           {filtered.map((sermon, index) => <article className="sermon-card" id={index === filtered.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
               <div className={`sermon-thumb ${sermon.tone}`} style={sermon.thumbnailUrl?{backgroundImage:`url(${sermon.thumbnailUrl})`}:undefined}><span className="rank">{sermon.rank}</span>{sermon.youtubeId?<a className="play" href={`https://www.youtube.com/watch?v=${sermon.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${sermon.church} 설교 재생`}>▶</a>:<button aria-label={`${sermon.church} 설교 재생`}>▶</button>}<span className="duration">{sermon.date}</span></div>
@@ -126,6 +134,13 @@ export default function Home() {
           </article>)}
           {!filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
+      </section>
+
+      <section className="church-directory" id="church-directory">
+        <div className="section-heading"><div><span className="section-kicker">전국에서 함께하는</span><h2>등록 교회</h2></div><span className="result-count">{filteredChurches.length}곳</span></div>
+        <div className="church-directory-grid">{visibleChurches.map((church)=><article key={church.id}><strong>{church.name}</strong><span>{church.pastor} · {church.region}</span><small>{church.denomination}</small></article>)}</div>
+        {!visibleChurches.length && <div className="empty">조건에 맞는 등록 교회가 없습니다.</div>}
+        {!query.trim() && region === "전체 지역" && filteredChurches.length > 12 && <button className="church-directory-more" type="button" onClick={()=>setShowAllChurches((shown)=>!shown)}>{showAllChurches ? "간단히 보기" : `전체 ${filteredChurches.length}곳 보기`}</button>}
       </section>
 
       <section className="ranking-section" id="rankings">
