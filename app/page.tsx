@@ -100,7 +100,7 @@ export default function Home() {
       <section className="content-section" id="sermons">
         <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">{filtered.length}개의 교회</span></div>
         <div className="sermon-grid">
-          {filtered.map((sermon) => <article className="sermon-card" key={sermon.id}>
+          {filtered.map((sermon, index) => <article className="sermon-card" id={index === filtered.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
               <div className={`sermon-thumb ${sermon.tone}`} style={sermon.thumbnailUrl?{backgroundImage:`url(${sermon.thumbnailUrl})`}:undefined}><span className="rank">{sermon.rank}</span>{sermon.youtubeId?<a className="play" href={`https://www.youtube.com/watch?v=${sermon.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${sermon.church} 설교 재생`}>▶</a>:<button aria-label={`${sermon.church} 설교 재생`}>▶</button>}<span className="duration">{sermon.date}</span></div>
             <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => setNotice(`${sermon.church}를 응원했습니다. 건강한 응원만 집계됩니다.`)}>♡ 응원</button><button type="button" onClick={() => void shareSermon(sermon)}>↗ 공유</button></div></div>
           </article>)}
@@ -144,7 +144,7 @@ export default function Home() {
 
       <section className="safety-section" id="principles"><div><span className="section-kicker">건강한 신앙 생태계</span><h2>열린 문에는<br />분명한 기준이 필요합니다</h2></div><div className="safety-steps"><article><b>1</b><div><h3>소속 확인</h3><p>교단·노회·공식 홈페이지와 공식 영상 채널을 교차 확인합니다.</p></div></article><article><b>2</b><div><h3>독립 검토</h3><p>한 사람의 판단이 아닌 초교파 검토위원회와 공개된 기준으로 심사합니다.</p></div></article><article><b>3</b><div><h3>상시 보호</h3><p>신고, 재검토, 이의제기 절차를 두고 문제가 확인되면 노출을 즉시 중단합니다.</p></div></article><p className="safety-note">‘이단’이라는 표현은 자의적으로 붙이지 않으며, 참여 제한의 근거와 이의제기 절차를 투명하게 공개합니다.</p></div></section>
 
-      <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
+      <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons-end" aria-label="설교 목록 마지막으로 이동" title="설교 마지막" /><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom"><a className="brand footer-brand" href="#top"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></a><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div></footer>
     </main>
   );
