@@ -1,10 +1,12 @@
 import { env } from "cloudflare:workers";
+import { hasTemporaryAdminAccess } from "../../../admin-access";
 import { getChatGPTUser } from "../../../chatgpt-auth";
 import { clean, database, ensureCommunityTables, ensureSermonTables } from "../../_shared";
 
 async function isAdmin(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return false;
+  if (await hasTemporaryAdminAccess(request)) return true;
   const user = await getChatGPTUser();
   const allowedEmail = (env as unknown as { ADMIN_EMAIL?: string }).ADMIN_EMAIL?.trim().toLowerCase();
   return Boolean(user && allowedEmail && user.email.toLowerCase() === allowedEmail);

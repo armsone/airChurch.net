@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { hasTemporaryAdminAccess } from "../admin-access";
 import { ChurchControls, ReviewControls, SermonControls } from "./admin-controls";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensureAnalyticsTables, ensureCommunityTables, ensureSermonTables } from "../api/_shared";
@@ -22,10 +23,13 @@ function koreanTime(value: string) { return new Date(`${value}Z`).toLocaleString
 function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : "비공개"; }
 
 export default async function AdminPage() {
-  const user = await requireChatGPTUser("/admin");
-  const allowedEmail = (env as unknown as { ADMIN_EMAIL?: string }).ADMIN_EMAIL?.trim().toLowerCase();
-  if (!allowedEmail || user.email.toLowerCase() !== allowedEmail) {
-    return <main className="admin-shell"><section className="admin-denied"><span className="brand-mark" aria-hidden="true" /><h1>관리자 전용 페이지입니다</h1><p>허용된 관리자 계정으로 다시 로그인해 주세요.</p><a href={chatGPTSignOutPath("/admin")}>다른 계정으로 로그인</a></section></main>;
+  const temporaryAdmin = await hasTemporaryAdminAccess();
+  const user = temporaryAdmin ? null : await requireChatGPTUser("/admin");
+  if (!temporaryAdmin) {
+    const allowedEmail = (env as unknown as { ADMIN_EMAIL?: string }).ADMIN_EMAIL?.trim().toLowerCase();
+    if (!allowedEmail || !user || user.email.toLowerCase() !== allowedEmail) {
+      return <main className="admin-shell"><section className="admin-denied"><span className="brand-mark" aria-hidden="true" /><h1>관리자 전용 페이지입니다</h1><p>허용된 관리자 계정으로 다시 로그인해 주세요.</p><a href={chatGPTSignOutPath("/admin")}>다른 계정으로 로그인</a></section></main>;
+    }
   }
 
   const db = database();
@@ -48,7 +52,7 @@ export default async function AdminPage() {
 
   return <main className="admin-shell">
     <header className="admin-header">
-      <HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><div><span>{user.displayName}</span><a href={chatGPTSignOutPath("/")}>로그아웃</a></div>
+      <HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><div><span>{temporaryAdmin ? "임시 관리자" : user?.displayName}</span>{temporaryAdmin ? <form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form> : <a href={chatGPTSignOutPath("/")}>로그아웃</a>}</div>
     </header>
     <section className="admin-title"><div><span>ADMIN</span><h1>방문 현황과 운영</h1><p>방문 흐름을 확인하고 공개 콘텐츠를 직접 관리합니다.</p></div>
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>

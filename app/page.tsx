@@ -82,12 +82,17 @@ export default function Home() {
     }
   }
 
-  function handleSearchChange(value: string) {
-    if (value.trim() === "관리자1701") {
-      window.location.assign("/admin");
-      return;
-    }
+  async function handleSearchChange(value: string) {
     setQuery(value);
+    if (value.trim() === "관리자1701") {
+      const response = await fetch("/api/admin/unlock", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: value }) }).catch(() => null);
+      if (response?.ok) {
+        setQuery("");
+        window.location.replace("/admin");
+      } else {
+        setNotice("관리자 연결을 준비하지 못했습니다.");
+      }
+    }
   }
 
   return (
