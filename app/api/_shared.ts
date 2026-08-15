@@ -16,6 +16,11 @@ export async function ensureSermonTables(db:D1Database) {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_search ON churches(region, name, pastor)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, last_synced_at TEXT NOT NULL)"),
   ]);
+  const columns = await db.prepare("PRAGMA table_info(sermons)").all<{ name: string }>();
+  if (!columns.results.some((column) => column.name === "status")) {
+    await db.prepare("ALTER TABLE sermons ADD COLUMN status TEXT NOT NULL DEFAULT 'published'").run();
+  }
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
 }
 export async function ensureAnalyticsTables(db:D1Database) {
   await db.batch([

@@ -1,4 +1,9 @@
 import { clean, database, ensureCommunityTables, fingerprint } from "../_shared";
+export async function GET() {
+  const db=database(); await ensureCommunityTables(db);
+  const result=await db.prepare("SELECT id,category,nickname,content,created_at AS createdAt FROM community_posts WHERE status='approved' ORDER BY created_at DESC LIMIT 12").all();
+  return Response.json({items:result.results},{headers:{"cache-control":"public, max-age=120"}});
+}
 export async function POST(request: Request) {
   const data=await request.json().catch(()=>({})) as Record<string,unknown>; if(clean(data.company,20)) return Response.json({ok:true});
   const category=clean(data.category,30),nickname=clean(data.nickname,16),content=clean(data.content,1000); if(!category||nickname.length<2||content.length<20) return Response.json({error:"입력 내용을 확인해 주세요."},{status:400});

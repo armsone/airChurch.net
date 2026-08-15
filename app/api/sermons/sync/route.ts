@@ -18,6 +18,7 @@ const sources:Source[]=[
   {name:"우리들교회",pastor:"김양재 목사",region:"경기 성남",denomination:"대한예수교장로회 통합",username:"wooridlechurch"},
   {name:"영락교회",pastor:"김운성 목사",region:"서울 중구",denomination:"대한예수교장로회 통합",handle:"@youngnakchurch"},
   {name:"사랑의교회",pastor:"오정현 목사",region:"서울 서초",denomination:"대한예수교장로회 합동",handle:"@sarangchurch121"},
+  {name:"서머나교회",pastor:"배성현 목사",region:"경남 창원",denomination:"대한예수교장로회 합동",handle:"@서머나교회"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -35,7 +36,7 @@ export async function POST() {
     const filter=source.channelId?`id=${encodeURIComponent(source.channelId)}`:source.handle?`forHandle=${encodeURIComponent(source.handle)}`:`forUsername=${encodeURIComponent(source.username||"")}`;
     const channel=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&${filter}&key=${encodeURIComponent(key)}`).then((r)=>r.json() as Promise<ChannelResponse>);
     const found=channel.items?.[0]; if(!found) continue;
-    await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,review_status) VALUES (?,?,?,?,?,'approved') ON CONFLICT(youtube_channel_id) DO UPDATE SET name=excluded.name,pastor=excluded.pastor,region=excluded.region,denomination=excluded.denomination,review_status='approved'").bind(source.name,source.pastor,source.region,source.denomination,found.id).run();
+    await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,review_status) VALUES (?,?,?,?,?,'approved') ON CONFLICT(youtube_channel_id) DO UPDATE SET name=excluded.name,pastor=excluded.pastor,region=excluded.region,denomination=excluded.denomination").bind(source.name,source.pastor,source.region,source.denomination,found.id).run();
     const church=await db.prepare("SELECT id FROM churches WHERE youtube_channel_id=?").bind(found.id).first<{id:number}>(); if(!church) continue;
     const uploads=found.contentDetails.relatedPlaylists.uploads;
     const playlist=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=24&key=${encodeURIComponent(key)}`).then((r)=>r.json() as Promise<PlaylistResponse>);
