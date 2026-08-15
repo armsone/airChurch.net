@@ -2,9 +2,10 @@
 import ftplib
 import getpass
 import json
+import os
 from pathlib import Path
 
-HOST = "airchurch.net"
+HOST = os.environ.get("AIRCHURCH_FTP_HOST", "airchurch.net")
 USER = "goodshare1"
 ROOT = "/www"
 FALLBACK = Path(__file__).with_name("cafe24-fallback-index.html")
