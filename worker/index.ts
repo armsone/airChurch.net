@@ -29,6 +29,11 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
+    const canonicalHosts = new Set(["goodshare.net", "www.goodshare.net", "linechurch.net", "www.linechurch.net", "www.airchurch.net"]);
+    if (canonicalHosts.has(url.hostname)) {
+      return Response.redirect(`https://airchurch.net${url.pathname}${url.search}`, 301);
+    }
+
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
       return handleImageOptimization(request, {
