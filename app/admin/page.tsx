@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import Link from "next/link";
 import { ChurchControls, ReviewControls, SermonControls } from "./admin-controls";
 import { database, ensureAnalyticsTables, ensureCommunityTables, ensureSermonTables } from "../api/_shared";
 import { chatGPTSignOutPath, requireChatGPTUser } from "../chatgpt-auth";
@@ -47,8 +46,14 @@ export default async function AdminPage() {
   const maxViews = Math.max(1, ...daily.results.map((row) => Number(row.views)));
 
   return <main className="admin-shell">
-    <header className="admin-header"><Link className="brand" href="/" reloadDocument><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></Link><div><span>{user.displayName}</span><a href={chatGPTSignOutPath("/")}>로그아웃</a></div></header>
-    <section className="admin-title"><div><span>ADMIN</span><h1>방문 현황과 운영</h1><p>방문 흐름을 확인하고 공개 콘텐츠를 직접 관리합니다.</p></div><Link href="/" reloadDocument>사이트 보기 ↗</Link></section>
+    <header className="admin-header">
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+      <a className="brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></a><div><span>{user.displayName}</span><a href={chatGPTSignOutPath("/")}>로그아웃</a></div>
+    </header>
+    <section className="admin-title"><div><span>ADMIN</span><h1>방문 현황과 운영</h1><p>방문 흐름을 확인하고 공개 콘텐츠를 직접 관리합니다.</p></div>
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+      <a href="/">사이트 보기 ↗</a>
+    </section>
     <section className="admin-metrics">
       <article><small>오늘 방문자</small><strong>{Number(today?.visitors ?? 0).toLocaleString("ko-KR")}</strong><span>{Number(today?.views ?? 0).toLocaleString("ko-KR")}회 조회</span></article>
       <article><small>최근 7일 방문자</small><strong>{Number(week.visitors).toLocaleString("ko-KR")}</strong><span>{Number(week.views).toLocaleString("ko-KR")}회 조회</span></article>
