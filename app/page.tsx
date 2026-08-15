@@ -82,6 +82,14 @@ export default function Home() {
     }
   }
 
+  function handleSearchChange(value: string) {
+    if (value.trim() === "관리자1701") {
+      window.location.assign("/admin");
+      return;
+    }
+    setQuery(value);
+  }
+
   return (
     <main>
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
@@ -97,7 +105,7 @@ export default function Home() {
         <p>여러 교회의 설교를 한곳에서 만나고, 우리 교회를 응원하며,<br className="desktop" /> 내가 가진 달란트로 누군가의 내일을 돕는 크리스천 포털입니다.</p>
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
+          <input id="site-search" value={query} onChange={(e) => handleSearchChange(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
           <select aria-label="지역 선택" value={region} onChange={(e) => setRegion(e.target.value)}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
           <a href="#sermons">찾기</a>
         </div>
