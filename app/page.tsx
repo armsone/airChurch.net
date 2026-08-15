@@ -28,6 +28,15 @@ const regions = [
   "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
 ];
 
+function shuffled<T>(items: T[]) {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("전체 지역");
@@ -39,7 +48,7 @@ export default function Home() {
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/sermons/sync",{method:"POST"}).catch(()=>null); const sermonResponse=await fetch("/api/sermons").catch(()=>null); if(sermonResponse?.ok){const data=await sermonResponse.json() as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}; if(alive&&data.items?.length) setSermonItems(data.items.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})));} })(); return()=>{alive=false}; },[]);
-  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/praises/sync",{method:"POST"}).catch(()=>null); const response=await fetch("/api/praises").catch(()=>null); if(!response?.ok)return; const data=await response.json() as {items?:Praise[]}; if(alive)setPraiseItems(data.items||[]); })(); return()=>{alive=false}; },[]);
+  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/praises/sync",{method:"POST"}).catch(()=>null); const response=await fetch("/api/praises").catch(()=>null); if(!response?.ok)return; const data=await response.json() as {items?:Praise[]}; if(alive)setPraiseItems(shuffled(data.items||[])); })(); return()=>{alive=false}; },[]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   useEffect(()=>{ let alive=true; Promise.all([fetch("/api/posts").then((r)=>r.ok?r.json():{items:[]}),fetch("/api/talents").then((r)=>r.ok?r.json():{items:[]})]).then(([posts,talents])=>{ if(alive){setApprovedPosts(posts.items||[]);setApprovedTalents(talents.items||[]);} }).catch(()=>null); return()=>{alive=false}; },[]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
@@ -143,7 +152,7 @@ export default function Home() {
         <div className={`praise-preview${!showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           <div className="sermon-thumb" style={{backgroundImage:`url(${praise.thumbnailUrl})`}}><span className="rank">♪</span><a className="play" href={`https://www.youtube.com/watch?v=${praise.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${praise.church} 찬양 재생`}>▶</a><span className="duration">{new Date(praise.publishedAt).toLocaleDateString("ko-KR")}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>setNotice(`${praise.church} 찬양을 응원했습니다.`)}>♡ 응원</button><button type="button" onClick={()=>void shareVideo(praise)}>↗ 공유</button></div></div>
-        </article>)}</div></div>
+        </article>)}</div>{!showAllPraise && filteredPraises.length > 3 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
         {!visiblePraises.length && <div className="empty">공식 채널의 최신 찬양을 불러오고 있습니다.</div>}
         {filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
       </section>
