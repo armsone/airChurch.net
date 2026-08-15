@@ -26,6 +26,9 @@ const sources:Source[]=[
   {name:"할렐루야교회",pastor:"김승욱 목사",region:"경기 성남",denomination:"한국독립교회선교단체연합회",channelId:"UCjHPrYoxZnPlYohdMQYEL7A"},
   {name:"포항제일교회",pastor:"박영호 목사",region:"경북 포항",denomination:"대한예수교장로회 통합",handle:"@pohangjeil"},
   {name:"제자광성교회",pastor:"박한수 목사",region:"경기 고양",denomination:"대한예수교장로회",channelId:"UCh3BRUypgg56_4KFXUn3UaQ"},
+  {name:"한소망교회",pastor:"최봉규 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",channelId:"UCCUiwnIMfFpig9Ui0u4y3Rg"},
+  {name:"만나교회",pastor:"김병삼 목사",region:"경기 성남",denomination:"기독교대한감리회",channelId:"UC0EweXMQqvbiTPYLXY0WFzA"},
+  {name:"호산나교회",pastor:"유진소 목사",region:"부산 강서",denomination:"대한예수교장로회 합신",channelId:"UCjms0bjEtU_me52S5Y-su_w"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -35,7 +38,7 @@ export async function POST() {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key) return Response.json({error:"YouTube API key not configured"},{status:503});
   const db=database(); await ensureSermonTables(db);
-  const syncKey="youtube-v3";
+  const syncKey="youtube-v4";
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
   if(state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) return Response.json({ok:true,skipped:"fresh"});
   let imported=0;
