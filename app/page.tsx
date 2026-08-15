@@ -101,19 +101,6 @@ export default function Home() {
     }
   }
 
-  async function handleSearchChange(value: string) {
-    setQuery(value);
-    if (value.trim() === "관리자1701") {
-      const response = await fetch("/api/admin/unlock", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: value }) }).catch(() => null);
-      if (response?.ok) {
-        setQuery("");
-        window.location.replace("/admin");
-      } else {
-        setNotice("관리자 연결을 준비하지 못했습니다.");
-      }
-    }
-  }
-
   return (
     <main>
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
@@ -129,7 +116,7 @@ export default function Home() {
         <p>여러 교회의 설교를 한곳에서 만나고, 우리 교회를 응원하며,<br className="desktop" /> 내가 가진 달란트로 누군가의 내일을 돕는 크리스천 포털입니다.</p>
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" value={query} onChange={(e) => handleSearchChange(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
+          <input id="site-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
           <select aria-label="지역 선택" value={region} onChange={(e) => setRegion(e.target.value)}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
           <a href="#sermons">찾기</a>
         </div>

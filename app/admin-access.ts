@@ -1,10 +1,10 @@
 import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 
-const COOKIE_NAME = "airchurch_admin";
+const COOKIE_NAME = "airchurch_admin_v2";
 const SESSION_SECONDS = 12 * 60 * 60;
 
-type AdminEnv = { ADMIN_ACCESS_CODE?: string; ADMIN_SESSION_SECRET?: string };
+type AdminEnv = { ADMIN_USERNAME?: string; ADMIN_PASSWORD?: string; ADMIN_SESSION_SECRET?: string };
 
 function adminEnv() { return env as unknown as AdminEnv; }
 
@@ -25,21 +25,27 @@ function cookieValue(header: string | null) {
   return header?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`))?.slice(COOKIE_NAME.length + 1) ?? null;
 }
 
-export async function verifyTemporaryAdminCode(code: string) {
-  const expected = adminEnv().ADMIN_ACCESS_CODE?.trim();
-  if (!expected || !adminEnv().ADMIN_SESSION_SECRET) return false;
-  const [actualDigest, expectedDigest] = await Promise.all([signature(code.trim(), expected), signature(expected, expected)]);
-  return constantTimeEqual(actualDigest, expectedDigest);
+export async function verifyAdminCredentials(username: string, password: string) {
+  const { ADMIN_USERNAME, ADMIN_PASSWORD, ADMIN_SESSION_SECRET } = adminEnv();
+  const expectedUsername = ADMIN_USERNAME?.trim();
+  if (!expectedUsername || !ADMIN_PASSWORD || !ADMIN_SESSION_SECRET) return false;
+  const [actualUsername, expectedUsernameDigest, actualPassword, expectedPassword] = await Promise.all([
+    signature(username.trim(), ADMIN_SESSION_SECRET),
+    signature(expectedUsername, ADMIN_SESSION_SECRET),
+    signature(password, ADMIN_SESSION_SECRET),
+    signature(ADMIN_PASSWORD, ADMIN_SESSION_SECRET),
+  ]);
+  return constantTimeEqual(actualUsername, expectedUsernameDigest) && constantTimeEqual(actualPassword, expectedPassword);
 }
 
-export async function createTemporaryAdminToken() {
+export async function createAdminToken() {
   const secret = adminEnv().ADMIN_SESSION_SECRET;
-  if (!secret) throw new Error("Temporary admin access is not configured");
+  if (!secret) throw new Error("Admin access is not configured");
   const issuedAt = Math.floor(Date.now() / 1000).toString();
   return `${issuedAt}.${await signature(issuedAt, secret)}`;
 }
 
-export async function hasTemporaryAdminAccess(request?: Request) {
+export async function hasAdminAccess(request?: Request) {
   const secret = adminEnv().ADMIN_SESSION_SECRET;
   if (!secret) return false;
   const requestHeaders = request ? request.headers : await headers();
@@ -52,10 +58,10 @@ export async function hasTemporaryAdminAccess(request?: Request) {
   return constantTimeEqual(suppliedSignature, await signature(issuedAt, secret));
 }
 
-export function temporaryAdminCookie(token: string) {
+export function adminCookie(token: string) {
   return `${COOKIE_NAME}=${token}; Path=/; Max-Age=${SESSION_SECONDS}; HttpOnly; Secure; SameSite=Strict`;
 }
 
-export function clearTemporaryAdminCookie() {
+export function clearAdminCookie() {
   return `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`;
 }

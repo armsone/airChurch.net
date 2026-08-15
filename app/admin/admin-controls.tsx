@@ -9,14 +9,28 @@ async function updateAdmin(body: Record<string, unknown>) {
   window.location.reload();
 }
 
-export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string }) {
+const holdReasons = [
+  ["youtube_unavailable", "공식 YouTube 확인 불가"],
+  ["inactive", "최근 180일 업로드 없음"],
+  ["info_unverified", "교회 정보 재확인 필요"],
+  ["review_needed", "운영상 재검토"],
+  ["other", "기타"],
+] as const;
+
+export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [holdReason, setHoldReason] = useState(props.holdReason || "");
+  const [holdNote, setHoldNote] = useState(props.holdNote || "");
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
     try { await updateAdmin({ kind: "church", id: props.id, ...values }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
   async function changeStatus(next: "approved" | "removed" | "deleted") {
+    if (next === "removed" && (!holdReason || holdNote.trim().length < 3)) {
+      setError("보류 사유를 선택하고 3자 이상의 관리자 메모를 입력해 주세요.");
+      return;
+    }
     const message = next === "removed"
       ? "이 교회를 보류 목록으로 옮길까요? 관련 설교도 함께 숨겨집니다."
       : next === "deleted"
@@ -24,10 +38,16 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
         : "이 교회를 다시 공개할까요? 숨겨진 설교는 자동 공개되지 않습니다.";
     if (!window.confirm(message)) return;
     setBusy(true); setError("");
-    try { await updateAdmin({ kind: "church", id: props.id, status: next }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
+    try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
   return <form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
+    <div className="admin-preference-fields">
+      <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option></select></label>
+      <label><span>보류 사유</span><select name="holdReason" value={holdReason} onChange={(event) => setHoldReason(event.target.value)}><option value="">선택해 주세요</option>{holdReasons.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+    </div>
+    <label className="admin-note-field"><span>관리자 메모 {props.status === "approved" && <small>· 보류 시 필수</small>}</span><textarea name="holdNote" value={holdNote} onChange={(event) => setHoldNote(event.target.value)} maxLength={500} rows={3} placeholder="확인한 근거와 다시 검토할 내용을 남겨 주세요." /></label>
+    {props.status === "removed" && props.heldAt && <p className="admin-held-at">최근 보류: {new Date(`${props.heldAt}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p>}
     <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button>{props.status === "approved" ? <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button> : <><button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></>}</div>{error && <p className="admin-error">{error}</p>}
   </form>;
 }

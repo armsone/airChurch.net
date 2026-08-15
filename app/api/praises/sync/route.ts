@@ -32,7 +32,7 @@ export async function POST() {
   const current = await db.prepare("SELECT COUNT(*) AS count FROM praise_videos WHERE status='published'").first<{ count: number }>();
   if (state && Number(current?.count || 0) >= 12 && Date.now() - Date.parse(state.lastSyncedAt) < 6 * 60 * 60 * 1000) return Response.json({ ok: true, imported: 0, total: current?.count || 0, skipped: "fresh" });
 
-  const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY name LIMIT 60").all<Church>();
+  const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
   const feeds = await Promise.allSettled(churches.results.map(async (church) => {
     const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`);
     if (!response.ok) return [];

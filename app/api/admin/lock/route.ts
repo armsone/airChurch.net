@@ -1,7 +1,7 @@
-import { clearTemporaryAdminCookie } from "../../../admin-access";
+import { clearAdminCookie } from "../../../admin-access";
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return new Response(null, { status: 403 });
-  return new Response(null, { status: 303, headers: { location: "/", "set-cookie": clearTemporaryAdminCookie(), "cache-control": "no-store" } });
+  return new Response(null, { status: 303, headers: { location: "/", "set-cookie": clearAdminCookie(), "cache-control": "no-store" } });
 }

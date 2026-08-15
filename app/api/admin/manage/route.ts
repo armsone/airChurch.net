@@ -1,15 +1,10 @@
-import { env } from "cloudflare:workers";
-import { hasTemporaryAdminAccess } from "../../../admin-access";
-import { getChatGPTUser } from "../../../chatgpt-auth";
+import { hasAdminAccess } from "../../../admin-access";
 import { clean, database, ensureCommunityTables, ensureSermonTables } from "../../_shared";
 
 async function isAdmin(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return false;
-  if (await hasTemporaryAdminAccess(request)) return true;
-  const user = await getChatGPTUser();
-  const allowedEmail = (env as unknown as { ADMIN_EMAIL?: string }).ADMIN_EMAIL?.trim().toLowerCase();
-  return Boolean(user && allowedEmail && user.email.toLowerCase() === allowedEmail);
+  return hasAdminAccess(request);
 }
 
 export async function PATCH(request: Request) {
@@ -27,17 +22,28 @@ export async function PATCH(request: Request) {
     const status = clean(data.status, 20);
     if (status) {
       if (!["approved", "removed", "deleted"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
+      const church = await db.prepare("SELECT review_status FROM churches WHERE id=?").bind(id).first<{ review_status: string }>();
+      if (!church) return Response.json({ error: "교회를 찾을 수 없습니다." }, { status: 404 });
       if (status === "deleted") {
-        const church = await db.prepare("SELECT review_status FROM churches WHERE id=?").bind(id).first<{ review_status: string }>();
-        if (!church) return Response.json({ error: "교회를 찾을 수 없습니다." }, { status: 404 });
         if (church.review_status !== "removed") return Response.json({ error: "보류된 교회만 삭제할 수 있습니다." }, { status: 409 });
       }
-      await db.prepare("UPDATE churches SET review_status=? WHERE id=?").bind(status, id).run();
+      if (status === "removed") {
+        const holdReason = clean(data.holdReason, 40), holdNote = clean(data.holdNote, 500);
+        if (!["youtube_unavailable", "inactive", "info_unverified", "review_needed", "other"].includes(holdReason) || holdNote.length < 3) return Response.json({ error: "보류 사유와 3자 이상의 관리자 메모를 입력해 주세요." }, { status: 400 });
+        await db.prepare("UPDATE churches SET review_status='removed',hold_reason=?,hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(holdReason, holdNote, id).run();
+      } else {
+        await db.prepare("UPDATE churches SET review_status=? WHERE id=?").bind(status, id).run();
+      }
       if (status === "removed" || status === "deleted") await db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(id).run();
     } else {
       const name = clean(data.name, 100), pastor = clean(data.pastor, 80), region = clean(data.region, 80), denomination = clean(data.denomination, 120);
+      const holdReason = clean(data.holdReason, 40), holdNote = clean(data.holdNote, 500), priorityWeight = Number(data.priorityWeight);
       if (!name || !pastor || !region || !denomination) return Response.json({ error: "교회 정보를 모두 입력해 주세요." }, { status: 400 });
-      await db.prepare("UPDATE churches SET name=?, pastor=?, region=?, denomination=? WHERE id=?").bind(name, pastor, region, denomination, id).run();
+      if (![1, 2, 3].includes(priorityWeight)) return Response.json({ error: "노출 비중을 확인해 주세요." }, { status: 400 });
+      const church = await db.prepare("SELECT review_status FROM churches WHERE id=?").bind(id).first<{ review_status: string }>();
+      if (!church) return Response.json({ error: "교회를 찾을 수 없습니다." }, { status: 404 });
+      if (church.review_status === "removed" && (!["youtube_unavailable", "inactive", "info_unverified", "review_needed", "other"].includes(holdReason) || holdNote.length < 3)) return Response.json({ error: "보류 교회에는 사유와 3자 이상의 관리자 메모가 필요합니다." }, { status: 400 });
+      await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,priority_weight=?,hold_reason=?,hold_note=? WHERE id=?").bind(name, pastor, region, denomination, priorityWeight, holdReason || null, holdNote || null, id).run();
     }
   } else if (kind === "sermon") {
     const status = clean(data.status, 20);

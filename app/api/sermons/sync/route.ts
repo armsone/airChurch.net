@@ -118,7 +118,7 @@ export async function POST(request:Request) {
   const requestedStart=Number(new URL(request.url).searchParams.get("start")||"0");
   const start=Number.isInteger(requestedStart)&&requestedStart>=0?requestedStart:0;
   const batch=sources.slice(start,start+20);
-  const cleanup=await db.prepare("UPDATE churches SET review_status='removed' WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
+  const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
@@ -135,7 +135,7 @@ export async function POST(request:Request) {
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
     if(!found) {
-      await db.prepare("UPDATE churches SET review_status='removed' WHERE name=? AND region=?").bind(source.name,source.region).run();
+      await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=?").bind(source.name,source.region).run();
       continue;
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
@@ -145,7 +145,7 @@ export async function POST(request:Request) {
     const activeSince=Date.now()-180*24*60*60*1000;
     const recentSermons=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isSermonTitle(item.snippet.title));
     if(!recentSermons.length) {
-      await db.prepare("UPDATE churches SET review_status='removed' WHERE name=? AND region=?").bind(source.name,source.region).run();
+      await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=?").bind(source.name,source.region).run();
       continue;
     }
     const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=?").bind(source.name,source.region).first<{id:number}>();
