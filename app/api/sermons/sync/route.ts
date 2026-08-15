@@ -111,21 +111,24 @@ const sources:Source[]=[
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 
-export async function POST() {
+export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db);
   const syncKey="youtube-v6-verified-100";
+  const requestedStart=Number(new URL(request.url).searchParams.get("start")||"0");
+  const start=Number.isInteger(requestedStart)&&requestedStart>=0?requestedStart:0;
+  const batch=sources.slice(start,start+20);
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed' WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
-  if(state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
+  if(start===0&&state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
     const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
     return Response.json({ok:true,approved:approved?.count??0,removed,imported:0,skipped:"fresh"});
   }
   let imported=0;
   let verified=0;
-  for(const source of sources) {
+  for(const source of batch) {
     const filter=source.channelId?`id=${encodeURIComponent(source.channelId)}`:source.handle?`forHandle=${encodeURIComponent(source.handle)}`:`forUsername=${encodeURIComponent(source.username||"")}`;
     const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&${filter}&key=${encodeURIComponent(key)}`);
     if(!channelResponse.ok) return Response.json({error:"YouTube channel verification failed",removed},{status:502});
@@ -157,6 +160,8 @@ export async function POST() {
     verified++;
     for(const item of recentSermons.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); imported++; }
   }
-  await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
-  return Response.json({ok:true,verified,removed,imported});
+  const nextStart=start+batch.length;
+  if(nextStart>=sources.length) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
+  const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
+  return Response.json({ok:true,verified,approved:approved?.count??0,removed,imported,nextStart:nextStart<sources.length?nextStart:null});
 }
