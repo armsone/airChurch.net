@@ -19,6 +19,11 @@ const goals = [
   ["상식이 통하는 공동체", "하나님만 영광받고 예수님이 주인 되며 평신도가 함께 운영합니다."],
 ];
 
+const regions = [
+  "전체 지역", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
+  "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
+];
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("전체 지역");
@@ -61,7 +66,7 @@ export default function Home() {
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
-          <select aria-label="지역 선택" value={region} onChange={(e) => setRegion(e.target.value)}><option>전체 지역</option><option>서울</option><option>경기</option></select>
+          <select aria-label="지역 선택" value={region} onChange={(e) => setRegion(e.target.value)}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
           <a href="#sermons">찾기</a>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>

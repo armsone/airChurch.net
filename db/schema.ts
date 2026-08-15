@@ -14,3 +14,6 @@ export const communityPosts = sqliteTable("community_posts", {
   id: integer("id").primaryKey({ autoIncrement: true }), category: text("category").notNull(), nickname: text("nickname").notNull(), content: text("content").notNull(), status: text("status").notNull().default("pending"), reportCount: integer("report_count").notNull().default(0), fingerprint: text("fingerprint").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_community_posts_status_created").on(table.status, table.createdAt)]);
 export const syncState = sqliteTable("sync_state", { key: text("key").primaryKey(), lastSyncedAt: text("last_synced_at").notNull() });
+export const pageViews = sqliteTable("page_views", {
+  id: integer("id").primaryKey({ autoIncrement: true }), path: text("path").notNull(), referrerDomain: text("referrer_domain"), visitorHash: text("visitor_hash").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [index("idx_page_views_created").on(table.createdAt), index("idx_page_views_visitor_created").on(table.visitorHash, table.createdAt), index("idx_page_views_path_created").on(table.path, table.createdAt)]);

@@ -17,5 +17,13 @@ export async function ensureSermonTables(db:D1Database) {
     db.prepare("CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, last_synced_at TEXT NOT NULL)"),
   ]);
 }
+export async function ensureAnalyticsTables(db:D1Database) {
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL, referrer_domain TEXT, visitor_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_visitor_created ON page_views(visitor_hash, created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_path_created ON page_views(path, created_at DESC)"),
+  ]);
+}
 export async function fingerprint(request: Request) { const ip=request.headers.get("cf-connecting-ip")||"local", agent=request.headers.get("user-agent")||"unknown", day=new Date().toISOString().slice(0,10); const bytes=new TextEncoder().encode(`${ip}|${agent}|${day}`); return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map((b)=>b.toString(16).padStart(2,"0")).join(""); }
 export function clean(value:unknown,max:number) { return typeof value === "string" ? value.trim().replace(/<[^>]*>/g,"").slice(0,max) : ""; }
