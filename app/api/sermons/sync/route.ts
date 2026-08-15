@@ -35,7 +35,7 @@ export async function POST() {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key) return Response.json({error:"YouTube API key not configured"},{status:503});
   const db=database(); await ensureSermonTables(db);
-  const syncKey="youtube-v2";
+  const syncKey="youtube-v3";
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
   if(state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) return Response.json({ok:true,skipped:"fresh"});
   let imported=0;
