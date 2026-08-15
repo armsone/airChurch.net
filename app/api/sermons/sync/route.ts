@@ -19,6 +19,13 @@ const sources:Source[]=[
   {name:"영락교회",pastor:"김운성 목사",region:"서울 중구",denomination:"대한예수교장로회 통합",handle:"@youngnakchurch"},
   {name:"사랑의교회",pastor:"오정현 목사",region:"서울 서초",denomination:"대한예수교장로회 합동",handle:"@sarangchurch121"},
   {name:"서머나교회",pastor:"배성현 목사",region:"경남 창원",denomination:"대한예수교장로회 합동",handle:"@서머나교회"},
+  {name:"선한목자교회",pastor:"김다위 목사",region:"경기 성남",denomination:"기독교대한감리회",channelId:"UCjXMsndMsc538jppd4zqnCg"},
+  {name:"남서울교회",pastor:"화종부 목사",region:"서울 서초",denomination:"대한예수교장로회 합동",handle:"@namseoulchurch"},
+  {name:"주안교회",pastor:"주승중 목사",region:"인천 부평",denomination:"대한예수교장로회 통합",handle:"@juanchurch"},
+  {name:"지구촌교회",pastor:"김우준 목사",region:"경기 성남",denomination:"기독교한국침례회",channelId:"UCk9nXMCHaKKjEV3waM5327g"},
+  {name:"할렐루야교회",pastor:"김승욱 목사",region:"경기 성남",denomination:"한국독립교회선교단체연합회",channelId:"UCjHPrYoxZnPlYohdMQYEL7A"},
+  {name:"포항제일교회",pastor:"박영호 목사",region:"경북 포항",denomination:"대한예수교장로회 통합",handle:"@pohangjeil"},
+  {name:"제자광성교회",pastor:"박한수 목사",region:"경기 고양",denomination:"대한예수교장로회",channelId:"UCh3BRUypgg56_4KFXUn3UaQ"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
