@@ -50,6 +50,31 @@ export default function Home() {
     }
   }
 
+  async function shareSermon(sermon: Sermon) {
+    const url = sermon.youtubeId ? `https://www.youtube.com/watch?v=${sermon.youtubeId}` : window.location.href;
+    const text = `${sermon.church} · ${sermon.pastor}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: sermon.title, text, url });
+        setNotice("공유 화면을 열었습니다.");
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setNotice("설교 링크를 복사했습니다.");
+    } catch (error) {
+      if ((error as { name?: string })?.name === "AbortError") return;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setNotice("설교 링크를 복사했습니다.");
+      } catch {
+        setNotice("공유하지 못했습니다. 다시 시도해 주세요.");
+      }
+    }
+  }
+
   return (
     <main>
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
@@ -77,7 +102,7 @@ export default function Home() {
         <div className="sermon-grid">
           {filtered.map((sermon) => <article className="sermon-card" key={sermon.id}>
               <div className={`sermon-thumb ${sermon.tone}`} style={sermon.thumbnailUrl?{backgroundImage:`url(${sermon.thumbnailUrl})`}:undefined}><span className="rank">{sermon.rank}</span>{sermon.youtubeId?<a className="play" href={`https://www.youtube.com/watch?v=${sermon.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${sermon.church} 설교 재생`}>▶</a>:<button aria-label={`${sermon.church} 설교 재생`}>▶</button>}<span className="duration">{sermon.date}</span></div>
-            <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button onClick={() => setNotice(`${sermon.church}를 응원했습니다. 건강한 응원만 집계됩니다.`)}>♡ 응원</button><button onClick={() => navigator.clipboard?.writeText(location.href)}>↗ 공유</button></div></div>
+            <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => setNotice(`${sermon.church}를 응원했습니다. 건강한 응원만 집계됩니다.`)}>♡ 응원</button><button type="button" onClick={() => void shareSermon(sermon)}>↗ 공유</button></div></div>
           </article>)}
           {!filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
