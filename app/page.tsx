@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import HomeReloadLink from "./home-reload-link";
 
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
@@ -85,8 +86,7 @@ export default function Home() {
     <main>
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
       <header className="site-header">
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a className="brand" href="/" aria-label="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></a>
+        <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
         <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
         <a className="support-button" href="#talent">내 달란트 나누기</a>
       </header>
@@ -158,8 +158,7 @@ export default function Home() {
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons-end" aria-label="설교 목록 마지막으로 이동" title="설교 마지막" /><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a className="brand footer-brand" href="/"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></a><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div>
       </footer>
     </main>
   );
