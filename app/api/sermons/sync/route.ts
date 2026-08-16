@@ -106,7 +106,7 @@ const sources:Source[]=[
   {name:"사직동교회",pastor:"복기훈 목사",region:"부산 동래",denomination:"대한예수교장로회 고신",channelId:"UCAXgvRIr3pfcA4axe5o6Wiw"},
   {name:"전주중부교회",pastor:"박종숙 목사",region:"전북 전주",denomination:"대한예수교장로회 통합",channelId:"UC8DFCt9vnYOjoTH5DNNtIjQ"},
   {name:"순천제일교회",pastor:"조주희 목사",region:"전남 순천",denomination:"대한예수교장로회 통합",channelId:"UCCrL0h5hhNCCXuNVSPKQ_OQ"},
-  {name:"예수님의사람들교회",pastor:"차길웅 목사",region:"경기 광주",denomination:"기독교대한감리회",handle:"@예수님의사람들교회"},
+  {name:"복된이웃교회",pastor:"이동현 목사",region:"경기 광주",denomination:"대한예수교장로회 백석",handle:"@복된이웃교회"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};

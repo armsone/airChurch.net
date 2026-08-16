@@ -6,7 +6,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://airchurch.net"),
   title: "에어처치 | 말씀과 선한 마음이 만나는 곳",
   description: "검증된 교회의 설교를 발견하고, 우리 교회를 응원하며, 착한 나눔에 참여하는 크리스천 포털",
-  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "에어처치 | 말씀과 선한 마음이 만나는 곳",
     description: "말씀을 발견하고, 교회를 응원하며, 나의 달란트로 누군가의 내일을 돕습니다.",
