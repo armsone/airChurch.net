@@ -5,6 +5,21 @@ import { isSermonTitle } from "../_selection";
 type SourceBase={name:string;pastor:string;region:string;denomination:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
 
+const heldSources:SourceBase[]=[
+  {name:"해마루광성교회",pastor:"김희중 목사",region:"경기 파주",denomination:"대한예수교장로회 통합"},
+  {name:"푸른빛광성교회",pastor:"문재진 목사",region:"지역 확인 필요",denomination:"대한예수교장로회 통합"},
+  {name:"사랑의빛광성교회",pastor:"박경환 목사",region:"지역 확인 필요",denomination:"대한예수교장로회 통합"},
+  {name:"교하광성교회",pastor:"홍종학 목사",region:"경기 파주",denomination:"대한예수교장로회 통합"},
+  {name:"열린광성교회",pastor:"김광배 목사",region:"지역 확인 필요",denomination:"대한예수교장로회 통합"},
+  {name:"일선누림교회",pastor:"박순원 목사",region:"지역 확인 필요",denomination:"대한예수교장로회 통합"},
+  {name:"천안광성교회",pastor:"이한결 목사",region:"충남 천안",denomination:"대한예수교장로회 통합"},
+];
+
+async function seedHeldSources(db:D1Database) {
+  const holdNote="지난 24곳 재검토에서 공식 YouTube 채널과 최근 180일 내 설교·예배 운영을 확인하지 못해 보류했습니다. 새 추천 시 이 기록과 먼저 비교합니다.";
+  await db.batch(heldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=? AND review_status!='deleted')").bind(source.name,source.pastor,source.region,source.denomination,holdNote,source.name)));
+}
+
 const sources:Source[]=[
   {name:"온누리교회",pastor:"이재훈 목사",region:"서울 용산",denomination:"대한예수교장로회 통합",handle:"@Onnuriservice"},
   {name:"분당우리교회",pastor:"이찬수 목사",region:"경기 성남",denomination:"대한예수교장로회 합동",handle:"@BundangWooriChurch"},
@@ -130,7 +145,7 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
-  const db=database(); await ensureSermonTables(db);
+  const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
   const syncKey="youtube-v7-verified-117";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");

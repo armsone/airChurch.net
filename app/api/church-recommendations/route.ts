@@ -1,4 +1,4 @@
-import { clean, database, ensureChurchRecommendationTables, fingerprint } from "../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint } from "../_shared";
 
 function validYoutubeUrl(value:string) {
   if(!value) return true;
@@ -14,7 +14,9 @@ export async function POST(request:Request) {
   const churchName=clean(data.churchName,100),pastor=clean(data.pastor,80),region=clean(data.region,80),denomination=clean(data.denomination,120),youtubeUrl=clean(data.youtubeUrl,300),reason=clean(data.reason,800);
   if(churchName.length<2||pastor.length<2||region.length<2||denomination.length<2||reason.length<10||!validYoutubeUrl(youtubeUrl)) return Response.json({error:"교회 정보와 추천 이유를 확인해 주세요."},{status:400});
   const db=database();
-  await ensureChurchRecommendationTables(db);
+  await Promise.all([ensureChurchRecommendationTables(db),ensureSermonTables(db)]);
+  const held=await db.prepare("SELECT id FROM churches WHERE name=? AND review_status='removed' LIMIT 1").bind(churchName).first();
+  if(held) return Response.json({ok:true,status:"already_held"});
   const fp=await fingerprint(request);
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM church_recommendations WHERE fingerprint=? AND created_at>datetime('now','-10 minutes')").bind(fp).first<{count:number}>();
   if((recent?.count||0)>=2) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429});
