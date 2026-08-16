@@ -28,6 +28,7 @@ const regions = [
   "전체 지역", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
   "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
 ];
+const menuItems = [["말씀","#sermons"],["찬양","#praises"],["등록교회","#church-directory"],["랭킹","#rankings"],["착한나눔","#goodshare"],["광장","#community"],["비전","#vision"]] as const;
 
 function shuffled<T>(items: T[]) {
   const result = [...items];
@@ -57,6 +58,7 @@ export default function Home() {
   const [region, setRegion] = useState("전체 지역");
   const [ranking, setRanking] = useState("말씀");
   const [notice, setNotice] = useState("");
+  const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
   const [sermonLoading,setSermonLoading]=useState(true);
@@ -198,8 +200,9 @@ export default function Home() {
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
       <header className="site-header">
         <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
-        <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#praises">찬양</a><a href="#church-directory">교회</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
-        <a className="support-button" href="#talent">내 달란트 나누기</a>
+        <nav aria-label="주요 메뉴">{menuItems.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
+        <button className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-site-menu" onClick={()=>setMobileMenuOpen((open)=>!open)}><span aria-hidden="true">☰</span> 메뉴</button>
+        <div className={`mobile-menu-panel${mobileMenuOpen?" is-open":""}`} id="mobile-site-menu" aria-hidden={!mobileMenuOpen}>{menuItems.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}</div>
       </header>
 
       <section className="hero" id="top">

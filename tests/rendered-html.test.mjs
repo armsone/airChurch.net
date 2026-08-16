@@ -111,3 +111,13 @@ test("reports live traffic safely and plays videos in place", async () => {
   assert.match(page,/className="video-frame"/);
   assert.match(styles,/\.sermon-thumb \.play \{ background:rgba\(255,255,255,\.5\)/);
 });
+
+test("shows a complete mobile header menu instead of the talent button", async () => {
+  const [page,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(page,/mobile-menu-button/);
+  assert.match(page,/mobile-menu-panel/);
+  assert.match(page,/aria-expanded=\{mobileMenuOpen\}/);
+  assert.match(page,/\["등록교회","#church-directory"\]/);
+  assert.doesNotMatch(page,/className="support-button"/);
+  assert.match(styles,/\.mobile-menu-panel\.is-open\{display:grid\}/);
+});
