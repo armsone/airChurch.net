@@ -1,5 +1,5 @@
 import { accessRole } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureSermonTables } from "../../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureReviewerTables, ensureSermonTables } from "../../_shared";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
@@ -18,9 +18,14 @@ export async function PATCH(request: Request) {
   if (!Number.isInteger(id) || id < 1) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
-  await Promise.all([ensureCommunityTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db)]);
+  await Promise.all([ensureCommunityTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 
-  if(kind==="church-review") {
+  if(kind==="reviewer-account") {
+    if(role!=="admin") return Response.json({error:"관리자만 검토자를 승인할 수 있습니다."},{status:403});
+    const status=clean(data.status,20);
+    if(!["pending","approved","rejected"].includes(status)) return Response.json({error:"가입 상태를 확인해 주세요."},{status:400});
+    await db.prepare("UPDATE reviewer_accounts SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
+  } else if(kind==="church-review") {
     const status=clean(data.status,20),note=clean(data.note,500);
     if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
     if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});

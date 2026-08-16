@@ -35,6 +35,7 @@ export default function AdminLogin() {
         <button disabled={busy} type="submit">{busy ? "확인 중…" : "로그인"}</button>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
       </form>
+      <a className="reviewer-join-link" href="/review/join">목회자 검토자 가입 신청</a>
       <HomeReloadLink>← 사이트로 돌아가기</HomeReloadLink>
     </section>
   </main>;

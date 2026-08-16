@@ -50,3 +50,15 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 @media (max-width:760px) { .reviewer-metrics{grid-template-columns:1fr 1fr 1fr}.reviewer-church-list{grid-template-columns:1fr}.reviewer-church-heading{gap:8px}.reviewer-church-heading>div:last-child{max-width:110px}.church-review-control>div{align-items:flex-start;flex-direction:column} }
 .admin-church-details { margin-top:11px;border-top:1px solid #edf0ed;padding-top:9px; }.admin-church-details>summary { color:#53675e;font-size:10px;font-weight:850;cursor:pointer;list-style-position:inside; }.admin-church-details[open]>summary { color:var(--orange); }.admin-church-details .admin-edit-form { margin-top:13px; }
 @media (max-width:760px) { .site-header{position:relative;z-index:30;background:var(--paper)}.mobile-menu-button{margin-left:auto;display:flex;align-items:center;gap:7px;padding:10px 15px;border:1px solid var(--ink);border-radius:999px;background:white;color:var(--ink);font-size:12px;font-weight:850;cursor:pointer}.mobile-menu-button span{font-size:14px}.mobile-menu-panel{position:absolute;z-index:31;top:60px;right:16px;width:min(320px,calc(100vw - 32px));padding:10px;grid-template-columns:1fr 1fr;gap:5px;border:1px solid var(--line);border-radius:16px;background:rgba(255,254,250,.98);box-shadow:0 18px 45px rgba(24,54,47,.18);backdrop-filter:blur(12px)}.mobile-menu-panel.is-open{display:grid}.mobile-menu-panel a{padding:13px 12px;border-radius:10px;background:#f4f6f3;color:var(--ink);font-size:13px;font-weight:800}.mobile-menu-panel a:active{background:#e8efea} }
+.church-recommendation { display:block;padding:24px 28px; }
+.church-recommendation-intro { display:flex;align-items:center;justify-content:space-between;gap:28px; }
+.church-recommendation-intro>div { min-width:0; }
+.church-recommendation-intro h2 { margin:7px 0 0!important;font-size:25px!important; }
+.church-recommendation-intro p { margin:8px 0 0;color:var(--muted);font-size:12px; }
+.church-recommendation-intro>button { flex:none;padding:11px 18px;border:1px solid var(--ink);border-radius:999px;background:var(--ink);color:white;font-size:12px;font-weight:850;cursor:pointer; }
+.church-recommendation.is-open { padding:32px 36px; }
+.church-recommendation.is-open .church-recommendation-form { max-width:780px;margin:24px auto 0; }
+@media (max-width:760px) { .church-recommendation,.church-recommendation.is-open{padding:20px 18px}.church-recommendation-intro{align-items:flex-start;gap:14px}.church-recommendation-intro h2{font-size:22px!important}.church-recommendation-intro p{font-size:11px}.church-recommendation-intro>button{padding:9px 13px}.church-recommendation.is-open .church-recommendation-form{margin-top:18px} }
+.reviewer-join-link { display:block;margin-top:18px;padding:11px;border:1px solid var(--line);border-radius:10px;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;text-align:center; }
+.reviewer-signup-card { max-width:540px; }
+.reviewer-signup-success { margin:24px 0!important;padding:16px;border-radius:12px;background:#e7f4eb;color:#3e7456!important;font-size:13px!important;font-weight:750;line-height:1.6!important; }

@@ -73,6 +73,16 @@ export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" |
   return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{kind === "recommendation" ? "교회 등록 승인" : "공개 승인"}</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{kind === "recommendation" ? "등록하지 않음" : "비공개"}</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}{error && <span className="admin-error">{error}</span>}</div>;
 }
 
+export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function setStatus(next:"pending"|"approved"|"rejected") {
+    if(next==="rejected"&&!window.confirm("이 목회자 가입 신청을 거절할까요?")) return;
+    setBusy(true);setError("");
+    try { await updateAdmin({kind:"reviewer-account",id,status:next}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
+  }
+  return <div className="admin-action-row"><button disabled={busy||status==="approved"} className="restore" onClick={()=>void setStatus("approved")}>검토 권한 승인</button><button disabled={busy||status==="rejected"} className="danger" onClick={()=>void setStatus("rejected")}>가입 거절</button>{status!=="pending"&&<button disabled={busy} onClick={()=>void setStatus("pending")}>재검토</button>}{error&&<span className="admin-error">{error}</span>}</div>;
+}
+
 export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;status:string;note:string|null;reviewedAt:string|null}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function save(event:FormEvent<HTMLFormElement>) {

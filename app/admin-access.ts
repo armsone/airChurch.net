@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
+import { database, ensureReviewerTables } from "./api/_shared";
 
 const COOKIE_NAME = "airchurch_admin_v2";
 const SESSION_SECONDS = 12 * 60 * 60;
@@ -22,6 +23,19 @@ function constantTimeEqual(left: string, right: string) {
   return difference === 0;
 }
 
+function base64url(bytes:Uint8Array) { return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, ""); }
+
+async function passwordDigest(password:string,salt:string) {
+  const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:new TextEncoder().encode(salt),iterations:150_000},material,256);
+  return base64url(new Uint8Array(bits));
+}
+
+export async function hashReviewerPassword(password:string) {
+  const salt=base64url(crypto.getRandomValues(new Uint8Array(18)));
+  return {salt,hash:await passwordDigest(password,salt)};
+}
+
 function cookieValue(header: string | null) {
   return header?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`))?.slice(COOKIE_NAME.length + 1) ?? null;
 }
@@ -35,6 +49,10 @@ export async function verifyCredentials(username: string, password: string):Prom
     const [usernameDigest,passwordDigest]=await Promise.all([signature(expectedUsername.trim(),ADMIN_SESSION_SECRET),signature(expectedPassword,ADMIN_SESSION_SECRET)]);
     if(constantTimeEqual(suppliedUsername,usernameDigest)&&constantTimeEqual(suppliedPassword,passwordDigest)) return role;
   }
+  const db=database();
+  await ensureReviewerTables(db);
+  const reviewer=await db.prepare("SELECT password_hash,password_salt FROM reviewer_accounts WHERE username=? AND status='approved' LIMIT 1").bind(username.trim().toLowerCase()).first<{password_hash:string;password_salt:string}>();
+  if(reviewer&&constantTimeEqual(await passwordDigest(password,reviewer.password_salt),reviewer.password_hash)) return "reviewer";
   return null;
 }
 

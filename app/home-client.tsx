@@ -71,6 +71,7 @@ export default function Home() {
   const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
   const [churchLoading,setChurchLoading]=useState(true);
   const [showAllChurches,setShowAllChurches]=useState(false);
+  const [showRecommendationForm,setShowRecommendationForm]=useState(false);
   useEffect(()=>{
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
@@ -152,10 +153,17 @@ export default function Home() {
       if(!response.ok) throw new Error();
       const result=await response.json() as {status?:string};
       form.reset();
+      setShowRecommendationForm(false);
       setNotice(result.status==="already_held"?"이미 보류 기록이 있는 교회입니다. 기존 보류 사유와 비교해 중복 접수하지 않았습니다.":result.status==="already_received"?"이미 접수되었거나 공개 중인 교회입니다.":"교회 추천을 접수했습니다. 관리자가 교단과 공식 채널을 확인한 뒤 등록 여부를 결정합니다.");
     } catch {
       setNotice("추천을 접수하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.");
     }
+  }
+
+  function toggleChurchDirectory() {
+    const collapsing=showAllChurches;
+    setShowAllChurches(!showAllChurches);
+    if(collapsing) requestAnimationFrame(()=>document.querySelector("#church-directory")?.scrollIntoView({block:"start",behavior:"smooth"}));
   }
 
   async function shareVideo(video: { youtubeId?: string; title: string; church: string; pastor: string }) {
@@ -248,17 +256,17 @@ export default function Home() {
         <div className="section-heading"><div><span className="section-kicker">전국 교회 찾기</span><h2>등록 교회 목록</h2></div><span className="result-count">{churchLoading?"교회 목록을 불러오는 중…":`${filteredChurches.length}개 교회`}</span></div>
         <div className="ai-directory-note"><span aria-hidden="true">AI</span><div><strong>AI에 의해 자동 검색되고 등록된 리스트입니다.</strong><p>공식 홈페이지·교단 정보·공식 영상 채널을 바탕으로 수집하며, 이용자 추천은 관리자 검토와 승인 후에만 목록에 포함됩니다.</p></div></div>
         {churchLoading?<div className="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid">{visibleChurches.map((church)=><article key={church.id}><span>{church.region}</span><h3>{church.name}</h3><p>{church.pastor}</p><small>{church.denomination}</small></article>)}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
-        {!churchLoading&&!query.trim()&&region==="전체 지역"&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={()=>setShowAllChurches((shown)=>!shown)}>{showAllChurches?"12개만 보기":`전체 ${filteredChurches.length}개 보기`}</button>}
-        <div className="church-recommendation">
-          <div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천 내용은 바로 공개되지 않습니다. 관리자가 교단 소속, 공식 홈페이지와 공식 YouTube 채널을 확인한 뒤 등록 여부를 결정합니다.</p></div>
-          <form className="church-recommendation-form" onSubmit={submitChurchRecommendation}>
+        {!churchLoading&&!query.trim()&&region==="전체 지역"&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{showAllChurches?"12개만 보기":`전체 ${filteredChurches.length}개 보기`}</button>}
+        <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
+          <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>
+          {showRecommendationForm&&<form className="church-recommendation-form" id="church-recommendation-form" onSubmit={submitChurchRecommendation}>
             <div className="recommendation-fields"><label>교회명<input name="churchName" minLength={2} maxLength={100} required /></label><label>담임목사<input name="pastor" minLength={2} maxLength={80} required /></label><label>지역<select name="region" required defaultValue=""><option value="" disabled>지역 선택</option>{regions.slice(1).map((item)=><option key={item}>{item}</option>)}</select></label><label>교단<input name="denomination" minLength={2} maxLength={120} required placeholder="예: 대한예수교장로회 통합" /></label></div>
             <label>공식 YouTube 주소 <small>선택</small><input name="youtubeUrl" type="url" inputMode="url" maxLength={300} placeholder="https://www.youtube.com/@..." /></label>
             <label>추천 이유<textarea name="reason" minLength={10} maxLength={800} rows={4} required placeholder="이 교회를 추천하는 이유를 10자 이상 적어 주세요." /></label>
             <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" />
             <label className="agreement"><input type="checkbox" required /> 관리자 검토 후 등록 여부가 결정되는 것에 동의합니다.</label>
             <button type="submit">교회 추천 보내기</button>
-          </form>
+          </form>}
         </div>
       </section>
 
@@ -305,7 +313,7 @@ export default function Home() {
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a><a href="/review">목사님 검토</a></div>
       </footer>
     </main>
   );

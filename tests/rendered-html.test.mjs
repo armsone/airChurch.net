@@ -121,3 +121,36 @@ test("shows a complete mobile header menu instead of the talent button", async (
   assert.doesNotMatch(page,/className="support-button"/);
   assert.match(styles,/\.mobile-menu-panel\.is-open\{display:grid\}/);
 });
+
+test("collapses the church list to its heading and reveals recommendations on demand", async () => {
+  const page=await readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8");
+  assert.match(page,/function toggleChurchDirectory/);
+  assert.match(page,/querySelector\("#church-directory"\)\?\.scrollIntoView/);
+  assert.match(page,/showRecommendationForm/);
+  assert.match(page,/aria-controls="church-recommendation-form"/);
+  assert.match(page,/showRecommendationForm&&<form/);
+});
+
+test("supports multiple approved church reviewer accounts", async () => {
+  const [access,signup,login,admin,manage,shared,schema]=await Promise.all([
+    readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(access,/PBKDF2/);
+  assert.match(access,/reviewer_accounts WHERE username=\? AND status='approved'/);
+  assert.match(signup,/status,fingerprint\) VALUES \(\?,\?,\?,\?,\?,'pending',\?\)/);
+  assert.match(login,/\/review\/join/);
+  assert.match(admin,/목회자 검토자 가입/);
+  assert.match(manage,/kind==="reviewer-account"/);
+  assert.match(shared,/CREATE TABLE IF NOT EXISTS reviewer_accounts/);
+  assert.match(schema,/reviewerAccounts = sqliteTable\("reviewer_accounts"/);
+  assert.match(admin,/href="\/review">목사님 페이지/);
+  assert.match(admin,/관리자가 최종 결정/);
+  const review=await readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8");
+  assert.match(review,/href="\/admin">전체 관리/);
+});
