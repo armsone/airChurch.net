@@ -107,6 +107,22 @@ const sources:Source[]=[
   {name:"전주중부교회",pastor:"박종숙 목사",region:"전북 전주",denomination:"대한예수교장로회 통합",channelId:"UC8DFCt9vnYOjoTH5DNNtIjQ"},
   {name:"순천제일교회",pastor:"조주희 목사",region:"전남 순천",denomination:"대한예수교장로회 통합",channelId:"UCCrL0h5hhNCCXuNVSPKQ_OQ"},
   {name:"복된이웃교회",pastor:"이동현 목사",region:"경기 광주",denomination:"대한예수교장로회 백석",handle:"@복된이웃교회"},
+  {name:"큰빛광성교회",pastor:"이대성 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@kbks8332"},
+  {name:"은혜광성교회",pastor:"박재신 목사",region:"서울 강동",denomination:"대한예수교장로회 백석",handle:"@GraceKwangsung"},
+  {name:"생명의빛광성교회",pastor:"이춘태 목사",region:"서울 서초",denomination:"대한예수교장로회 통합",handle:"@생명의빛광성교회"},
+  {name:"덕양중앙교회",pastor:"이형기 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@덕양중앙교회"},
+  {name:"물댄동산수림교회",pastor:"신종렬 목사",region:"경기 의정부",denomination:"대한예수교장로회 통합",handle:"@물댄동산수림교회신종"},
+  {name:"주만교회",pastor:"이범주 목사",region:"인천 남동",denomination:"대한예수교장로회 통합",handle:"@jooman"},
+  {name:"하늘빛광성교회",pastor:"박경수 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@hlkc2015"},
+  {name:"밀알교회",pastor:"신동명 목사",region:"서울 강서",denomination:"대한예수교장로회 통합",handle:"@milalch"},
+  {name:"불로교회",pastor:"한민수 목사",region:"인천 서구",denomination:"대한예수교장로회 통합",handle:"@불로교회"},
+  {name:"거룩한빛시온교회",pastor:"서동훈 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@Sionchurch2019"},
+  {name:"거룩한빛운정교회",pastor:"유정상 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",handle:"@hlujch"},
+  {name:"상도중앙교회",pastor:"박봉수 목사",region:"서울 동작",denomination:"대한예수교장로회 통합",handle:"@상도중앙교회"},
+  {name:"은혜의빛광성교회",pastor:"장동훈 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@thelightofgracechurch"},
+  {name:"주와길교회",pastor:"최병화 목사",region:"경기 양주",denomination:"대한예수교장로회 통합",handle:"@lordnroad_church"},
+  {name:"거룩한빛등대교회",pastor:"문상원 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@ddchurchorg"},
+  {name:"거룩한빛예안교회",pastor:"이병철 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",handle:"@je-anchurch"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -115,7 +131,7 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db);
-  const syncKey="youtube-v6-verified-100";
+  const syncKey="youtube-v7-verified-117";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;
