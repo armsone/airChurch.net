@@ -51,4 +51,6 @@ test("loads a larger sermon catalog in batches", async () => {
   assert.match(page,/previewSermons = filtered\.slice\(visibleSermonCount,visibleSermonCount\+3\)/);
   assert.match(page,/눌러서 말씀 더 보기/);
   assert.match(page,/말씀 30개 더 보기/);
+  assert.match(page,/className="thumbnail-image"/);
+  assert.match(page,/loading="lazy" decoding="async"/);
 });
