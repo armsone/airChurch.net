@@ -37,34 +37,67 @@ function shuffled<T>(items: T[]) {
   return result;
 }
 
+function LoadingCards({ count = 3 }: { count?: number }) {
+  return Array.from({ length: count }, (_, index) => (
+    <article className="sermon-card skeleton-card" aria-hidden="true" key={`skeleton-${index}`}>
+      <div className="sermon-thumb skeleton-thumb" />
+      <div className="sermon-copy skeleton-copy">
+        <span className="skeleton-line skeleton-kicker" />
+        <span className="skeleton-line skeleton-title" />
+        <span className="skeleton-line skeleton-meta" />
+        <div className="skeleton-actions"><span /><span /></div>
+      </div>
+    </article>
+  ));
+}
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("전체 지역");
   const [ranking, setRanking] = useState("말씀");
   const [notice, setNotice] = useState("");
-  const [sermonItems,setSermonItems]=useState<Sermon[]>(sermons);
+  const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
+  const [sermonLoading,setSermonLoading]=useState(true);
   const [visibleSermonCount,setVisibleSermonCount]=useState(30);
   const [praiseItems,setPraiseItems]=useState<Praise[]>([]);
+  const [praiseLoading,setPraiseLoading]=useState(true);
   const [showAllPraise,setShowAllPraise]=useState(false);
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   useEffect(()=>{
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
-    Promise.all([
-      loadItems("/api/sermons"),
-      loadItems("/api/praises"),
-      loadItems("/api/posts"),
-      loadItems("/api/talents"),
-    ]).then(([sermonData,praiseData,postData,talentData])=>{
-      if(!alive)return;
+    loadItems("/api/sermons").then((sermonData)=>{
+      if(!alive) return;
       const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
-      if(sermonResults?.length) setSermonItems(sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})));
-      setPraiseItems(shuffled((praiseData as {items?:Praise[]}).items||[]));
-      setApprovedPosts((postData as {items?:CommunityItem[]}).items||[]);
-      setApprovedTalents((talentData as {items?:TalentItem[]}).items||[]);
-    }).catch(()=>null);
-    return()=>{alive=false};
+      setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
+      setSermonLoading(false);
+    });
+
+    const loaders: Record<string, () => void> = {
+      praises: ()=>loadItems("/api/praises").then((data)=>{
+        if(!alive) return;
+        setPraiseItems(shuffled((data as {items?:Praise[]}).items||[]));
+        setPraiseLoading(false);
+      }),
+      community: ()=>loadItems("/api/posts").then((data)=>{
+        if(alive) setApprovedPosts((data as {items?:CommunityItem[]}).items||[]);
+      }),
+      talent: ()=>loadItems("/api/talents").then((data)=>{
+        if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
+      }),
+    };
+    const loaded=new Set<string>();
+    const loadSection=(id:string)=>{ if(!loaded.has(id)){ loaded.add(id);loaders[id]?.(); } };
+    if(!("IntersectionObserver" in window)) {
+      Object.keys(loaders).forEach(loadSection);
+      return()=>{alive=false};
+    }
+    const observer=new IntersectionObserver((entries)=>entries.forEach((entry)=>{
+      if(entry.isIntersecting) { loadSection(entry.target.id);observer.unobserve(entry.target); }
+    }),{rootMargin:"800px 0px"});
+    Object.keys(loaders).forEach((id)=>{ const section=document.getElementById(id);if(section) observer.observe(section); });
+    return()=>{alive=false;observer.disconnect()};
   },[]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
@@ -142,29 +175,29 @@ export default function Home() {
       </section>
 
       <section className="content-section" id="sermons">
-        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">검색한 교회 {sermonChurchCount}개 · 설교말씀 {filtered.length}개</span></div>
+        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">{sermonLoading ? "말씀을 불러오는 중…" : `검색한 교회 ${sermonChurchCount}개 · 설교말씀 ${filtered.length}개`}</span></div>
         <div className="sermon-grid">
-          {visibleSermons.map((sermon, index) => <article className="sermon-card" id={index === visibleSermons.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
+          {sermonLoading ? <LoadingCards count={6} /> : visibleSermons.map((sermon, index) => <article className="sermon-card" id={index === visibleSermons.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
               <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span>{sermon.youtubeId?<a className="play" href={`https://www.youtube.com/watch?v=${sermon.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${sermon.church} 설교 재생`}>▶</a>:<button aria-label={`${sermon.church} 설교 재생`}>▶</button>}<span className="duration">{sermon.date}</span></div>
             <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => setNotice(`${sermon.church}를 응원했습니다. 건강한 응원만 집계됩니다.`)}>♡ 응원</button><button type="button" onClick={() => void shareVideo(sermon)}>↗ 공유</button></div></div>
           </article>)}
-          {!filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
+          {!sermonLoading && !filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
-        {previewSermons.length > 0 && <div className="sermon-next-preview"><div className="sermon-grid">{previewSermons.map((sermon)=><article className="sermon-card" key={`preview-${sermon.id}`}>
+        {!sermonLoading && previewSermons.length > 0 && <div className="sermon-next-preview"><div className="sermon-grid">{previewSermons.map((sermon)=><article className="sermon-card" key={`preview-${sermon.id}`}>
           <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p></div>
         </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+30)} aria-label="말씀 30개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
-        {visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+30)}>말씀 30개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
+        {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+30)}>말씀 30개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
       </section>
 
       <section className="content-section praise-section" id="praises">
-        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><span className="result-count">{filteredPraises.length}개의 찬양</span></div>
-        <div className={`praise-preview${!showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
+        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><span className="result-count">{praiseLoading ? "찬양을 불러오는 중…" : `${filteredPraises.length}개의 찬양`}</span></div>
+        <div className={`praise-preview${!praiseLoading && !showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{praiseLoading ? <LoadingCards count={3} /> : visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           <div className="sermon-thumb has-image"><img className="thumbnail-image" src={praise.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" /><span className="rank">♪</span><a className="play" href={`https://www.youtube.com/watch?v=${praise.youtubeId}`} target="_blank" rel="noreferrer" aria-label={`${praise.church} 찬양 재생`}>▶</a><span className="duration">{new Date(praise.publishedAt).toLocaleDateString("ko-KR")}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>setNotice(`${praise.church} 찬양을 응원했습니다.`)}>♡ 응원</button><button type="button" onClick={()=>void shareVideo(praise)}>↗ 공유</button></div></div>
-        </article>)}</div>{!showAllPraise && filteredPraises.length > 3 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
-        {!visiblePraises.length && <div className="empty">공식 채널의 최신 찬양을 불러오고 있습니다.</div>}
-        {filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
+        </article>)}</div>{!praiseLoading && !showAllPraise && filteredPraises.length > 3 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
+        {!praiseLoading && !visiblePraises.length && <div className="empty">아직 연결된 찬양이 없습니다.</div>}
+        {!praiseLoading && filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
       </section>
 
       <section className="ranking-section" id="rankings">

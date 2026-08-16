@@ -29,7 +29,13 @@ test("does not block initial content on YouTube synchronization", async () => {
     readFile(new URL("../app/api/praises/route.ts",import.meta.url),"utf8"),
   ]);
   assert.doesNotMatch(page,/\/api\/(?:sermons|praises)\/sync/);
-  assert.match(page,/Promise\.all\(\[\s*loadItems\("\/api\/sermons"\),\s*loadItems\("\/api\/praises"\)/);
+  assert.doesNotMatch(page,/Promise\.all\(\[\s*loadItems\("\/api\/sermons"\)/);
+  assert.match(page,/loadItems\("\/api\/sermons"\)\.then/);
+  assert.match(page,/IntersectionObserver/);
+  assert.match(page,/rootMargin:"800px 0px"/);
+  assert.match(page,/sermonLoading/);
+  assert.match(page,/praiseLoading/);
+  assert.match(page,/skeleton-card/);
   assert.doesNotMatch(sermonRoute,/ensureSermonTables/);
   assert.doesNotMatch(praiseRoute,/ensure(?:Sermon|Praise)Tables/);
   assert.match(sermonRoute,/getRequestExecutionContext/);
