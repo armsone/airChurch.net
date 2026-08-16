@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { database, ensureSermonTables } from "../../_shared";
 import { isSermonTitle } from "../_selection";
 
-type SourceBase={name:string;pastor:string;region:string;denomination:string};
+type SourceBase={name:string;pastor:string;region:string;denomination:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
 
 const sources:Source[]=[
@@ -116,7 +116,7 @@ const sources:Source[]=[
   {name:"하늘빛광성교회",pastor:"박경수 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@hlkc2015"},
   {name:"밀알교회",pastor:"신동명 목사",region:"서울 강서",denomination:"대한예수교장로회 통합",handle:"@milalch"},
   {name:"불로교회",pastor:"한민수 목사",region:"인천 서구",denomination:"대한예수교장로회 통합",handle:"@불로교회"},
-  {name:"거룩한빛시온교회",pastor:"서동훈 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@Sionchurch2019"},
+  {name:"거룩한빛시온교회",pastor:"서동훈 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@Sionchurch2019",verifiedSermonFeed:true},
   {name:"거룩한빛운정교회",pastor:"유정상 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",handle:"@hlujch"},
   {name:"상도중앙교회",pastor:"박봉수 목사",region:"서울 동작",denomination:"대한예수교장로회 통합",handle:"@상도중앙교회"},
   {name:"은혜의빛광성교회",pastor:"장동훈 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@thelightofgracechurch"},
@@ -163,7 +163,7 @@ export async function POST(request:Request) {
     if(!playlistResponse.ok) return Response.json({error:"YouTube upload verification failed",removed},{status:502});
     const playlist=await playlistResponse.json() as PlaylistResponse;
     const activeSince=Date.now()-180*24*60*60*1000;
-    const recentSermons=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isSermonTitle(item.snippet.title));
+    const recentSermons=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
     if(!recentSermons.length) {
       await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=?").bind(source.name,source.region).run();
       continue;
