@@ -66,15 +66,6 @@ export default function Home() {
     }).catch(()=>null);
     return()=>{alive=false};
   },[]);
-  useEffect(()=>{
-    const timer=window.setTimeout(()=>{
-      void Promise.allSettled([
-        fetch("/api/sermons/sync",{method:"POST"}),
-        fetch("/api/praises/sync",{method:"POST"}),
-      ]);
-    },3000);
-    return()=>window.clearTimeout(timer);
-  },[]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
     const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination}`.toLowerCase();

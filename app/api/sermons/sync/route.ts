@@ -116,7 +116,10 @@ export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db);
   const syncKey="youtube-v6-verified-100";
-  const requestedStart=Number(new URL(request.url).searchParams.get("start")||"0");
+  const cursorKey=`${syncKey}:cursor`;
+  const explicitStart=new URL(request.url).searchParams.get("start");
+  const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;
+  const requestedStart=Number(explicitStart??cursor?.value??"0");
   const start=Number.isInteger(requestedStart)&&requestedStart>=0?requestedStart:0;
   const batch=sources.slice(start,start+20);
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
@@ -162,7 +165,9 @@ export async function POST(request:Request) {
     for(const item of recentSermons.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); imported++; }
   }
   const nextStart=start+batch.length;
-  if(nextStart>=sources.length) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
+  const nextCursor=nextStart<sources.length?nextStart:0;
+  await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
+  if(nextCursor===0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
-  return Response.json({ok:true,verified,approved:approved?.count??0,removed,imported,nextStart:nextStart<sources.length?nextStart:null});
+  return Response.json({ok:true,verified,approved:approved?.count??0,removed,imported,nextStart:nextCursor||null});
 }
