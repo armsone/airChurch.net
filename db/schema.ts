@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const churches = sqliteTable("churches", {
-  id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), pastor: text("pastor").notNull(), region: text("region").notNull(), denomination: text("denomination").notNull(), youtubeChannelId: text("youtube_channel_id").unique(), reviewStatus: text("review_status").notNull().default("pending"), holdReason: text("hold_reason"), holdNote: text("hold_note"), heldAt: text("held_at"), priorityWeight: integer("priority_weight").notNull().default(1), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), pastor: text("pastor").notNull(), region: text("region").notNull(), denomination: text("denomination").notNull(), youtubeChannelId: text("youtube_channel_id").unique(), reviewStatus: text("review_status").notNull().default("pending"), holdReason: text("hold_reason"), holdNote: text("hold_note"), heldAt: text("held_at"), priorityWeight: integer("priority_weight").notNull().default(1), reviewerStatus: text("reviewer_status").notNull().default("unreviewed"), reviewerNote: text("reviewer_note"), reviewedAt: text("reviewed_at"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_churches_search").on(table.region, table.name, table.pastor)]);
 export const sermons = sqliteTable("sermons", {
   id: integer("id").primaryKey({ autoIncrement: true }), churchId: integer("church_id").notNull().references(() => churches.id), youtubeId: text("youtube_id").notNull().unique(), title: text("title").notNull(), thumbnailUrl: text("thumbnail_url").notNull(), publishedAt: text("published_at").notNull(), status: text("status").notNull().default("published"), viewCount: integer("view_count").notNull().default(0), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -23,3 +23,6 @@ export const pageViews = sqliteTable("page_views", {
 export const visitorActivity = sqliteTable("visitor_activity", {
   visitorHash: text("visitor_hash").primaryKey(), path: text("path").notNull(), lastSeen: text("last_seen").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_visitor_activity_last_seen").on(table.lastSeen)]);
+export const churchRecommendations = sqliteTable("church_recommendations", {
+  id: integer("id").primaryKey({ autoIncrement: true }), churchName: text("church_name").notNull(), pastor: text("pastor").notNull(), region: text("region").notNull(), denomination: text("denomination").notNull(), youtubeUrl: text("youtube_url"), reason: text("reason").notNull(), status: text("status").notNull().default("pending"), fingerprint: text("fingerprint").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`), reviewedAt: text("reviewed_at"),
+}, (table) => [index("idx_church_recommendations_status_created").on(table.status, table.createdAt)]);

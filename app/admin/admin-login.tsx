@@ -19,15 +19,16 @@ export default function AdminLogin() {
       setBusy(false);
       return;
     }
-    window.location.replace("/admin");
+    const result=await response.json().catch(()=>({})) as {role?:string};
+    window.location.replace(result.role === "reviewer" ? "/review" : "/admin");
   }
 
   return <main className="admin-login-shell">
     <section className="admin-login-card">
       <span className="brand-mark" aria-hidden="true" />
-      <small>AIRCHURCH ADMIN</small>
-      <h1>관리자 로그인</h1>
-      <p>교회 검토와 노출 비중을 관리하려면 로그인해 주세요.</p>
+      <small>AIRCHURCH OPERATIONS</small>
+      <h1>운영자 로그인</h1>
+      <p>관리자 또는 교회 검토자 아이디로 로그인해 주세요.</p>
       <form onSubmit={login}>
         <label>아이디<input name="username" autoComplete="username" required /></label>
         <label>비밀번호<input name="password" type="password" autoComplete="current-password" required /></label>

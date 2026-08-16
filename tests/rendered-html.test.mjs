@@ -11,7 +11,35 @@ async function render() {
 
 test("server-renders the Airchurch portal", async () => {
   const response=await render(); assert.equal(response.status,200); assert.match(response.headers.get("content-type")??"",/^text\/html\b/i);
-  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
+  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/등록 교회 목록/); assert.match(html,/AI에 의해 자동 검색되고 등록된 리스트입니다/); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
+});
+
+test("restores a reviewed church directory and restricted pastor workflow", async () => {
+  const [page,recommendations,churches,admin,review,controls,manage,access,schema,envExample]=await Promise.all([
+    readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/church-recommendations/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../.env.example",import.meta.url),"utf8"),
+  ]);
+  for(const phrase of ["AI에 의해 자동 검색되고 등록된 리스트입니다","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
+  assert.match(churches,/review_status='approved'/);
+  assert.match(recommendations,/status:"pending"/);
+  assert.match(admin,/교회 추천 검토/);
+  assert.match(review,/교회 목록 검토/);
+  assert.match(controls,/kind:"church-review"/);
+  assert.match(controls,/admin-church-details/);
+  assert.match(manage,/role==="reviewer"&&kind!=="church-review"/);
+  assert.match(access,/REVIEWER_USERNAME/);
+  assert.match(access,/REVIEWER_PASSWORD/);
+  assert.match(schema,/churchRecommendations = sqliteTable\("church_recommendations"/);
+  assert.match(schema,/reviewerStatus: text\("reviewer_status"\)/);
+  assert.match(envExample,/REVIEWER_USERNAME=/);
 });
 
 test("keeps safety and discovery requirements in the product source", async () => {

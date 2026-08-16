@@ -7,6 +7,7 @@ type Sermon = { id:number; church:string; pastor:string; region:string; denomina
 type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
+type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string };
 
 const sermons: Sermon[] = [
   { id:1, church:"온누리교회", pastor:"이재훈 목사", region:"서울 용산", denomination:"대한예수교장로회 통합", title:"온누리교회 최신 주일말씀", verse:"공식 채널에서 새 말씀을 자동으로 연결합니다", date:"매주 갱신", tone:"peach", rank:1, verified:true },
@@ -65,6 +66,9 @@ export default function Home() {
   const [showAllPraise,setShowAllPraise]=useState(false);
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
+  const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
+  const [churchLoading,setChurchLoading]=useState(true);
+  const [showAllChurches,setShowAllChurches]=useState(false);
   useEffect(()=>{
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
@@ -86,6 +90,11 @@ export default function Home() {
       }),
       talent: ()=>loadItems("/api/talents").then((data)=>{
         if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
+      }),
+      "church-directory": ()=>loadItems("/api/churches").then((data)=>{
+        if(!alive) return;
+        setChurchItems((data as {items?:ChurchItem[]}).items||[]);
+        setChurchLoading(false);
       }),
     };
     const loaded=new Set<string>();
@@ -113,6 +122,11 @@ export default function Home() {
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체 지역" || praise.region.startsWith(region));
   }), [praiseItems, query, region]);
   const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 6)).slice(0, 12);
+  const filteredChurches = useMemo(() => churchItems.filter((church) => {
+    const haystack=`${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLowerCase();
+    return haystack.includes(query.trim().toLowerCase())&&(region==="전체 지역"||church.region.startsWith(region));
+  }),[churchItems,query,region]);
+  const visibleChurches=(showAllChurches||query.trim()||region!=="전체 지역")?filteredChurches:filteredChurches.slice(0,12);
 
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
@@ -125,6 +139,19 @@ export default function Home() {
       setNotice(kind === "talent" ? "따뜻한 마음이 접수되었습니다. 연결 전 확인을 거쳐 안내할게요." : "글이 접수되었습니다. 서로를 지키기 위한 검토 후 공개됩니다.");
     } catch {
       setNotice("아직 접수 기능을 준비하고 있습니다. 화면 구성은 먼저 둘러보실 수 있어요.");
+    }
+  }
+
+  async function submitChurchRecommendation(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form=event.currentTarget;
+    try {
+      const response=await fetch("/api/church-recommendations",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form)))});
+      if(!response.ok) throw new Error();
+      form.reset();
+      setNotice("교회 추천을 접수했습니다. 관리자가 교단과 공식 채널을 확인한 뒤 등록 여부를 결정합니다.");
+    } catch {
+      setNotice("추천을 접수하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.");
     }
   }
 
@@ -170,7 +197,7 @@ export default function Home() {
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
       <header className="site-header">
         <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
-        <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#praises">찬양</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
+        <nav aria-label="주요 메뉴"><a href="#sermons">말씀</a><a href="#praises">찬양</a><a href="#church-directory">교회</a><a href="#rankings">랭킹</a><a href="#goodshare">착한나눔</a><a href="#community">광장</a><a href="#vision">비전</a></nav>
         <a className="support-button" href="#talent">내 달란트 나누기</a>
       </header>
 
@@ -211,6 +238,24 @@ export default function Home() {
         </article>)}</div>{!praiseLoading && !showAllPraise && filteredPraises.length > 3 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
         {!praiseLoading && !visiblePraises.length && <div className="empty">아직 연결된 찬양이 없습니다.</div>}
         {!praiseLoading && filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
+      </section>
+
+      <section className="church-directory-section" id="church-directory">
+        <div className="section-heading"><div><span className="section-kicker">전국 교회 찾기</span><h2>등록 교회 목록</h2></div><span className="result-count">{churchLoading?"교회 목록을 불러오는 중…":`${filteredChurches.length}개 교회`}</span></div>
+        <div className="ai-directory-note"><span aria-hidden="true">AI</span><div><strong>AI에 의해 자동 검색되고 등록된 리스트입니다.</strong><p>공식 홈페이지·교단 정보·공식 영상 채널을 바탕으로 수집하며, 이용자 추천은 관리자 검토와 승인 후에만 목록에 포함됩니다.</p></div></div>
+        {churchLoading?<div className="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid">{visibleChurches.map((church)=><article key={church.id}><span>{church.region}</span><h3>{church.name}</h3><p>{church.pastor}</p><small>{church.denomination}</small></article>)}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
+        {!churchLoading&&!query.trim()&&region==="전체 지역"&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={()=>setShowAllChurches((shown)=>!shown)}>{showAllChurches?"12개만 보기":`전체 ${filteredChurches.length}개 보기`}</button>}
+        <div className="church-recommendation">
+          <div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천 내용은 바로 공개되지 않습니다. 관리자가 교단 소속, 공식 홈페이지와 공식 YouTube 채널을 확인한 뒤 등록 여부를 결정합니다.</p></div>
+          <form className="church-recommendation-form" onSubmit={submitChurchRecommendation}>
+            <div className="recommendation-fields"><label>교회명<input name="churchName" minLength={2} maxLength={100} required /></label><label>담임목사<input name="pastor" minLength={2} maxLength={80} required /></label><label>지역<select name="region" required defaultValue=""><option value="" disabled>지역 선택</option>{regions.slice(1).map((item)=><option key={item}>{item}</option>)}</select></label><label>교단<input name="denomination" minLength={2} maxLength={120} required placeholder="예: 대한예수교장로회 통합" /></label></div>
+            <label>공식 YouTube 주소 <small>선택</small><input name="youtubeUrl" type="url" inputMode="url" maxLength={300} placeholder="https://www.youtube.com/@..." /></label>
+            <label>추천 이유<textarea name="reason" minLength={10} maxLength={800} rows={4} required placeholder="이 교회를 추천하는 이유를 10자 이상 적어 주세요." /></label>
+            <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" />
+            <label className="agreement"><input type="checkbox" required /> 관리자 검토 후 등록 여부가 결정되는 것에 동의합니다.</label>
+            <button type="submit">교회 추천 보내기</button>
+          </form>
+        </div>
       </section>
 
       <section className="ranking-section" id="rankings">
@@ -256,7 +301,7 @@ export default function Home() {
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a></div>
       </footer>
     </main>
   );

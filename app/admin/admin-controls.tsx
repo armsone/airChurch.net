@@ -40,7 +40,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     setBusy(true); setError("");
     try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <form className="admin-edit-form" onSubmit={save}>
+  return <details className="admin-church-details"><summary>정보 · 노출 · 보류 관리</summary><form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
       <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option></select></label>
@@ -49,7 +49,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     <label className="admin-note-field"><span>관리자 메모 {props.status === "approved" && <small>· 보류 시 필수</small>}</span><textarea name="holdNote" value={holdNote} onChange={(event) => setHoldNote(event.target.value)} maxLength={500} rows={3} placeholder="확인한 근거와 다시 검토할 내용을 남겨 주세요." /></label>
     {props.status === "removed" && props.heldAt && <p className="admin-held-at">최근 보류: {new Date(`${props.heldAt}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p>}
     <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button>{props.status === "approved" ? <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button> : <><button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></>}</div>{error && <p className="admin-error">{error}</p>}
-  </form>;
+  </form></details>;
 }
 
 export function SermonControls({ id, status }: { id: number; status: string }) {
@@ -63,12 +63,22 @@ export function SermonControls({ id, status }: { id: number; status: string }) {
   return <div className="admin-inline-control"><button disabled={busy} className={status === "published" ? "danger" : "restore"} onClick={() => void toggle()}>{status === "published" ? "즉시 내리기" : "다시 공개"}</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
-export function ReviewControls({ kind, id, status }: { kind: "post" | "talent"; id: number; status: string }) {
+export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" | "recommendation"; id: number; status: string }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   async function setStatus(next: string) {
     if (next === "rejected" && !window.confirm("공개하지 않고 반려할까요?")) return;
     setBusy(true); setError("");
     try { await updateAdmin({ kind, id, status: next }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>공개 승인</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>비공개</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}{error && <span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{kind === "recommendation" ? "교회 등록 승인" : "공개 승인"}</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{kind === "recommendation" ? "등록하지 않음" : "비공개"}</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}{error && <span className="admin-error">{error}</span>}</div>;
+}
+
+export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;status:string;note:string|null;reviewedAt:string|null}) {
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function save(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();setBusy(true);setError("");
+    const values=Object.fromEntries(new FormData(event.currentTarget));
+    try { await updateAdmin({kind:"church-review",id,...values}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
+  }
+  return <form className="church-review-control" onSubmit={save}><label>검토 결과<select name="status" defaultValue={status}><option value="unreviewed">아직 검토하지 않음</option><option value="confirmed">정보 확인 완료</option><option value="concern">관리자 재검토 필요</option></select></label><label>검토 메모<textarea name="note" defaultValue={note??""} maxLength={500} rows={3} placeholder="확인한 내용이나 재검토 이유를 적어 주세요." /></label><div><button disabled={busy} type="submit">검토 결과 저장</button>{reviewedAt&&<small>최근 검토 {new Date(`${reviewedAt}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>}</div>{error&&<p className="admin-error">{error}</p>}</form>;
 }

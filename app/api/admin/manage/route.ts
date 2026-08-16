@@ -1,24 +1,31 @@
-import { hasAdminAccess } from "../../../admin-access";
-import { clean, database, ensureCommunityTables, ensureSermonTables } from "../../_shared";
+import { accessRole } from "../../../admin-access";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureSermonTables } from "../../_shared";
 
-async function isAdmin(request: Request) {
+async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) return false;
-  return hasAdminAccess(request);
+  if (origin && origin !== new URL(request.url).origin) return null;
+  return accessRole(request);
 }
 
 export async function PATCH(request: Request) {
-  if (!(await isAdmin(request))) return Response.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
+  const role=await requestRole(request);
+  if (!role) return Response.json({ error: "운영자 권한이 필요합니다." }, { status: 403 });
 
   const data = await request.json().catch(() => ({})) as Record<string, unknown>;
   const id = Number(data.id);
   const kind = clean(data.kind, 20);
+  if(role==="reviewer"&&kind!=="church-review") return Response.json({error:"교회 검토 권한만 사용할 수 있습니다."},{status:403});
   if (!Number.isInteger(id) || id < 1) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
-  await Promise.all([ensureCommunityTables(db), ensureSermonTables(db)]);
+  await Promise.all([ensureCommunityTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db)]);
 
-  if (kind === "church") {
+  if(kind==="church-review") {
+    const status=clean(data.status,20),note=clean(data.note,500);
+    if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
+    if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});
+    await db.prepare("UPDATE churches SET reviewer_status=?,reviewer_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(status,note||null,id).run();
+  } else if (kind === "church") {
     const status = clean(data.status, 20);
     if (status) {
       if (!["approved", "removed", "deleted"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
@@ -54,6 +61,19 @@ export async function PATCH(request: Request) {
     if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     const table = kind === "post" ? "community_posts" : "talent_offers";
     await db.prepare(`UPDATE ${table} SET status=? WHERE id=?`).bind(status, id).run();
+  } else if (kind === "recommendation") {
+    const status=clean(data.status,20);
+    if(!["pending","approved","rejected"].includes(status)) return Response.json({error:"상태를 확인해 주세요."},{status:400});
+    const recommendation=await db.prepare("SELECT church_name,pastor,region,denomination FROM church_recommendations WHERE id=?").bind(id).first<{church_name:string;pastor:string;region:string;denomination:string}>();
+    if(!recommendation) return Response.json({error:"교회 추천을 찾을 수 없습니다."},{status:404});
+    if(status==="approved") {
+      const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=? AND review_status!='deleted' LIMIT 1").bind(recommendation.church_name,recommendation.region).first();
+      const statements=[db.prepare("UPDATE church_recommendations SET status='approved',reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(id)];
+      if(!existing) statements.unshift(db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status) VALUES (?,?,?,?,'approved')").bind(recommendation.church_name,recommendation.pastor,recommendation.region,recommendation.denomination));
+      await db.batch(statements);
+    } else {
+      await db.prepare("UPDATE church_recommendations SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
+    }
   } else {
     return Response.json({ error: "지원하지 않는 작업입니다." }, { status: 400 });
   }

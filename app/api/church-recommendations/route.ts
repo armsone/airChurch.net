@@ -1,0 +1,25 @@
+import { clean, database, ensureChurchRecommendationTables, fingerprint } from "../_shared";
+
+function validYoutubeUrl(value:string) {
+  if(!value) return true;
+  try {
+    const host=new URL(value).hostname.toLowerCase();
+    return host==="youtu.be"||host==="youtube.com"||host.endsWith(".youtube.com");
+  } catch { return false; }
+}
+
+export async function POST(request:Request) {
+  const data=await request.json().catch(()=>({})) as Record<string,unknown>;
+  if(clean(data.company,20)) return Response.json({ok:true});
+  const churchName=clean(data.churchName,100),pastor=clean(data.pastor,80),region=clean(data.region,80),denomination=clean(data.denomination,120),youtubeUrl=clean(data.youtubeUrl,300),reason=clean(data.reason,800);
+  if(churchName.length<2||pastor.length<2||region.length<2||denomination.length<2||reason.length<10||!validYoutubeUrl(youtubeUrl)) return Response.json({error:"교회 정보와 추천 이유를 확인해 주세요."},{status:400});
+  const db=database();
+  await ensureChurchRecommendationTables(db);
+  const fp=await fingerprint(request);
+  const recent=await db.prepare("SELECT COUNT(*) AS count FROM church_recommendations WHERE fingerprint=? AND created_at>datetime('now','-10 minutes')").bind(fp).first<{count:number}>();
+  if((recent?.count||0)>=2) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429});
+  const duplicate=await db.prepare("SELECT id FROM church_recommendations WHERE church_name=? AND region=? AND status IN ('pending','approved') LIMIT 1").bind(churchName,region).first();
+  if(duplicate) return Response.json({ok:true,status:"already_received"});
+  await db.prepare("INSERT INTO church_recommendations (church_name,pastor,region,denomination,youtube_url,reason,fingerprint) VALUES (?,?,?,?,?,?,?)").bind(churchName,pastor,region,denomination,youtubeUrl||null,reason,fp).run();
+  return Response.json({ok:true,status:"pending"},{status:201});
+}

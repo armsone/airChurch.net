@@ -43,6 +43,13 @@
       "when": 1786891558322,
       "tag": "0005_medical_shadowcat",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786892874984,
+      "tag": "0006_legal_stranger",
+      "breakpoints": true
     }
   ]
 }
