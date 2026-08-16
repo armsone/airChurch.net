@@ -1,8 +1,8 @@
 import { clean, database, ensureCommunityTables, fingerprint } from "../_shared";
 export async function GET() {
-  const db=database(); await ensureCommunityTables(db);
+  const db=database();
   const result=await db.prepare("SELECT id,category,nickname,content,created_at AS createdAt FROM community_posts WHERE status='approved' ORDER BY created_at DESC LIMIT 12").all();
-  return Response.json({items:result.results},{headers:{"cache-control":"public, max-age=120"}});
+  return Response.json({items:result.results},{headers:{"cache-control":"public, max-age=120, s-maxage=120, stale-while-revalidate=600"}});
 }
 export async function POST(request: Request) {
   const data=await request.json().catch(()=>({})) as Record<string,unknown>; if(clean(data.company,20)) return Response.json({ok:true});

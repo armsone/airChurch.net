@@ -21,3 +21,18 @@ test("keeps safety and discovery requirements in the product source", async () =
   for(const excluded of ["찬양","광고","성경통독","쇼츠"]) assert.match(selection,new RegExp(excluded));
   assert.match(layout,/og\.png/); assert.equal(JSON.parse(hosting).d1,"DB");
 });
+
+test("does not block initial content on YouTube synchronization", async () => {
+  const [page,sermonRoute,praiseRoute]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/praises/route.ts",import.meta.url),"utf8"),
+  ]);
+  assert.doesNotMatch(page,/await fetch\("\/api\/(?:sermons|praises)\/sync/);
+  assert.match(page,/Promise\.all\(\[\s*loadItems\("\/api\/sermons"\),\s*loadItems\("\/api\/praises"\)/);
+  assert.match(page,/setTimeout\(\(\)=>\{[\s\S]*\/api\/sermons\/sync[\s\S]*\/api\/praises\/sync[\s\S]*\},3000\)/);
+  assert.doesNotMatch(sermonRoute,/ensureSermonTables/);
+  assert.doesNotMatch(praiseRoute,/ensure(?:Sermon|Praise)Tables/);
+  assert.match(sermonRoute,/stale-while-revalidate=3600/);
+  assert.match(praiseRoute,/stale-while-revalidate=3600/);
+});

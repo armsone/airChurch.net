@@ -47,10 +47,34 @@ export default function Home() {
   const [showAllPraise,setShowAllPraise]=useState(false);
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
-  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/sermons/sync",{method:"POST"}).catch(()=>null); const sermonResponse=await fetch("/api/sermons").catch(()=>null); if(sermonResponse?.ok){const data=await sermonResponse.json() as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}; if(alive&&data.items?.length) setSermonItems(data.items.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})));} })(); return()=>{alive=false}; },[]);
-  useEffect(()=>{ let alive=true; (async()=>{ await fetch("/api/praises/sync",{method:"POST"}).catch(()=>null); const response=await fetch("/api/praises").catch(()=>null); if(!response?.ok)return; const data=await response.json() as {items?:Praise[]}; if(alive)setPraiseItems(shuffled(data.items||[])); })(); return()=>{alive=false}; },[]);
+  useEffect(()=>{
+    let alive=true;
+    const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
+    Promise.all([
+      loadItems("/api/sermons"),
+      loadItems("/api/praises"),
+      loadItems("/api/posts"),
+      loadItems("/api/talents"),
+    ]).then(([sermonData,praiseData,postData,talentData])=>{
+      if(!alive)return;
+      const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
+      if(sermonResults?.length) setSermonItems(sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})));
+      setPraiseItems(shuffled((praiseData as {items?:Praise[]}).items||[]));
+      setApprovedPosts((postData as {items?:CommunityItem[]}).items||[]);
+      setApprovedTalents((talentData as {items?:TalentItem[]}).items||[]);
+    }).catch(()=>null);
+    return()=>{alive=false};
+  },[]);
+  useEffect(()=>{
+    const timer=window.setTimeout(()=>{
+      void Promise.allSettled([
+        fetch("/api/sermons/sync",{method:"POST"}),
+        fetch("/api/praises/sync",{method:"POST"}),
+      ]);
+    },3000);
+    return()=>window.clearTimeout(timer);
+  },[]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
-  useEffect(()=>{ let alive=true; Promise.all([fetch("/api/posts").then((r)=>r.ok?r.json():{items:[]}),fetch("/api/talents").then((r)=>r.ok?r.json():{items:[]})]).then(([posts,talents])=>{ if(alive){setApprovedPosts(posts.items||[]);setApprovedTalents(talents.items||[]);} }).catch(()=>null); return()=>{alive=false}; },[]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
     const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체 지역" || s.region.startsWith(region));
