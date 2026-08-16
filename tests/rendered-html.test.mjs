@@ -62,3 +62,24 @@ test("loads a larger sermon catalog in batches", async () => {
   assert.match(page,/fetchPriority="low"/);
   assert.match(sermonRoute,/mqdefault\.jpg/);
 });
+
+test("reports live traffic safely and plays videos in place", async () => {
+  const [page,admin,tracker,analytics,shared,styles,schema]=await Promise.all([
+    readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/visitor-tracker.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/analytics/track/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+  ]);
+  for(const label of ["현재 접속자","시간별 방문","일별 방문","월별 방문"]) assert.match(admin,new RegExp(label));
+  assert.match(admin,/last_seen >= datetime\('now','-5 minutes'\)/);
+  assert.match(tracker,/setInterval\(reportActivity, 120_000\)/);
+  assert.match(analytics,/INSERT INTO visitor_activity/);
+  assert.match(shared,/CREATE TABLE IF NOT EXISTS visitor_activity/);
+  assert.match(schema,/visitorActivity = sqliteTable\("visitor_activity"/);
+  assert.match(page,/youtube-nocookie\.com\/embed/);
+  assert.match(page,/className="video-frame"/);
+  assert.match(styles,/\.sermon-thumb \.play \{ background:rgba\(255,255,255,\.5\)/);
+});

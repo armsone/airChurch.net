@@ -14,20 +14,22 @@ export default function VisitorTracker() {
       localStorage.setItem(VISITOR_KEY, visitorId);
     }
 
-    const pageKey = `airchurch_viewed:${location.pathname}`;
-    if (sessionStorage.getItem(pageKey)) return;
-    sessionStorage.setItem(pageKey, "1");
-
-    void fetch("/api/analytics/track", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        path: location.pathname,
-        referrer: document.referrer,
-        visitorId,
-      }),
-      keepalive: true,
-    }).catch(() => null);
+    const reportActivity = () => {
+      if (document.visibilityState !== "visible") return;
+      void fetch("/api/analytics/track", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ path: location.pathname, referrer: document.referrer, visitorId }),
+        keepalive: true,
+      }).catch(() => null);
+    };
+    reportActivity();
+    const interval = window.setInterval(reportActivity, 120_000);
+    document.addEventListener("visibilitychange", reportActivity);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", reportActivity);
+    };
   }, []);
 
   return null;

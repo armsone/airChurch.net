@@ -20,3 +20,6 @@ export const syncState = sqliteTable("sync_state", { key: text("key").primaryKey
 export const pageViews = sqliteTable("page_views", {
   id: integer("id").primaryKey({ autoIncrement: true }), path: text("path").notNull(), referrerDomain: text("referrer_domain"), visitorHash: text("visitor_hash").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_page_views_created").on(table.createdAt), index("idx_page_views_visitor_created").on(table.visitorHash, table.createdAt), index("idx_page_views_path_created").on(table.path, table.createdAt)]);
+export const visitorActivity = sqliteTable("visitor_activity", {
+  visitorHash: text("visitor_hash").primaryKey(), path: text("path").notNull(), lastSeen: text("last_seen").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [index("idx_visitor_activity_last_seen").on(table.lastSeen)]);
