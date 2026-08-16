@@ -29,3 +29,6 @@ export const churchRecommendations = sqliteTable("church_recommendations", {
 export const reviewerAccounts = sqliteTable("reviewer_accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), contact: text("contact").notNull(), username: text("username").notNull().unique(), passwordHash: text("password_hash").notNull(), passwordSalt: text("password_salt").notNull(), status: text("status").notNull().default("pending"), fingerprint: text("fingerprint").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`), reviewedAt: text("reviewed_at"),
 }, (table) => [index("idx_reviewer_accounts_status_created").on(table.status, table.createdAt)]);
+export const reviewerChurchReviews = sqliteTable("reviewer_church_reviews", {
+  id: integer("id").primaryKey({autoIncrement:true}), reviewerId:integer("reviewer_id").notNull(), churchId:integer("church_id").notNull().references(()=>churches.id), status:text("status").notNull().default("unreviewed"), note:text("note"), reviewedAt:text("reviewed_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+},(table)=>[index("idx_reviewer_church_reviews_church").on(table.churchId,table.reviewedAt)]);

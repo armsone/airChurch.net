@@ -7,6 +7,7 @@ const SESSION_SECONDS = 12 * 60 * 60;
 
 type AdminEnv = { ADMIN_USERNAME?: string; ADMIN_PASSWORD?: string; REVIEWER_USERNAME?: string; REVIEWER_PASSWORD?: string; ADMIN_SESSION_SECRET?: string };
 export type AccessRole = "admin" | "reviewer";
+export type AccessSession = { role:AccessRole; reviewerId:number };
 
 function adminEnv() { return env as unknown as AdminEnv; }
 
@@ -40,43 +41,46 @@ function cookieValue(header: string | null) {
   return header?.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`))?.slice(COOKIE_NAME.length + 1) ?? null;
 }
 
-export async function verifyCredentials(username: string, password: string):Promise<AccessRole|null> {
+export async function verifyCredentials(username: string, password: string):Promise<AccessSession|null> {
   const { ADMIN_USERNAME, ADMIN_PASSWORD, REVIEWER_USERNAME, REVIEWER_PASSWORD, ADMIN_SESSION_SECRET } = adminEnv();
   if (!ADMIN_SESSION_SECRET) return null;
   const suppliedUsername=await signature(username.trim(),ADMIN_SESSION_SECRET),suppliedPassword=await signature(password,ADMIN_SESSION_SECRET);
   for(const [role,expectedUsername,expectedPassword] of [["admin",ADMIN_USERNAME,ADMIN_PASSWORD],["reviewer",REVIEWER_USERNAME,REVIEWER_PASSWORD]] as const) {
     if(!expectedUsername?.trim()||!expectedPassword) continue;
     const [usernameDigest,passwordDigest]=await Promise.all([signature(expectedUsername.trim(),ADMIN_SESSION_SECRET),signature(expectedPassword,ADMIN_SESSION_SECRET)]);
-    if(constantTimeEqual(suppliedUsername,usernameDigest)&&constantTimeEqual(suppliedPassword,passwordDigest)) return role;
+    if(constantTimeEqual(suppliedUsername,usernameDigest)&&constantTimeEqual(suppliedPassword,passwordDigest)) return {role,reviewerId:0};
   }
   const db=database();
   await ensureReviewerTables(db);
-  const reviewer=await db.prepare("SELECT password_hash,password_salt FROM reviewer_accounts WHERE username=? AND status='approved' LIMIT 1").bind(username.trim().toLowerCase()).first<{password_hash:string;password_salt:string}>();
-  if(reviewer&&constantTimeEqual(await passwordDigest(password,reviewer.password_salt),reviewer.password_hash)) return "reviewer";
+  const reviewer=await db.prepare("SELECT id,password_hash,password_salt FROM reviewer_accounts WHERE username=? AND status='approved' LIMIT 1").bind(username.trim().toLowerCase()).first<{id:number;password_hash:string;password_salt:string}>();
+  if(reviewer&&constantTimeEqual(await passwordDigest(password,reviewer.password_salt),reviewer.password_hash)) return {role:"reviewer",reviewerId:reviewer.id};
   return null;
 }
 
-export async function createAccessToken(role:AccessRole) {
+export async function createAccessToken(session:AccessSession) {
   const secret = adminEnv().ADMIN_SESSION_SECRET;
   if (!secret) throw new Error("Admin access is not configured");
   const issuedAt = Math.floor(Date.now() / 1000).toString();
-  const payload=`${issuedAt}.${role}`;
+  const payload=`${issuedAt}.${session.role}.${session.reviewerId}`;
   return `${payload}.${await signature(payload, secret)}`;
 }
 
-export async function accessRole(request?:Request):Promise<AccessRole|null> {
+export async function accessSession(request?:Request):Promise<AccessSession|null> {
   const secret = adminEnv().ADMIN_SESSION_SECRET;
   if (!secret) return null;
   const requestHeaders = request ? request.headers : await headers();
   const token = cookieValue(requestHeaders.get("cookie"));
   if (!token) return null;
-  const [issuedAt,role,suppliedSignature] = token.split(".");
+  const [issuedAt,role,reviewerIdValue,suppliedSignature] = token.split(".");
   const issued = Number(issuedAt);
+  const reviewerId=Number(reviewerIdValue);
   const now = Math.floor(Date.now() / 1000);
-  if (!issuedAt || !["admin","reviewer"].includes(role) || !suppliedSignature || !Number.isInteger(issued) || issued > now + 60 || now - issued > SESSION_SECONDS) return null;
-  const payload=`${issuedAt}.${role}`;
-  return constantTimeEqual(suppliedSignature, await signature(payload, secret)) ? role as AccessRole : null;
+  if (!issuedAt || !["admin","reviewer"].includes(role) || !Number.isInteger(reviewerId) || reviewerId<0 || !suppliedSignature || !Number.isInteger(issued) || issued > now + 60 || now - issued > SESSION_SECONDS) return null;
+  const payload=`${issuedAt}.${role}.${reviewerId}`;
+  return constantTimeEqual(suppliedSignature, await signature(payload, secret)) ? {role:role as AccessRole,reviewerId} : null;
 }
+
+export async function accessRole(request?:Request):Promise<AccessRole|null> { return (await accessSession(request))?.role??null; }
 
 export async function hasAdminAccess(request?: Request) { return (await accessRole(request)) === "admin"; }
 export async function hasChurchReviewAccess(request?:Request) { return (await accessRole(request)) !== null; }

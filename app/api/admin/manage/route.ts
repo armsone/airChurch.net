@@ -1,15 +1,16 @@
-import { accessRole } from "../../../admin-access";
+import { accessSession } from "../../../admin-access";
 import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureReviewerTables, ensureSermonTables } from "../../_shared";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return null;
-  return accessRole(request);
+  return accessSession(request);
 }
 
 export async function PATCH(request: Request) {
-  const role=await requestRole(request);
-  if (!role) return Response.json({ error: "운영자 권한이 필요합니다." }, { status: 403 });
+  const session=await requestRole(request);
+  if (!session) return Response.json({ error: "운영자 권한이 필요합니다." }, { status: 403 });
+  const {role}=session;
 
   const data = await request.json().catch(() => ({})) as Record<string, unknown>;
   const id = Number(data.id);
@@ -29,7 +30,10 @@ export async function PATCH(request: Request) {
     const status=clean(data.status,20),note=clean(data.note,500);
     if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
     if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});
-    await db.prepare("UPDATE churches SET reviewer_status=?,reviewer_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(status,note||null,id).run();
+    await db.batch([
+      db.prepare("INSERT INTO reviewer_church_reviews (reviewer_id,church_id,status,note,reviewed_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(reviewer_id,church_id) DO UPDATE SET status=excluded.status,note=excluded.note,reviewed_at=CURRENT_TIMESTAMP").bind(session.reviewerId,id,status,note||null),
+      db.prepare("UPDATE churches SET reviewer_status=?,reviewer_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(status,note||null,id),
+    ]);
   } else if (kind === "church") {
     const status = clean(data.status, 20);
     if (status) {

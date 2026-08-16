@@ -1,9 +1,9 @@
-import { accessRole } from "../admin-access";
+import { accessSession } from "../admin-access";
 import AdminLogin from "../admin/admin-login";
 import AdminListSearch from "../admin/admin-list-search";
 import { ChurchReviewControls } from "../admin/admin-controls";
 import HomeReloadLink from "../home-reload-link";
-import { database, ensureSermonTables } from "../api/_shared";
+import { database, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
 
 export const dynamic="force-dynamic";
 
@@ -11,10 +11,11 @@ type ChurchReviewRow={id:number;name:string;pastor:string;region:string;denomina
 function reviewLabel(status:string){return status==="confirmed"?"확인 완료":status==="concern"?"재검토 요청":"미검토";}
 
 export default async function ReviewPage() {
-  const role=await accessRole();
-  if(!role) return <AdminLogin />;
-  const db=database();await ensureSermonTables(db);
-  const result=await db.prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id,review_status,reviewer_status,reviewer_note,reviewed_at FROM churches WHERE review_status IN ('approved','removed') ORDER BY CASE reviewer_status WHEN 'concern' THEN 0 WHEN 'unreviewed' THEN 1 ELSE 2 END,name LIMIT 400").all<ChurchReviewRow>();
+  const session=await accessSession();
+  if(!session) return <AdminLogin />;
+  const {role}=session;
+  const db=database();await Promise.all([ensureSermonTables(db),ensureReviewerTables(db)]);
+  const result=await db.prepare("SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.youtube_channel_id,c.review_status,COALESCE(r.status,'unreviewed') AS reviewer_status,r.note AS reviewer_note,r.reviewed_at FROM churches c LEFT JOIN reviewer_church_reviews r ON r.church_id=c.id AND r.reviewer_id=? WHERE c.review_status IN ('approved','removed') ORDER BY CASE COALESCE(r.status,'unreviewed') WHEN 'concern' THEN 0 WHEN 'unreviewed' THEN 1 ELSE 2 END,c.name LIMIT 400").bind(session.reviewerId).all<ChurchReviewRow>();
   const unreviewed=result.results.filter((item)=>item.reviewer_status==="unreviewed").length,confirmed=result.results.filter((item)=>item.reviewer_status==="confirmed").length,concerns=result.results.filter((item)=>item.reviewer_status==="concern").length;
   return <main className="admin-shell reviewer-shell"><header className="admin-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><div><span>{role==="admin"?"관리자 검토 모드":"교회 검토자"}</span>{role==="admin"&&<a href="/admin">전체 관리</a>}<form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div></header>
     <section className="admin-title"><div><span>CHURCH REVIEW</span><h1>교회 목록 검토</h1><p>교회 정보에 대한 확인 또는 우려 의견을 남기면 관리자가 다시 검토하여 공개·보류를 최종 결정합니다.</p></div><HomeReloadLink>사이트 보기 ↗</HomeReloadLink></section>

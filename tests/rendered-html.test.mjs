@@ -149,8 +149,12 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(manage,/kind==="reviewer-account"/);
   assert.match(shared,/CREATE TABLE IF NOT EXISTS reviewer_accounts/);
   assert.match(schema,/reviewerAccounts = sqliteTable\("reviewer_accounts"/);
+  assert.match(schema,/reviewerChurchReviews = sqliteTable\("reviewer_church_reviews"/);
+  assert.match(access,/reviewerId/);
+  assert.match(manage,/INSERT INTO reviewer_church_reviews/);
   assert.match(admin,/href="\/review">목사님 페이지/);
   assert.match(admin,/관리자가 최종 결정/);
+  assert.match(admin,/opinionsByChurch/);
   const review=await readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8");
   assert.match(review,/href="\/admin">전체 관리/);
 });

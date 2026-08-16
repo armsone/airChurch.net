@@ -7,8 +7,8 @@ export async function POST(request: Request) {
   if (typeof data.username !== "string" || typeof data.password !== "string") {
     return Response.json({ error: "아이디 또는 비밀번호가 맞지 않습니다." }, { status: 403, headers: { "cache-control": "no-store" } });
   }
-  const role=await verifyCredentials(data.username,data.password);
-  if(!role) return Response.json({ error: "아이디 또는 비밀번호가 맞지 않습니다." }, { status: 403, headers: { "cache-control": "no-store" } });
-  const token = await createAccessToken(role);
-  return Response.json({ ok: true,role }, { headers: { "cache-control": "no-store", "set-cookie": adminCookie(token) } });
+  const session=await verifyCredentials(data.username,data.password);
+  if(!session) return Response.json({ error: "아이디 또는 비밀번호가 맞지 않습니다." }, { status: 403, headers: { "cache-control": "no-store" } });
+  const token = await createAccessToken(session);
+  return Response.json({ ok: true,role:session.role }, { headers: { "cache-control": "no-store", "set-cookie": adminCookie(token) } });
 }
