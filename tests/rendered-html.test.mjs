@@ -158,3 +158,11 @@ test("supports multiple approved church reviewer accounts", async () => {
   const review=await readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8");
   assert.match(review,/href="\/admin">전체 관리/);
 });
+
+test("shows reviewer decisions as one-tap choices with a right-aligned save", async () => {
+  const [controls,styles]=await Promise.all([readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(controls,/className="review-result-options"/);
+  assert.match(controls,/type="radio" name="status"/);
+  assert.match(controls,/className="review-save-row"/);
+  assert.match(styles,/\.church-review-control \.review-save-row \{ justify-content:flex-end; \}/);
+});

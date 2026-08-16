@@ -84,11 +84,12 @@ export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
 }
 
 export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;status:string;note:string|null;reviewedAt:string|null}) {
-  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  const [busy,setBusy]=useState(false),[error,setError]=useState(""),[selectedStatus,setSelectedStatus]=useState(status);
   async function save(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();setBusy(true);setError("");
     const values=Object.fromEntries(new FormData(event.currentTarget));
     try { await updateAdmin({kind:"church-review",id,...values}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
-  return <form className="church-review-control" onSubmit={save}><label>검토 결과<select name="status" defaultValue={status}><option value="unreviewed">아직 검토하지 않음</option><option value="confirmed">정보 확인 완료</option><option value="concern">관리자 재검토 필요</option></select></label><label>검토 메모<textarea name="note" defaultValue={note??""} maxLength={500} rows={3} placeholder="확인한 내용이나 재검토 이유를 적어 주세요." /></label><div><button disabled={busy} type="submit">검토 결과 저장</button>{reviewedAt&&<small>최근 검토 {new Date(`${reviewedAt}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>}</div>{error&&<p className="admin-error">{error}</p>}</form>;
+  const results=[["unreviewed","미검토"],["confirmed","확인 완료"],["concern","재검토 필요"]] as const;
+  return <form className="church-review-control" onSubmit={save}><fieldset><legend>검토 결과</legend><div className="review-result-options">{results.map(([value,label])=><label className={selectedStatus===value?"is-selected":""} key={value}><input type="radio" name="status" value={value} checked={selectedStatus===value} onChange={()=>setSelectedStatus(value)}/><span>{label}</span></label>)}</div></fieldset><label>검토 메모<textarea name="note" defaultValue={note??""} maxLength={500} rows={3} placeholder="확인한 내용이나 재검토 이유를 적어 주세요." /></label><div className="review-save-row">{reviewedAt&&<small>최근 검토 {new Date(`${reviewedAt}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>}<button disabled={busy} type="submit">검토 결과 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form>;
 }
