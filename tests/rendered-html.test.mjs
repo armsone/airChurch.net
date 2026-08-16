@@ -166,3 +166,11 @@ test("shows reviewer decisions as one-tap choices with a right-aligned save", as
   assert.match(controls,/className="review-save-row"/);
   assert.match(styles,/\.church-review-control \.review-save-row \{ justify-content:flex-end; \}/);
 });
+
+test("right-aligns the login return links", async () => {
+  const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(login,/className="admin-login-links"/);
+  assert.match(signup,/className="admin-login-links single"/);
+  assert.match(signup,/관리자가 승인해야 교회 목록 검토 작업이 가능합니다/);
+  assert.match(styles,/\.admin-login-links\.single \{ justify-content:flex-end; \}/);
+});

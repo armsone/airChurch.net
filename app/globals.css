@@ -62,6 +62,11 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .reviewer-join-link { display:block;margin-top:18px;padding:11px;border:1px solid var(--line);border-radius:10px;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;text-align:center; }
 .reviewer-signup-card { max-width:540px; }
 .reviewer-signup-success { margin:24px 0!important;padding:16px;border-radius:12px;background:#e7f4eb;color:#3e7456!important;font-size:13px!important;font-weight:750;line-height:1.6!important; }
+.admin-login-links { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px; }
+.admin-login-links.single { justify-content:flex-end; }
+.admin-login-links>a { color:var(--muted);font-size:11px;font-weight:700; }
+.admin-login-links .reviewer-join-link { display:block;margin:0;padding:11px;border:1px solid var(--line);border-radius:10px;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;text-align:center; }
+@media (max-width:520px) { .admin-login-links{align-items:stretch;flex-direction:column}.admin-login-links>a:last-child{align-self:flex-end}.admin-login-links .reviewer-join-link{align-self:stretch} }
 .church-review-control fieldset { margin:0;padding:0;border:0; }
 .church-review-control legend { color:#4c5d55;font-size:10px;font-weight:800; }
 .review-result-options { display:grid!important;grid-template-columns:repeat(3,1fr);gap:6px!important;margin-top:7px!important; }
