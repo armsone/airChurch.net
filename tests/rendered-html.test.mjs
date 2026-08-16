@@ -80,12 +80,12 @@ test("loads a larger sermon catalog in batches", async () => {
     readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
   ]);
   assert.match(sermonRoute,/selectWeightedRecent\([^;]+,120\)/);
-  assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(9\)/);
+  assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(12\)/);
   assert.match(page,/visibleSermons = filtered\.slice\(0,visibleSermonCount\)/);
   assert.match(page,/previewSermons = filtered\.slice\(visibleSermonCount,visibleSermonCount\+3\)/);
   assert.match(page,/눌러서 말씀 더 보기/);
-  assert.match(page,/말씀 9개 더 보기/);
-  assert.match(page,/setVisibleSermonCount\(\(count\)=>count\+9\)/);
+  assert.match(page,/말씀 20개 더 보기/);
+  assert.match(page,/setVisibleSermonCount\(\(count\)=>count\+20\)/);
   assert.match(page,/className="thumbnail-image"/);
   assert.match(page,/loading="lazy" decoding="async"/);
   assert.match(page,/fetchPriority="low"/);

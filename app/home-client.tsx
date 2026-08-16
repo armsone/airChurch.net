@@ -62,7 +62,7 @@ export default function Home() {
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
   const [sermonLoading,setSermonLoading]=useState(true);
-  const [visibleSermonCount,setVisibleSermonCount]=useState(9);
+  const [visibleSermonCount,setVisibleSermonCount]=useState(12);
   const [praiseItems,setPraiseItems]=useState<Praise[]>([]);
   const [praiseLoading,setPraiseLoading]=useState(true);
   const [showAllPraise,setShowAllPraise]=useState(false);
@@ -219,8 +219,8 @@ export default function Home() {
         <p>여러 교회의 설교를 한곳에서 만나고, 우리 교회를 응원하며,<br className="desktop" /> 내가 가진 달란트로 누군가의 내일을 돕는 크리스천 포털입니다.</p>
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" value={query} onChange={(e) => { setQuery(e.target.value); setVisibleSermonCount(9); }} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
-          <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value); setVisibleSermonCount(9); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
+          <input id="site-search" value={query} onChange={(e) => { setQuery(e.target.value); setVisibleSermonCount(12); }} placeholder="교회명, 목사님, 지역으로 찾아보세요" />
+          <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value); setVisibleSermonCount(12); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
           <a href="#sermons">찾기</a>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
@@ -238,8 +238,8 @@ export default function Home() {
         {!sermonLoading && previewSermons.length > 0 && <div className="sermon-next-preview"><div className="sermon-grid">{previewSermons.map((sermon)=><article className="sermon-card" key={`preview-${sermon.id}`}>
           <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p></div>
-        </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+9)} aria-label="말씀 9개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
-        {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+9)}>말씀 9개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
+        </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+20)} aria-label="말씀 20개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
+        {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+20)}>말씀 20개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
       </section>
 
       <section className="content-section praise-section" id="praises">
