@@ -36,3 +36,16 @@ test("does not block initial content on YouTube synchronization", async () => {
   assert.match(sermonRoute,/stale-while-revalidate=3600/);
   assert.match(praiseRoute,/stale-while-revalidate=3600/);
 });
+
+test("loads a larger sermon catalog in batches", async () => {
+  const [page,sermonRoute]=await Promise.all([
+    readFile(new URL("../app/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(sermonRoute,/selectWeightedRecent\([^;]+,120\)/);
+  assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(30\)/);
+  assert.match(page,/visibleSermons = filtered\.slice\(0,visibleSermonCount\)/);
+  assert.match(page,/previewSermons = filtered\.slice\(visibleSermonCount,visibleSermonCount\+3\)/);
+  assert.match(page,/눌러서 말씀 더 보기/);
+  assert.match(page,/말씀 30개 더 보기/);
+});
