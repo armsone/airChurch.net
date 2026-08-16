@@ -53,4 +53,6 @@ test("loads a larger sermon catalog in batches", async () => {
   assert.match(page,/말씀 30개 더 보기/);
   assert.match(page,/className="thumbnail-image"/);
   assert.match(page,/loading="lazy" decoding="async"/);
+  assert.match(page,/fetchPriority="low"/);
+  assert.match(sermonRoute,/mqdefault\.jpg/);
 });
