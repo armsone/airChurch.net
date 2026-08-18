@@ -7,7 +7,7 @@ type Sermon = { id:number; church:string; pastor:string; region:string; denomina
 type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
-type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string };
+type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null };
 
 const sermons: Sermon[] = [
   { id:1, church:"온누리교회", pastor:"이재훈 목사", region:"서울 용산", denomination:"대한예수교장로회 통합", title:"온누리교회 최신 주일말씀", verse:"공식 채널에서 새 말씀을 자동으로 연결합니다", date:"매주 갱신", tone:"peach", rank:1, verified:true },
@@ -255,7 +255,7 @@ export default function Home() {
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">전국 교회 찾기</span><h2>등록 교회 목록</h2></div><span className="result-count">{churchLoading?"교회 목록을 불러오는 중…":`${filteredChurches.length}개 교회`}</span></div>
         <div className="ai-directory-note"><span aria-hidden="true">AI</span><div><strong>AI에 의해 자동 검색되고 등록된 리스트입니다.</strong><p>공식 홈페이지·교단 정보·공식 영상 채널을 바탕으로 수집하며, 이용자 추천은 관리자 검토와 승인 후에만 목록에 포함됩니다.</p></div></div>
-        {churchLoading?<div className="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid">{visibleChurches.map((church)=><article key={church.id}><span>{church.region}</span><h3>{church.name}</h3><p>{church.pastor}</p><small>{church.denomination}</small></article>)}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
+        {churchLoading?<div className="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid">{visibleChurches.map((church)=><article key={church.id}><span>{church.region}</span><h3>{church.name}</h3><p>{church.pastor}</p><small>{church.denomination}</small><div className="church-directory-links"><a href={`https://search.naver.com/search.naver?query=${encodeURIComponent(`${church.name} 공식 홈페이지`)}`} target="_blank" rel="noreferrer" title="공식 홈페이지 검색">홈페이지 ↗</a>{church.youtubeChannelId&&<a href={`https://www.youtube.com/channel/${church.youtubeChannelId}`} target="_blank" rel="noreferrer">YouTube ▶</a>}</div></article>)}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
         {!churchLoading&&!query.trim()&&region==="전체 지역"&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{showAllChurches?"12개만 보기":`전체 ${filteredChurches.length}개 보기`}</button>}
         <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
           <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>

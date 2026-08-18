@@ -175,3 +175,12 @@ test("right-aligns the login return links", async () => {
   assert.match(signup,/관리자가 승인해야 교회 목록 검토 작업이 가능합니다/);
   assert.match(styles,/\.admin-login-links\.single \{ justify-content:flex-end; \}/);
 });
+
+test("links church directory cards to homepages and official YouTube channels", async () => {
+  const [page,route,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(route,/youtube_channel_id AS youtubeChannelId/);
+  assert.match(page,/church-directory-links/);
+  assert.match(page,/공식 홈페이지/);
+  assert.match(page,/youtube\.com\/channel/);
+  assert.match(styles,/\.church-directory-links/);
+});
