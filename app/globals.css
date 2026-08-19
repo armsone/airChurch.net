@@ -65,6 +65,9 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .church-directory-meta { display:flex;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0; }
 .church-directory-meta-copy { flex:1;min-width:0; }
 .church-directory-meta-copy small { margin-top:5px; }
+.church-primary-link { color:inherit;text-decoration:none; }
+.church-primary-link:hover { color:var(--orange);text-decoration:underline;text-underline-offset:3px; }
+.church-primary-link:focus-visible { border-radius:3px;outline:2px solid var(--orange);outline-offset:3px; }
 .church-directory-links { flex:none;display:flex;justify-content:flex-end;gap:8px;margin:0; }
 .church-directory-links a { width:38px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:#f7f9f6;color:var(--ink);transition:transform .15s ease,background .15s ease; }
 .church-directory-links a:hover { transform:translateY(-1px);background:#eef4f0; }

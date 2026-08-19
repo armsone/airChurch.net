@@ -183,6 +183,8 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(route,/channel_image_url AS channelImageUrl/);
   assert.match(page,/church-directory-links/);
   assert.match(page,/className="church-directory-meta"/);
+  assert.match(page,/const churchPrimaryUrl=church\.homepageUrl\|\|/);
+  assert.match(page,/className="church-primary-link"/);
   assert.match(page,/\/api\/churches\?catalog=60/);
   assert.match(page,/church\.homepageUrl/);
   assert.doesNotMatch(page,/search\.naver\.com/);
@@ -199,5 +201,6 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/⛪/);
   assert.match(styles,/\.church-directory-links/);
   assert.match(styles,/\.church-directory-meta \{/);
+  assert.match(styles,/\.church-primary-link:hover/);
   assert.match(styles,/\.homepage-visual img/);
 });
