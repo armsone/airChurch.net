@@ -70,9 +70,9 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .church-directory-links a:hover { transform:translateY(-1px);background:#eef4f0; }
 .church-directory-links a:focus-visible { outline:2px solid var(--ink);outline-offset:2px; }
 .directory-icon { position:relative;display:block;width:19px;height:19px; }
-.website-icon { border:1.8px solid currentColor;border-radius:50%; }
-.website-icon::before { content:"";position:absolute;inset:2px 5px;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor;border-radius:50%; }
-.website-icon::after { content:"";position:absolute;left:2px;right:2px;top:7px;height:4px;border-top:1.5px solid currentColor;border-bottom:1.5px solid currentColor; }
+.website-icon { width:16px;height:13px;margin-top:5px;border:1.8px solid currentColor;border-top:0;border-radius:0 0 2px 2px; }
+.website-icon::before { content:"";position:absolute;width:12px;height:12px;left:1px;top:-6px;border-left:1.8px solid currentColor;border-top:1.8px solid currentColor;transform:rotate(45deg);border-radius:2px 0 0; }
+.website-icon::after { content:"";position:absolute;width:4px;height:7px;left:5px;bottom:0;border:1.5px solid currentColor;border-bottom:0;background:#f7f9f6; }
 .church-directory-links a.youtube-link { border-color:#f0c8c4;background:#fff5f3;color:#d8392e; }
 .youtube-icon { width:21px;height:15px;border-radius:5px;background:currentColor; }
 .youtube-icon::after { content:"";position:absolute;left:8px;top:4px;border-left:6px solid white;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent; }
