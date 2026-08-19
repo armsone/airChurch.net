@@ -140,7 +140,7 @@ const sources:Source[]=[
   {name:"거룩한빛예안교회",pastor:"이병철 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",handle:"@je-anchurch"},
 ];
 
-type ChannelResponse={items?:Array<{id:string;contentDetails:{relatedPlaylists:{uploads:string}}}>};
+type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 
 export async function POST(request:Request) {
@@ -165,7 +165,7 @@ export async function POST(request:Request) {
   let verified=0;
   for(const source of batch) {
     const filter=source.channelId?`id=${encodeURIComponent(source.channelId)}`:source.handle?`forHandle=${encodeURIComponent(source.handle)}`:`forUsername=${encodeURIComponent(source.username||"")}`;
-    const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&${filter}&key=${encodeURIComponent(key)}`);
+    const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&${filter}&key=${encodeURIComponent(key)}`);
     if(!channelResponse.ok) return Response.json({error:"YouTube channel verification failed",removed},{status:502});
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
@@ -174,6 +174,7 @@ export async function POST(request:Request) {
       continue;
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
+    const channelImageUrl=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
     const playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=24&key=${encodeURIComponent(key)}`);
     if(!playlistResponse.ok) return Response.json({error:"YouTube upload verification failed",removed},{status:502});
     const playlist=await playlistResponse.json() as PlaylistResponse;
@@ -186,10 +187,10 @@ export async function POST(request:Request) {
     const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=?").bind(source.name,source.region).first<{id:number}>();
     let churchId:number;
     if(existing) {
-      await db.prepare("UPDATE churches SET pastor=?,denomination=?,youtube_channel_id=?,review_status=CASE WHEN youtube_channel_id IS NULL THEN 'approved' ELSE review_status END WHERE id=?").bind(source.pastor,source.denomination,found.id,existing.id).run();
+      await db.prepare("UPDATE churches SET pastor=?,denomination=?,youtube_channel_id=?,channel_image_url=?,review_status=CASE WHEN youtube_channel_id IS NULL THEN 'approved' ELSE review_status END WHERE id=?").bind(source.pastor,source.denomination,found.id,channelImageUrl,existing.id).run();
       churchId=existing.id;
     } else {
-      const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,review_status) VALUES (?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id).run();
+      const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,review_status) VALUES (?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl).run();
       churchId=Number(inserted.meta.last_row_id);
     }
     verified++;

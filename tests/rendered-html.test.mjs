@@ -176,11 +176,20 @@ test("right-aligns the login return links", async () => {
   assert.match(styles,/\.admin-login-links\.single \{ justify-content:flex-end; \}/);
 });
 
-test("links church directory cards to homepages and official YouTube channels", async () => {
-  const [page,route,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+test("links church directory cards to verified homepages and official YouTube channels", async () => {
+  const [page,route,homepages,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),readFile(new URL("../app/church-homepages.ts",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(route,/youtube_channel_id AS youtubeChannelId/);
+  assert.match(route,/homepage_url AS homepageUrl/);
+  assert.match(route,/channel_image_url AS channelImageUrl/);
   assert.match(page,/church-directory-links/);
-  assert.match(page,/공식 홈페이지/);
+  assert.match(page,/church\.homepageUrl/);
+  assert.doesNotMatch(page,/search\.naver\.com/);
   assert.match(page,/youtube\.com\/channel/);
+  assert.match(page,/website-icon/);
+  assert.match(page,/youtube-icon/);
+  assert.match(page,/channelImageUrl/);
+  assert.match(route,/churchHomepageUrls\[church\.name\]/);
+  assert.match(homepages,/"온누리교회": "https:\/\/www\.onnuri\.org\/"/);
   assert.match(styles,/\.church-directory-links/);
+  assert.match(styles,/\.church-name-row img/);
 });

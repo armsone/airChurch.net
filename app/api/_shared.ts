@@ -24,6 +24,8 @@ export async function ensureSermonTables(db:D1Database) {
   if (!churchColumns.results.some((column) => column.name === "reviewer_status")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewer_status TEXT NOT NULL DEFAULT 'unreviewed'").run();
   if (!churchColumns.results.some((column) => column.name === "reviewer_note")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewer_note TEXT").run();
   if (!churchColumns.results.some((column) => column.name === "reviewed_at")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewed_at TEXT").run();
+  if (!churchColumns.results.some((column) => column.name === "channel_image_url")) await db.prepare("ALTER TABLE churches ADD COLUMN channel_image_url TEXT").run();
+  if (!churchColumns.results.some((column) => column.name === "homepage_url")) await db.prepare("ALTER TABLE churches ADD COLUMN homepage_url TEXT").run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
 }
 export async function ensurePraiseTables(db:D1Database) {
