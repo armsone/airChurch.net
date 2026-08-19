@@ -62,7 +62,10 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .reviewer-join-link { display:block;margin-top:18px;padding:11px;border:1px solid var(--line);border-radius:10px;color:var(--ink)!important;font-size:12px!important;font-weight:850!important;text-align:center; }
 .reviewer-signup-card { max-width:540px; }
 .reviewer-signup-success { margin:24px 0!important;padding:16px;border-radius:12px;background:#e7f4eb;color:#3e7456!important;font-size:13px!important;font-weight:750;line-height:1.6!important; }
-.church-directory-links { display:flex;justify-content:flex-end;gap:8px;margin-top:14px; }
+.church-directory-meta { display:flex;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0; }
+.church-directory-meta-copy { flex:1;min-width:0; }
+.church-directory-meta-copy small { margin-top:5px; }
+.church-directory-links { flex:none;display:flex;justify-content:flex-end;gap:8px;margin:0; }
 .church-directory-links a { width:38px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:#f7f9f6;color:var(--ink);transition:transform .15s ease,background .15s ease; }
 .church-directory-links a:hover { transform:translateY(-1px);background:#eef4f0; }
 .church-directory-links a:focus-visible { outline:2px solid var(--ink);outline-offset:2px; }
@@ -72,7 +75,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .church-directory-links a.youtube-link { border-color:#f0c8c4;background:#fff5f3;color:#d8392e; }
 .youtube-icon { width:21px;height:15px;border-radius:5px;background:currentColor; }
 .youtube-icon::after { content:"";position:absolute;left:8px;top:4px;border-left:6px solid white;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent; }
-@media (max-width:760px) { .church-directory-links{gap:6px}.church-directory-links a{width:36px;height:32px}.homepage-visual{width:25px;height:25px;font-size:16px} }
+@media (max-width:760px) { .church-directory-meta{gap:6px}.church-directory-links{gap:6px}.church-directory-links a{width:36px;height:32px}.homepage-visual{width:25px;height:25px;font-size:16px} }
 .admin-login-links { display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:18px; }
 .admin-login-links.single { justify-content:flex-end; }
 .admin-login-links>a { color:var(--muted);font-size:11px;font-weight:700; }
