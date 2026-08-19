@@ -17,7 +17,6 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "주안교회": "https://juan.or.kr/",
   "지구촌교회": "https://www.jiguchon.or.kr/",
   "할렐루야교회": "https://www.hallelujah.or.kr/",
-  "포항제일교회": "https://www.phjmc.com/",
   "제자광성교회": "https://www.jejaks.org/",
   "한소망교회": "https://www.hansomang.or.kr/",
   "만나교회": "https://manna.or.kr/",
