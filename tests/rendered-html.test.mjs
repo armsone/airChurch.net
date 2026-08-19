@@ -182,6 +182,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(route,/homepage_url AS homepageUrl/);
   assert.match(route,/channel_image_url AS channelImageUrl/);
   assert.match(page,/church-directory-links/);
+  assert.match(page,/\/api\/churches\?catalog=58/);
   assert.match(page,/church\.homepageUrl/);
   assert.doesNotMatch(page,/search\.naver\.com/);
   assert.match(page,/youtube\.com\/channel/);

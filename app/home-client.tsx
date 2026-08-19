@@ -94,7 +94,7 @@ export default function Home() {
       talent: ()=>loadItems("/api/talents").then((data)=>{
         if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
       }),
-      "church-directory": ()=>loadItems("/api/churches").then((data)=>{
+      "church-directory": ()=>loadItems("/api/churches?catalog=58").then((data)=>{
         if(!alive) return;
         setChurchItems((data as {items?:ChurchItem[]}).items||[]);
         setChurchLoading(false);
