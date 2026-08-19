@@ -11,7 +11,6 @@ export const churchImageUrls: Readonly<Record<string,string>> = {
   "영락교회": "https://www.youngnak.net/wp-content/uploads/favicon/apple-touch-icon.png",
   "사랑의교회": "https://www.sarang.org/assets/img/sarang_512.png",
   "서머나교회": "https://www.smyrna.or.kr/UserData/smyrnahp/Layouts/renewal_layout/Images/logo.png",
-  "선한목자교회": "https://ycmc.church/apple-touch-icon.png",
   "남서울교회": "https://www.namseoul.org/files/attach/xeicon/mobicon.png",
   "지구촌교회": "https://www.jiguchon.or.kr/icon_500.jpg",
   "할렐루야교회": "https://www.hallelujah.or.kr/common2/images/common/favicon.ico",

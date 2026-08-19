@@ -194,6 +194,11 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/channelImageUrl/);
   assert.match(route,/churchHomepageUrls\[church\.name\]/);
   assert.match(route,/churchImageUrls\[church\.name\]/);
+  assert.match(route,/churchImageUrls\[church\.name\]\|\|church\.channelImageUrl\|\|null/);
+  assert.match(homepages,/"선한목자교회": "https:\/\/www\.gsmch\.org\/"/);
+  assert.match(homepages,/"대구동부교회": "https:\/\/dongbu\.org\/"/);
+  assert.doesNotMatch(homepages,/ycmc\.church/);
+  assert.doesNotMatch(images,/ycmc\.church/);
   assert.doesNotMatch(route,/new URL\("\/favicon\.ico",homepageUrl\)/);
   assert.match(homepages,/"온누리교회": "https:\/\/www\.onnuri\.org\/"/);
   assert.match(images,/"거룩한빛광성교회": "https:\/\/kwangsung\.org\/UserData/);
