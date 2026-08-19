@@ -7,6 +7,10 @@ export async function GET() {
   const db=database();
   await ensureSermonTables(db);
   const result=await db.prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl FROM churches WHERE review_status='approved' ORDER BY priority_weight DESC,name LIMIT 300").all<ChurchRow>();
-  const items=result.results.map((church)=>({...church,homepageUrl:church.homepageUrl||churchHomepageUrls[church.name]||null}));
+  const items=result.results.map((church)=>{
+    const homepageUrl=church.homepageUrl||churchHomepageUrls[church.name]||null;
+    const homepageIconUrl=!church.channelImageUrl&&homepageUrl?.startsWith("https://")?new URL("/favicon.ico",homepageUrl).href:null;
+    return {...church,homepageUrl,channelImageUrl:church.channelImageUrl||homepageIconUrl};
+  });
   return Response.json({items},{headers:{"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"}});
 }

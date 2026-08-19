@@ -189,6 +189,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/youtube-icon/);
   assert.match(page,/channelImageUrl/);
   assert.match(route,/churchHomepageUrls\[church\.name\]/);
+  assert.match(route,/new URL\("\/favicon\.ico",homepageUrl\)/);
   assert.match(homepages,/"온누리교회": "https:\/\/www\.onnuri\.org\/"/);
   assert.match(styles,/\.church-directory-links/);
   assert.match(styles,/\.church-name-row img/);
