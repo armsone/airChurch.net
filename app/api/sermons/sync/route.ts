@@ -15,9 +15,24 @@ const heldSources:SourceBase[]=[
   {name:"천안광성교회",pastor:"이한결 목사",region:"충남 천안",denomination:"대한예수교장로회 통합"},
 ];
 
+const regionalHeldSources:Array<SourceBase&{holdReason:"youtube_unavailable"|"info_unverified";holdNote:string}>=[
+  {name:"속초중앙교회",pastor:"강석훈 목사",region:"강원 속초",denomination:"대한예수교장로회 통합",holdReason:"info_unverified",holdNote:"공식 홈페이지와 다음세대 사역은 확인했으나 공식 YouTube 채널의 고유 식별값을 홈페이지 연결과 대조하지 못해 보류했습니다."},
+  {name:"양산중앙교회",pastor:"정지훈 목사",region:"경남 양산",denomination:"대한예수교장로회 통합",holdReason:"youtube_unavailable",holdNote:"최근 설교와 유아부부터 청년부까지의 운영은 확인했으나 공식 YouTube 채널 연결과 최근 180일 업로드를 함께 확인하지 못해 보류했습니다."},
+  {name:"김해중앙교회",pastor:"강동명 목사",region:"경남 김해",denomination:"대한예수교장로회 고신",holdReason:"info_unverified",holdNote:"공식 홈페이지와 YouTube 운영 이력은 확인했으나 공식 채널에서 최근 180일 내 설교·예배 업로드가 지속되는지 확인하지 못해 보류했습니다."},
+  {name:"진주성남교회",pastor:"양대식 목사",region:"경남 진주",denomination:"대한예수교장로회 합동",holdReason:"youtube_unavailable",holdNote:"교단·담임목사·어린이 교육부서는 확인했으나 확인된 YouTube가 중등부 소규모 채널뿐이어서 교회 공식 설교 채널을 확인할 때까지 보류했습니다."},
+  {name:"군산드림교회",pastor:"임만호 목사",region:"전북 군산",denomination:"대한예수교장로회 합동",holdReason:"info_unverified",holdNote:"공식 홈페이지의 최근 설교와 다음세대 사역은 확인했으나 현재 공식 YouTube 채널의 고유 식별값과 최근 업로드를 최종 대조하지 못해 보류했습니다."},
+  {name:"군산중동교회",pastor:"임재규 목사",region:"전북 군산",denomination:"기독교대한성결교회",holdReason:"info_unverified",holdNote:"최근 온라인예배 게시물은 확인했으나 교회 공식 YouTube 채널의 소유 관계와 최근 180일 연속 운영을 확인하지 못해 보류했습니다."},
+  {name:"익산영생교회",pastor:"담임목사 확인 필요",region:"전북 익산",denomination:"교단 확인 필요",holdReason:"youtube_unavailable",holdNote:"과거 영상 운영 흔적만 확인되며 담임목사·교단과 최근 180일 내 공식 YouTube 설교 업로드를 확인하지 못해 보류했습니다."},
+  {name:"보목교회",pastor:"담임목사 확인 필요",region:"제주 서귀포",denomination:"교단 확인 필요",holdReason:"youtube_unavailable",holdNote:"공식 홈페이지의 다음세대 활동은 확인했으나 교단·담임목사와 공식 YouTube 채널 및 최근 180일 업로드를 확인하지 못해 보류했습니다."},
+  {name:"정읍성광교회",pastor:"김기철 목사",region:"전북 정읍",denomination:"대한예수교장로회 합동",holdReason:"youtube_unavailable",holdNote:"교단·담임목사·지역은 확인했으나 공식 YouTube 채널과 최근 180일 내 설교·예배 업로드를 확인하지 못해 보류했습니다."},
+];
+
 async function seedHeldSources(db:D1Database) {
   const holdNote="지난 24곳 재검토에서 공식 YouTube 채널과 최근 180일 내 설교·예배 운영을 확인하지 못해 보류했습니다. 새 추천 시 이 기록과 먼저 비교합니다.";
-  await db.batch(heldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=? AND review_status!='deleted')").bind(source.name,source.pastor,source.region,source.denomination,holdNote,source.name)));
+  await db.batch([
+    ...heldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=? AND review_status!='deleted')").bind(source.name,source.pastor,source.region,source.denomination,holdNote,source.name)),
+    ...regionalHeldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed',?,?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=? AND review_status!='deleted')").bind(source.name,source.pastor,source.region,source.denomination,source.holdReason,source.holdNote,source.name)),
+  ]);
 }
 
 const sources:Source[]=[
@@ -138,6 +153,9 @@ const sources:Source[]=[
   {name:"주와길교회",pastor:"최병화 목사",region:"경기 양주",denomination:"대한예수교장로회 통합",handle:"@lordnroad_church"},
   {name:"거룩한빛등대교회",pastor:"문상원 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",handle:"@ddchurchorg"},
   {name:"거룩한빛예안교회",pastor:"이병철 목사",region:"경기 파주",denomination:"대한예수교장로회 통합",handle:"@je-anchurch"},
+  {name:"광주서림교회",pastor:"조용현 목사",region:"광주 북구",denomination:"대한예수교장로회 통합",channelId:"UC82QWyiYLB5NaRmEInZCfHg"},
+  {name:"광주경신교회",pastor:"김판석 목사",region:"광주 북구",denomination:"대한예수교장로회 고신",channelId:"UCEnpM0PQsc8mmd4fkVnXX2w"},
+  {name:"서귀포중앙교회",pastor:"김상현 목사",region:"제주 서귀포",denomination:"한국기독교장로회",handle:"@서귀포중앙"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -146,7 +164,7 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
-  const syncKey="youtube-v7-verified-117";
+  const syncKey="youtube-v8-verified-120";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;

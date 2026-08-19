@@ -82,5 +82,8 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "거룩한빛운정교회": "https://ujch.org/",
   "은혜의빛광성교회": "https://www.thelightofgrace.org/",
   "거룩한빛등대교회": "https://ddchurch.org/",
-  "거룩한빛예안교회": "https://je-an.co.kr/"
+  "거룩한빛예안교회": "https://je-an.co.kr/",
+  "광주서림교회": "https://www.suhrim.or.kr/",
+  "광주경신교회": "https://www.gs12.org/",
+  "서귀포중앙교회": "https://www.cccj.or.kr/"
 } as const;
