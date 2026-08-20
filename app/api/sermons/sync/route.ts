@@ -25,6 +25,9 @@ const regionalHeldSources:Array<SourceBase&{holdReason:"youtube_unavailable"|"in
   {name:"익산영생교회",pastor:"담임목사 확인 필요",region:"전북 익산",denomination:"교단 확인 필요",holdReason:"youtube_unavailable",holdNote:"과거 영상 운영 흔적만 확인되며 담임목사·교단과 최근 180일 내 공식 YouTube 설교 업로드를 확인하지 못해 보류했습니다."},
   {name:"보목교회",pastor:"담임목사 확인 필요",region:"제주 서귀포",denomination:"교단 확인 필요",holdReason:"youtube_unavailable",holdNote:"공식 홈페이지의 다음세대 활동은 확인했으나 교단·담임목사와 공식 YouTube 채널 및 최근 180일 업로드를 확인하지 못해 보류했습니다."},
   {name:"정읍성광교회",pastor:"김기철 목사",region:"전북 정읍",denomination:"대한예수교장로회 합동",holdReason:"youtube_unavailable",holdNote:"교단·담임목사·지역은 확인했으나 공식 YouTube 채널과 최근 180일 내 설교·예배 업로드를 확인하지 못해 보류했습니다."},
+  {name:"진천중앙교회",pastor:"김우종 목사",region:"충북 진천",denomination:"대한예수교장로회 통합",holdReason:"info_unverified",holdNote:"공식 홈페이지는 확인했으나 조사된 YouTube 핸들이 실제 채널로 확인되지 않았고 홈페이지에서도 공식 채널 연결을 대조하지 못해 보류했습니다."},
+  {name:"충주남부교회",pastor:"담임목사 확인 필요",region:"충북 충주",denomination:"교단 확인 필요",holdReason:"info_unverified",holdNote:"동명 교회가 여러 지역에 있어 홈페이지와 YouTube 채널의 소유 관계, 담임목사·교단, 다음세대 부서를 한 교회 정보로 확정하지 못해 보류했습니다."},
+  {name:"제천성광교회",pastor:"담임목사 확인 필요",region:"충북 제천",denomination:"교단 확인 필요",holdReason:"info_unverified",holdNote:"한글 도메인 연결이 불안정하고 청년부 정기 운영 및 공식 YouTube 채널의 최근 설교 업로드를 함께 확인하지 못해 보류했습니다."},
 ];
 
 async function seedHeldSources(db:D1Database) {
@@ -156,6 +159,18 @@ const sources:Source[]=[
   {name:"광주서림교회",pastor:"조용현 목사",region:"광주 북구",denomination:"대한예수교장로회 통합",channelId:"UC82QWyiYLB5NaRmEInZCfHg"},
   {name:"광주경신교회",pastor:"김판석 목사",region:"광주 북구",denomination:"대한예수교장로회 고신",channelId:"UCEnpM0PQsc8mmd4fkVnXX2w"},
   {name:"서귀포중앙교회",pastor:"김상현 목사",region:"제주 서귀포",denomination:"한국기독교장로회",handle:"@서귀포중앙"},
+  {name:"강릉중앙감리교회",pastor:"박태환 목사",region:"강원 강릉",denomination:"기독교대한감리회",channelId:"UCL_nPtCzo6TeEW8UrkZTKcQ"},
+  {name:"삼척제일교회",pastor:"박신진 목사",region:"강원 삼척",denomination:"기독교대한감리회",channelId:"UCX2s2h5PvNw_K5_I29Uu_rg"},
+  {name:"동해교회",pastor:"이상수 목사",region:"강원 동해",denomination:"기독교대한감리회",channelId:"UCG2Yk4OT8pQ7O7ktHHdMHjA"},
+  {name:"진주교회",pastor:"송영의 목사",region:"경남 진주",denomination:"대한예수교장로회 통합",channelId:"UCmdwazm-FGB4SKW5FYHYF7Q"},
+  {name:"통영교회",pastor:"김진성 목사",region:"경남 통영",denomination:"대한예수교장로회 통합",channelId:"UC1XwhbEmUkaPV8MW8qjp79Q"},
+  {name:"모든민족교회",pastor:"박원일 목사",region:"경남 김해",denomination:"대한예수교장로회 고신",channelId:"UCwBrzFLFNseUFAHHCpZlBEg"},
+  {name:"제주영락교회",pastor:"심상철 목사",region:"제주 제주",denomination:"대한예수교장로회 통합",channelId:"UCN00h-iuCithcXb8AxITs3g"},
+  {name:"제주성지교회",pastor:"노경천 목사",region:"제주 제주",denomination:"대한예수교장로회 통합",channelId:"UCgzBhQOW5bZ3893ksZHeL8w"},
+  {name:"제주중문교회",pastor:"김민호 목사",region:"제주 서귀포",denomination:"대한예수교장로회 통합",channelId:"UC78fZnbgh3aglJAEtq5h-yg"},
+  {name:"군산개복교회",pastor:"여성헌 목사",region:"전북 군산",denomination:"대한예수교장로회 합동",channelId:"UC2nLj0_dmGgGESDuCsbLDSQ"},
+  {name:"광양제일교회",pastor:"박재일 목사",region:"전남 광양",denomination:"대한예수교장로회 통합",channelId:"UCG3ZeC8hBykHnSCUY4GRn5Q"},
+  {name:"제천제일감리교회",pastor:"안정균 목사",region:"충북 제천",denomination:"기독교대한감리회",channelId:"UC8joyyen3k1SeWRbhyanR8Q"},
 ];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -164,7 +179,7 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
-  const syncKey="youtube-v8-verified-120";
+  const syncKey="youtube-v9-regional-130";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;

@@ -83,5 +83,17 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "거룩한빛예안교회": "https://je-an.co.kr/",
   "광주서림교회": "https://www.suhrim.or.kr/",
   "광주경신교회": "https://www.gs12.org/",
-  "서귀포중앙교회": "https://www.cccj.or.kr/"
+  "서귀포중앙교회": "https://www.cccj.or.kr/",
+  "강릉중앙감리교회": "http://www.cmck.or.kr/",
+  "삼척제일교회": "https://www.scjeil.org/",
+  "동해교회": "https://www.dhchurch.net/",
+  "진주교회": "https://www.jj21.kr/",
+  "통영교회": "https://www.tychurch.org/",
+  "모든민족교회": "https://allnations.kr/",
+  "제주영락교회": "http://www.jejuyn.or.kr/",
+  "제주성지교회": "http://www.jejusungji.org/index9.php",
+  "제주중문교회": "https://jungmun.or.kr/",
+  "군산개복교회": "https://www.gaebok.org/",
+  "광양제일교회": "http://www.gyjeil.net/",
+  "제천제일감리교회": "https://www.jcfirst.or.kr/"
 } as const;
