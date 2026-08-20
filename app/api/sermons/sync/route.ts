@@ -162,7 +162,7 @@ const sources:Source[]=[
   {name:"강릉중앙감리교회",pastor:"박태환 목사",region:"강원 강릉",denomination:"기독교대한감리회",channelId:"UCL_nPtCzo6TeEW8UrkZTKcQ"},
   {name:"삼척제일교회",pastor:"박신진 목사",region:"강원 삼척",denomination:"기독교대한감리회",channelId:"UCX2s2h5PvNw_K5_I29Uu_rg"},
   {name:"동해교회",pastor:"이상수 목사",region:"강원 동해",denomination:"기독교대한감리회",channelId:"UCG2Yk4OT8pQ7O7ktHHdMHjA"},
-  {name:"진주교회",pastor:"송영의 목사",region:"경남 진주",denomination:"대한예수교장로회 통합",channelId:"UCmdwazm-FGB4SKW5FYHYF7Q"},
+  {name:"진주교회",pastor:"송영의 목사",region:"경남 진주",denomination:"대한예수교장로회 통합",channelId:"UCT8u-MbFMz55MHRvqhu18DQ"},
   {name:"통영교회",pastor:"김진성 목사",region:"경남 통영",denomination:"대한예수교장로회 통합",channelId:"UC1XwhbEmUkaPV8MW8qjp79Q"},
   {name:"모든민족교회",pastor:"박원일 목사",region:"경남 김해",denomination:"대한예수교장로회 고신",channelId:"UCwBrzFLFNseUFAHHCpZlBEg"},
   {name:"제주영락교회",pastor:"심상철 목사",region:"제주 제주",denomination:"대한예수교장로회 통합",channelId:"UCN00h-iuCithcXb8AxITs3g"},
