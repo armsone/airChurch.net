@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
 
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
-type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
+type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string; pinned?:boolean };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null };
@@ -85,7 +85,8 @@ export default function Home() {
     const loaders: Record<string, () => void> = {
       praises: ()=>loadItems("/api/praises").then((data)=>{
         if(!alive) return;
-        setPraiseItems(shuffled((data as {items?:Praise[]}).items||[]));
+        const items=(data as {items?:Praise[]}).items||[];
+        setPraiseItems([...items.filter((item)=>item.pinned),...shuffled(items.filter((item)=>!item.pinned))]);
         setPraiseLoading(false);
       }),
       community: ()=>loadItems("/api/posts").then((data)=>{

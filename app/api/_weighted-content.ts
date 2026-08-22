@@ -4,12 +4,24 @@ type WeightedChurchItem = {
   publishedAt: string;
 };
 
+export const PIN_UP_WEIGHT = 4;
+
+export function pinPriorityChurch<T extends WeightedChurchItem>(items: T[]) {
+  const pinned: T[] = [];
+  const rest: T[] = [];
+  for (const item of items) {
+    if (Number(item.priorityWeight) >= PIN_UP_WEIGHT) pinned.push(item);
+    else rest.push(item);
+  }
+  return [...pinned, ...rest];
+}
+
 export function selectWeightedRecent<T extends WeightedChurchItem>(items: T[], limit: number) {
   const primary: T[] = [];
   const overflow: T[] = [];
   const primaryCount = new Map<number, number>();
 
-  for (const item of items) {
+  for (const item of pinPriorityChurch(items)) {
     const weight = Math.max(1, Math.min(3, Number(item.priorityWeight) || 1));
     const count = primaryCount.get(item.churchId) || 0;
     if (count < weight) {

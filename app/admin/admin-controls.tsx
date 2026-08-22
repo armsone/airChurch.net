@@ -43,7 +43,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
   return <details className="admin-church-details"><summary>정보 · 노출 · 보류 관리</summary><form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
-      <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option></select></label>
+      <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option><option value="4">핀업 · 항상 최상단</option></select></label>
       <label><span>보류 사유</span><select name="holdReason" value={holdReason} onChange={(event) => setHoldReason(event.target.value)}><option value="">선택해 주세요</option>{holdReasons.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
     </div>
     <label className="admin-note-field"><span>관리자 메모 {props.status === "approved" && <small>· 보류 시 필수</small>}</span><textarea name="holdNote" value={holdNote} onChange={(event) => setHoldNote(event.target.value)} maxLength={500} rows={3} placeholder="확인한 근거와 다시 검토할 내용을 남겨 주세요." /></label>

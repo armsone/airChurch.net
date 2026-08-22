@@ -51,10 +51,11 @@ test("keeps safety and discovery requirements in the product source", async () =
 });
 
 test("does not block initial content on YouTube synchronization", async () => {
-  const [page,sermonRoute,praiseRoute]=await Promise.all([
+  const [page,sermonRoute,praiseRoute,weighted]=await Promise.all([
     readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/praises/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/_weighted-content.ts",import.meta.url),"utf8"),
   ]);
   assert.doesNotMatch(page,/\/api\/(?:sermons|praises)\/sync/);
   assert.doesNotMatch(page,/Promise\.all\(\[\s*loadItems\("\/api\/sermons"\)/);
@@ -70,6 +71,9 @@ test("does not block initial content on YouTube synchronization", async () => {
   assert.match(sermonRoute,/context\.waitUntil\(pendingSync\)/);
   assert.match(praiseRoute,/getRequestExecutionContext/);
   assert.match(praiseRoute,/context\.waitUntil\(pendingSync\)/);
+  assert.match(weighted,/for \(const item of pinPriorityChurch\(items\)\)/);
+  assert.match(praiseRoute,/selectWeightedRecent\(rows\.results as PraiseRow\[\], 12\)/);
+  assert.match(page,/items\.filter\(\(item\)=>item\.pinned\).*shuffled\(items\.filter\(\(item\)=>!item\.pinned\)\)/s);
   assert.match(sermonRoute,/stale-while-revalidate=3600/);
   assert.match(praiseRoute,/stale-while-revalidate=3600/);
 });
