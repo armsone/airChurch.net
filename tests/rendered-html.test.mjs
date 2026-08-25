@@ -185,6 +185,7 @@ test("supports multiple approved church reviewer accounts", async () => {
 
 test("shows reviewer decisions as one-tap choices with a right-aligned save", async () => {
   const [controls,styles]=await Promise.all([readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(controls,/useState\(props\.holdReason \|\| "review_needed"\)/);
   assert.match(controls,/className="review-result-options"/);
   assert.match(controls,/type="radio" name="status"/);
   assert.match(controls,/className="review-save-row"/);

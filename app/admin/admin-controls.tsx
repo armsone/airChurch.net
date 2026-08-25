@@ -19,7 +19,7 @@ const holdReasons = [
 
 export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
-  const [holdReason, setHoldReason] = useState(props.holdReason || "");
+  const [holdReason, setHoldReason] = useState(props.holdReason || "review_needed");
   const [holdNote, setHoldNote] = useState(props.holdNote || "");
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
