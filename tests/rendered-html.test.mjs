@@ -93,6 +93,7 @@ test("loads a larger sermon catalog in batches", async () => {
   assert.match(page,/className="thumbnail-image"/);
   assert.match(page,/loading="lazy" decoding="async"/);
   assert.match(page,/fetchPriority="low"/);
+  assert.equal((page.match(/\{sermon\.church\} · \{sermon\.pastor\} · \{sermon\.region\}/g)??[]).length,2);
   assert.match(sermonRoute,/mqdefault\.jpg/);
 });
 
