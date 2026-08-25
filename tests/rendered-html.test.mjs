@@ -146,7 +146,7 @@ test("collapses the church list to its heading and reveals recommendations on de
 });
 
 test("supports multiple approved church reviewer accounts", async () => {
-  const [access,signup,login,admin,manage,shared,schema]=await Promise.all([
+  const [access,signup,login,admin,manage,shared,schema,controls]=await Promise.all([
     readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),
@@ -154,6 +154,7 @@ test("supports multiple approved church reviewer accounts", async () => {
     readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),
   ]);
   assert.match(access,/PBKDF2/);
   assert.match(access,/const PBKDF2_ITERATIONS = 100_000;/);
@@ -169,6 +170,12 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(schema,/reviewerChurchReviews = sqliteTable\("reviewer_church_reviews"/);
   assert.match(access,/reviewerId/);
   assert.match(manage,/INSERT INTO reviewer_church_reviews/);
+  assert.match(manage,/DELETE FROM reviewer_church_reviews WHERE reviewer_id=\?/);
+  assert.match(manage,/DELETE FROM reviewer_accounts WHERE id=\?/);
+  assert.match(manage,/DELETE FROM church_recommendations WHERE id=\?/);
+  assert.match(manage,/DELETE FROM \$\{table\} WHERE id=\?/);
+  assert.match(controls,/이 목회자 검토자 계정과 검토 기록을 모두 삭제할까요/);
+  for(const label of ["교회 추천","익명 글","달란트"]) assert.match(controls,new RegExp(label));
   assert.match(admin,/href="\/review">목사님 페이지/);
   assert.match(admin,/관리자가 최종 결정/);
   assert.match(admin,/opinionsByChurch/);

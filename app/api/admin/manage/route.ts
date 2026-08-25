@@ -22,10 +22,20 @@ export async function PATCH(request: Request) {
   await Promise.all([ensureCommunityTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 
   if(kind==="reviewer-account") {
-    if(role!=="admin") return Response.json({error:"관리자만 검토자를 승인할 수 있습니다."},{status:403});
+    if(role!=="admin") return Response.json({error:"관리자만 검토자 계정을 관리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);
-    if(!["pending","approved","rejected"].includes(status)) return Response.json({error:"가입 상태를 확인해 주세요."},{status:400});
-    await db.prepare("UPDATE reviewer_accounts SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
+    if(status==="deleted") {
+      const affected=await db.prepare("SELECT DISTINCT church_id FROM reviewer_church_reviews WHERE reviewer_id=?").bind(id).all<{church_id:number}>();
+      const statements=[
+        db.prepare("DELETE FROM reviewer_church_reviews WHERE reviewer_id=?").bind(id),
+        db.prepare("DELETE FROM reviewer_accounts WHERE id=?").bind(id),
+        ...(affected.results??[]).map(({church_id})=>db.prepare("UPDATE churches SET reviewer_status=COALESCE((SELECT status FROM reviewer_church_reviews WHERE church_id=? ORDER BY reviewed_at DESC LIMIT 1),'unreviewed'),reviewer_note=(SELECT note FROM reviewer_church_reviews WHERE church_id=? ORDER BY reviewed_at DESC LIMIT 1),reviewed_at=(SELECT reviewed_at FROM reviewer_church_reviews WHERE church_id=? ORDER BY reviewed_at DESC LIMIT 1) WHERE id=?").bind(church_id,church_id,church_id,church_id)),
+      ];
+      await db.batch(statements);
+    } else {
+      if(!["pending","approved","rejected"].includes(status)) return Response.json({error:"가입 상태를 확인해 주세요."},{status:400});
+      await db.prepare("UPDATE reviewer_accounts SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
+    }
   } else if(kind==="church-review") {
     const status=clean(data.status,20),note=clean(data.note,500);
     if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
@@ -67,11 +77,18 @@ export async function PATCH(request: Request) {
     await db.prepare("UPDATE sermons SET status=? WHERE id=?").bind(status, id).run();
   } else if (kind === "post" || kind === "talent") {
     const status = clean(data.status, 20);
-    if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     const table = kind === "post" ? "community_posts" : "talent_offers";
-    await db.prepare(`UPDATE ${table} SET status=? WHERE id=?`).bind(status, id).run();
+    if (status === "deleted") await db.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
+    else {
+      if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
+      await db.prepare(`UPDATE ${table} SET status=? WHERE id=?`).bind(status, id).run();
+    }
   } else if (kind === "recommendation") {
     const status=clean(data.status,20);
+    if(status==="deleted") {
+      await db.prepare("DELETE FROM church_recommendations WHERE id=?").bind(id).run();
+      return Response.json({ok:true},{headers:{"cache-control":"no-store"}});
+    }
     if(!["pending","approved","rejected"].includes(status)) return Response.json({error:"상태를 확인해 주세요."},{status:400});
     const recommendation=await db.prepare("SELECT church_name,pastor,region,denomination FROM church_recommendations WHERE id=?").bind(id).first<{church_name:string;pastor:string;region:string;denomination:string}>();
     if(!recommendation) return Response.json({error:"교회 추천을 찾을 수 없습니다."},{status:404});

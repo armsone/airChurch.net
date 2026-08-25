@@ -65,22 +65,27 @@ export function SermonControls({ id, status }: { id: number; status: string }) {
 
 export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" | "recommendation"; id: number; status: string }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
-  async function setStatus(next: string) {
+  async function setStatus(next: "pending" | "approved" | "rejected" | "deleted") {
     if (next === "rejected" && !window.confirm("공개하지 않고 반려할까요?")) return;
+    if (next === "deleted") {
+      const label=kind === "recommendation" ? "교회 추천" : kind === "post" ? "익명 글" : "달란트";
+      if (!window.confirm(`이 ${label} 기록을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`)) return;
+    }
     setBusy(true); setError("");
     try { await updateAdmin({ kind, id, status: next }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{kind === "recommendation" ? "교회 등록 승인" : "공개 승인"}</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{kind === "recommendation" ? "등록하지 않음" : "비공개"}</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}{error && <span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{kind === "recommendation" ? "교회 등록 승인" : "공개 승인"}</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{kind === "recommendation" ? "등록하지 않음" : "비공개"}</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}<button disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
-  async function setStatus(next:"pending"|"approved"|"rejected") {
+  async function setStatus(next:"pending"|"approved"|"rejected"|"deleted") {
     if(next==="rejected"&&!window.confirm("이 목회자 가입 신청을 거절할까요?")) return;
+    if(next==="deleted"&&!window.confirm("이 목회자 검토자 계정과 검토 기록을 모두 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) return;
     setBusy(true);setError("");
     try { await updateAdmin({kind:"reviewer-account",id,status:next}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
-  return <div className="admin-action-row"><button disabled={busy||status==="approved"} className="restore" onClick={()=>void setStatus("approved")}>검토 권한 승인</button><button disabled={busy||status==="rejected"} className="danger" onClick={()=>void setStatus("rejected")}>가입 거절</button>{status!=="pending"&&<button disabled={busy} onClick={()=>void setStatus("pending")}>재검토</button>}{error&&<span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button disabled={busy||status==="approved"} className="restore" onClick={()=>void setStatus("approved")}>검토 권한 승인</button><button disabled={busy||status==="rejected"} className="danger" onClick={()=>void setStatus("rejected")}>가입 거절</button>{status!=="pending"&&<button disabled={busy} onClick={()=>void setStatus("pending")}>재검토</button>}<button disabled={busy} className="danger" onClick={()=>void setStatus("deleted")}>삭제</button>{error&&<span className="admin-error">{error}</span>}</div>;
 }
 
 export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;status:string;note:string|null;reviewedAt:string|null}) {
