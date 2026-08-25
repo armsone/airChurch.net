@@ -314,7 +314,7 @@ export default function Home() {
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a><a href="/review">목사님</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div className="footer-links"><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a><a href="/review">목사님</a></div>
       </footer>
     </main>
   );

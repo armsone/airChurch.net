@@ -232,6 +232,16 @@ test("adapts administrator and pastor screens for tablet and phone without clipp
   assert.match(styles,/\.sermon-copy h3\{display:block;min-height:0;overflow:visible;-webkit-line-clamp:unset\}/);
 });
 
+test("keeps the home footer labels intact and gives edge panels responsive gutters", async () => {
+  const [page,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(page,/className="footer-links"/);
+  assert.match(styles,/\.footer-links a \{ flex:none;white-space:nowrap; \}/);
+  assert.match(styles,/@media \(max-width:1000px\) \{ footer\{grid-template-columns:auto 1fr/);
+  assert.match(styles,/\.community-section \{ max-width:1180px;margin:auto;padding:100px 24px/);
+  assert.match(styles,/\.safety-section \{ max-width:1180px;margin:auto;padding:100px 24px/);
+  assert.match(styles,/\.approved-section \{ max-width:1180px;margin:auto;padding:0 24px 90px/);
+});
+
 test("right-aligns the login return links", async () => {
   const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(login,/className="admin-login-links"/);
