@@ -219,6 +219,19 @@ test("queues pastor opinions for quick review without deleting their records", a
   assert.match(styles,/\.reviewer-queue/);
 });
 
+test("adapts administrator and pastor screens for tablet and phone without clipping titles", async () => {
+  const styles=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
+  assert.match(styles,/@media \(min-width:601px\) and \(max-width:999px\) \{[\s\S]*?\.admin-metrics\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}[\s\S]*?\.admin-operations\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}[\s\S]*?\.reviewer-church-list\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+  assert.match(styles,/@media \(max-width:600px\) \{[\s\S]*?\.admin-metrics,[^}]*\.reviewer-metrics,[^}]*\.reviewer-queue-list\{grid-template-columns:1fr\}/);
+  const titleRule=styles.match(/\.admin-title h1,\.admin-panel-title h2,[^{]+\{([^}]*)\}/)?.[1]??"";
+  assert.match(titleRule,/overflow:visible/);
+  assert.match(titleRule,/text-overflow:clip/);
+  assert.match(titleRule,/white-space:normal/);
+  assert.match(titleRule,/word-break:keep-all/);
+  assert.match(styles,/\.path-list span\{overflow:visible;text-overflow:clip;white-space:normal/);
+  assert.match(styles,/\.sermon-copy h3\{display:block;min-height:0;overflow:visible;-webkit-line-clamp:unset\}/);
+});
+
 test("right-aligns the login return links", async () => {
   const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(login,/className="admin-login-links"/);

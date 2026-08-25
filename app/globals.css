@@ -98,3 +98,29 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .church-review-control .review-save-row { justify-content:flex-end; }
 .review-save-row small { margin-right:auto; }
 @media (max-width:760px) { .church-review-control .review-result-options{display:grid;grid-template-columns:repeat(3,1fr);align-items:stretch;flex-direction:initial}.church-review-control .review-save-row{display:flex;align-items:center;flex-direction:row}.review-result-options span{padding:9px 3px;font-size:9px} }
+
+/* Keep administrator and pastor screens readable across desktop, tablet, and phone widths. */
+.admin-title h1,.admin-panel-title h2,.admin-record-heading strong,.review-list strong,.reviewer-church-heading h3,.review-section-title h2,.review-done summary b{max-width:100%;overflow:visible;text-overflow:clip;white-space:normal;word-break:keep-all;overflow-wrap:break-word}
+.admin-panel-title>div,.admin-record-heading>div,.reviewer-church-heading>div:first-child,.review-section-title>div,.review-done>summary>div{min-width:0}
+.admin-panel-title,.admin-record-heading,.review-list>article>div,.reviewer-church-heading,.review-section-title,.review-done>summary{flex-wrap:wrap}
+.path-list>div{grid-template-columns:24px minmax(0,1fr) auto}.path-list span{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere}
+.sermon-copy h3{display:block;min-height:0;overflow:visible;-webkit-line-clamp:unset}.sermon-copy p{overflow:visible;text-overflow:clip;white-space:normal}
+.admin-header a,.admin-header button,.admin-title>a,.admin-record-heading>a,.admin-review-link,.admin-church-details>summary,.admin-action-row button,.admin-inline-control button,.church-review-control button,.review-result-options span{min-height:44px;display:inline-flex;align-items:center}
+.review-result-options span{justify-content:center}
+
+@media (min-width:601px) and (max-width:999px) {
+  .admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-operations{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .admin-grid,.analytics-grid,.admin-management-grid,.admin-review-grid,.reviewer-queue-list{grid-template-columns:1fr}
+  .reviewer-church-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-panel{padding:20px}
+}
+
+@media (max-width:600px) {
+  .admin-title{align-items:stretch;flex-direction:column;gap:18px}
+  .admin-title>a{align-self:flex-start}
+  .admin-metrics,.admin-grid,.analytics-grid,.admin-operations,.admin-review-grid,.admin-management-grid,.reviewer-metrics,.reviewer-church-list,.reviewer-queue-list{grid-template-columns:1fr}
+  .admin-operation-card{min-width:0}
+  .sermon-card{aspect-ratio:auto}
+  .sermon-thumb{flex:0 0 auto;aspect-ratio:16/9}
+}
