@@ -192,6 +192,33 @@ test("shows reviewer decisions as one-tap choices with a right-aligned save", as
   assert.match(styles,/\.church-review-control \.review-save-row \{ justify-content:flex-end; \}/);
 });
 
+test("queues pastor opinions for quick review without deleting their records", async () => {
+  const [admin,review,controls,manage,shared,schema,styles]=await Promise.all([
+    readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  assert.match(shared,/ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT/);
+  assert.match(schema,/handledAt:text\("handled_at"\)/);
+  assert.match(manage,/kind==="church-review-handled"/);
+  assert.match(manage,/handled_at=NULL/);
+  assert.match(admin,/id="reviewer-queue"/);
+  assert.match(admin,/목사님 의견 처리/);
+  assert.match(admin,/pendingOpinions/);
+  assert.match(controls,/ReviewerOpinionControls/);
+  assert.match(controls,/처리 완료/);
+  assert.match(review,/id="review-todo"/);
+  assert.match(review,/id="review-concern"/);
+  assert.match(review,/id="review-done"/);
+  assert.match(review,/관리자 확인을 기다리고 있어요/);
+  assert.match(review,/r\.reviewer_id=\?/);
+  assert.match(styles,/\.reviewer-queue/);
+});
+
 test("right-aligns the login return links", async () => {
   const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(login,/className="admin-login-links"/);

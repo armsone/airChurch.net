@@ -41,9 +41,13 @@ export async function PATCH(request: Request) {
     if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
     if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});
     await db.batch([
-      db.prepare("INSERT INTO reviewer_church_reviews (reviewer_id,church_id,status,note,reviewed_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(reviewer_id,church_id) DO UPDATE SET status=excluded.status,note=excluded.note,reviewed_at=CURRENT_TIMESTAMP").bind(session.reviewerId,id,status,note||null),
+      db.prepare("INSERT INTO reviewer_church_reviews (reviewer_id,church_id,status,note,reviewed_at,handled_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP,NULL) ON CONFLICT(reviewer_id,church_id) DO UPDATE SET status=excluded.status,note=excluded.note,reviewed_at=CURRENT_TIMESTAMP,handled_at=NULL").bind(session.reviewerId,id,status,note||null),
       db.prepare("UPDATE churches SET reviewer_status=?,reviewer_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(status,note||null,id),
     ]);
+  } else if(kind==="church-review-handled") {
+    if(role!=="admin") return Response.json({error:"관리자만 의견을 처리할 수 있습니다."},{status:403});
+    const handled=data.handled===true;
+    await db.prepare(`UPDATE reviewer_church_reviews SET handled_at=${handled?"CURRENT_TIMESTAMP":"NULL"} WHERE id=?`).bind(id).run();
   } else if (kind === "church") {
     const status = clean(data.status, 20);
     if (status) {

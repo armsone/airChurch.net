@@ -47,6 +47,8 @@ export async function ensureReviewerTables(db:D1Database) {
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_church_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unreviewed', note TEXT, reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(reviewer_id,church_id))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_church_reviews_church ON reviewer_church_reviews(church_id, reviewed_at DESC)"),
   ]);
+  const reviewColumns=await db.prepare("PRAGMA table_info(reviewer_church_reviews)").all<{name:string}>();
+  if(!reviewColumns.results.some((column)=>column.name==="handled_at")) await db.prepare("ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT").run();
 }
 export async function ensureAnalyticsTables(db:D1Database) {
   await db.batch([
