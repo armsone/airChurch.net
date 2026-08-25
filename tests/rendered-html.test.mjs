@@ -44,7 +44,10 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
   assert.match(envExample,/REVIEWER_USERNAME=/);
   assert.match(signupRoute,/\|\|!password\)/);
   assert.doesNotMatch(signupRoute,/password\.length/);
-  assert.doesNotMatch(signupForm,/name="password"[^>]*(?:minLength|maxLength)/);
+  assert.doesNotMatch(signupForm,/name="password"[^>]*(?:minLength|maxLength|pattern)/);
+  assert.match(signupForm,/name="password"[^>]*required/);
+  assert.doesNotMatch(signupRoute,/8자/);
+  assert.doesNotMatch(signupRoute,/password\.length|password\.match|test\(password\)/);
 });
 
 test("keeps safety and discovery requirements in the product source", async () => {
@@ -153,6 +156,9 @@ test("supports multiple approved church reviewer accounts", async () => {
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
   ]);
   assert.match(access,/PBKDF2/);
+  assert.match(access,/const PBKDF2_ITERATIONS = 100_000;/);
+  assert.match(access,/iterations:PBKDF2_ITERATIONS\}/);
+  assert.doesNotMatch(access,/iterations:\d/);
   assert.match(access,/reviewer_accounts WHERE username=\? AND status='approved'/);
   assert.match(signup,/status,fingerprint\) VALUES \(\?,\?,\?,\?,\?,'pending',\?\)/);
   assert.match(login,/\/review\/join/);

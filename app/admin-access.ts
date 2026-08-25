@@ -4,6 +4,8 @@ import { database, ensureReviewerTables } from "./api/_shared";
 
 const COOKIE_NAME = "airchurch_admin_v2";
 const SESSION_SECONDS = 12 * 60 * 60;
+// Cloudflare Workers rejects PBKDF2 iteration counts above 100,000.
+const PBKDF2_ITERATIONS = 100_000;
 
 type AdminEnv = { ADMIN_USERNAME?: string; ADMIN_PASSWORD?: string; REVIEWER_USERNAME?: string; REVIEWER_PASSWORD?: string; ADMIN_SESSION_SECRET?: string };
 export type AccessRole = "admin" | "reviewer";
@@ -28,7 +30,7 @@ function base64url(bytes:Uint8Array) { return btoa(String.fromCharCode(...bytes)
 
 async function passwordDigest(password:string,salt:string) {
   const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveBits"]);
-  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:new TextEncoder().encode(salt),iterations:150_000},material,256);
+  const bits=await crypto.subtle.deriveBits({name:"PBKDF2",hash:"SHA-256",salt:new TextEncoder().encode(salt),iterations:PBKDF2_ITERATIONS},material,256);
   return base64url(new Uint8Array(bits));
 }
 
