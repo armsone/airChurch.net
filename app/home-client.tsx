@@ -239,8 +239,8 @@ export default function Home() {
         {!sermonLoading && previewSermons.length > 0 && <div className="sermon-next-preview"><div className="sermon-grid">{previewSermons.map((sermon)=><article className="sermon-card" key={`preview-${sermon.id}`}>
           <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{sermon.title}</h3><p>{sermon.pastor} · {sermon.region}</p></div>
-        </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+20)} aria-label="말씀 20개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
-        {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+20)}>말씀 20개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
+        </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+21)} aria-label="말씀 21개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
+        {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+21)}>말씀 21개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
       </section>
 
       <section className="content-section praise-section" id="praises">
