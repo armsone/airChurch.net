@@ -15,7 +15,7 @@ test("server-renders the Airchurch portal", async () => {
 });
 
 test("restores a reviewed church directory and restricted pastor workflow", async () => {
-  const [page,recommendations,churches,admin,review,controls,manage,access,schema,envExample]=await Promise.all([
+  const [page,recommendations,churches,admin,review,controls,manage,access,schema,envExample,signupRoute,signupForm]=await Promise.all([
     readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/church-recommendations/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),
@@ -26,6 +26,8 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
     readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../.env.example",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),
   ]);
   for(const phrase of ["AI에 의해 자동 검색되고 등록된 리스트입니다","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
   assert.match(churches,/review_status='approved'/);
@@ -40,6 +42,9 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
   assert.match(schema,/churchRecommendations = sqliteTable\("church_recommendations"/);
   assert.match(schema,/reviewerStatus: text\("reviewer_status"\)/);
   assert.match(envExample,/REVIEWER_USERNAME=/);
+  assert.match(signupRoute,/\|\|!password\)/);
+  assert.doesNotMatch(signupRoute,/password\.length/);
+  assert.doesNotMatch(signupForm,/name="password"[^>]*(?:minLength|maxLength)/);
 });
 
 test("keeps safety and discovery requirements in the product source", async () => {

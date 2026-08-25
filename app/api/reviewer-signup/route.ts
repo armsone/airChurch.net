@@ -7,7 +7,7 @@ export async function POST(request:Request) {
   const data=await request.json().catch(()=>({})) as Record<string,unknown>;
   const name=clean(data.name,80),contact=clean(data.contact,120),username=clean(data.username,40).toLowerCase();
   const password=typeof data.password==="string"?data.password:"";
-  if(name.length<2||contact.length<5||!/^[a-z0-9._-]{4,40}$/.test(username)||password.length<8||password.length>100) return Response.json({error:"성함·연락처와 4자 이상의 영문 아이디, 8자 이상의 비밀번호를 확인해 주세요."},{status:400});
+  if(name.length<2||contact.length<5||!/^[a-z0-9._-]{4,40}$/.test(username)||!password) return Response.json({error:"성함·연락처와 4자 이상의 영문 아이디, 비밀번호를 확인해 주세요."},{status:400});
   const db=database();await ensureReviewerTables(db);
   const requestFingerprint=await fingerprint(request);
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM reviewer_accounts WHERE fingerprint=? AND created_at>=datetime('now','-1 day')").bind(requestFingerprint).first<{count:number}>();
