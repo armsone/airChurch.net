@@ -316,6 +316,9 @@ test("adapts administrator and pastor screens for tablet and phone without clipp
   assert.match(styles,/\.quick-review-concern>label\{[^}]*font-size:17px!important;[^}]*font-weight:900!important/);
   assert.match(styles,/\.quick-review-concern>label small\{[^}]*color:#b64e2d!important;[^}]*font-size:16px!important/);
   assert.match(styles,/\.quick-review-concern textarea\{[^}]*font-size:17px!important/);
+  assert.match(styles,/\.admin-shell :where\(p,small,span,strong,b,label,legend,button,a,input,textarea,select,time,em\),\.admin-login-shell :where\(p,small,span,strong,b,label,button,a,input\)\{font-size:14px!important;line-height:1\.55\}/);
+  assert.match(styles,/\.reviewer-shell \.quick-review-actions button,[^{]+\{min-height:52px!important/);
+  assert.match(styles,/@media \(max-width:760px\)\{[\s\S]*?\.reviewer-shell \.quick-review-reasons\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
 });
 
 test("keeps the home footer labels intact and gives edge panels responsive gutters", async () => {
