@@ -245,6 +245,12 @@ test("gives pastors a focused queue and groups concern resolution safely for adm
   assert.match(quickQueue,/전체 대기 목록/);
   assert.match(quickQueue,/대기 교회 검색/);
   assert.match(quickQueue,/selectChurch\(church\.id\)/);
+  assert.match(quickQueue,/이단성·교리 검토 필요/);
+  assert.match(quickQueue,/목회자 관련 우려/);
+  assert.match(quickQueue,/교회 운영·윤리 문제/);
+  assert.doesNotMatch(quickQueue,/공식 채널 아님|최근 활동 없음/);
+  assert.match(quickQueue,/확인 근거나 내용 <small>· 필수<\/small>/);
+  assert.match(quickQueue,/note\.trim\(\)\.length < 3/);
   assert.match(review,/COALESCE\(r\.status,'unreviewed'\)='unreviewed' ORDER BY c\.name/);
   assert.match(review,/SUM\(CASE WHEN c\.review_status='approved'/);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS `reviewer_church_reviews`/);

@@ -19,13 +19,16 @@ export type QuickReviewQueueProps = {
 };
 
 const concernReasons = [
-  "교회 정보 다름",
-  "목회자 정보 다름",
-  "교단 확인 필요",
-  "공식 채널 아님",
-  "최근 활동 없음",
+  "이단성·교리 검토 필요",
+  "목회자 관련 우려",
+  "설교·가르침 내용 우려",
+  "교회 운영·윤리 문제",
+  "피해·분쟁 관련 제보",
+  "실제 교회 정보와 다름",
   "기타",
 ] as const;
+
+function pastorLabel(name:string) { return name.trim().endsWith("목사") ? name : `${name} 목사`; }
 
 async function saveReview(id: number, status: "confirmed" | "concern", note: string) {
   const response = await fetch("/api/admin/manage", {
@@ -99,8 +102,8 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
       setError("관리자가 빠르게 확인할 수 있도록 사유를 선택해 주세요.");
       return;
     }
-    if (reason === "기타" && note.trim().length < 3) {
-      setError("기타 사유를 3자 이상 적어 주세요.");
+    if (note.trim().length < 3) {
+      setError("관리자가 다시 확인할 수 있도록 근거나 내용을 3자 이상 적어 주세요.");
       return;
     }
     setBusy(true);
@@ -165,7 +168,7 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
       <div className="quick-review-church">
         <span>{current.region}</span>
         <h3>{current.name}</h3>
-        <p>{current.pastor} · {current.denomination}</p>
+        <p className="quick-review-identity"><strong>{pastorLabel(current.pastor)}</strong><span>{current.denomination}</span></p>
         <div className="quick-review-sources">{current.homepage_url&&<a href={current.homepage_url} target="_blank" rel="noreferrer">공식 홈페이지 확인 ↗</a>}{current.youtube_channel_id && <a href={`https://www.youtube.com/channel/${current.youtube_channel_id}`} target="_blank" rel="noreferrer">공식 YouTube 확인 ↗</a>}</div>
         {!hasReference&&<p className="quick-review-source-warning">확인 자료가 없습니다. `관리자 확인 필요`로 알려 주세요.</p>}
       </div>
@@ -183,8 +186,8 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
             {concernReasons.map((item) => <button type="button" key={item} aria-pressed={reason === item} className={reason === item ? "is-selected" : ""} disabled={busy} onClick={() => { setReason(item); setError(""); }} style={{ minHeight: 44 }}>{item}</button>)}
           </div>
         </fieldset>
-        <label htmlFor="quick-review-note">관리자에게 전할 내용 {reason !== "기타" && <small>· 선택</small>}</label>
-        <textarea id="quick-review-note" value={note} maxLength={500} rows={3} disabled={busy} onChange={(event) => setNote(event.target.value)} placeholder="확인한 내용이나 다시 살펴볼 부분을 적어 주세요." />
+        <label htmlFor="quick-review-note">확인 근거나 내용 <small>· 필수</small></label>
+        <textarea id="quick-review-note" value={note} maxLength={500} rows={3} disabled={busy} required onChange={(event) => setNote(event.target.value)} placeholder="관련 설교, 발언, 제보 내용 등 관리자가 다시 확인할 단서를 적어 주세요." />
         <div className="quick-review-concern-actions">
           <button type="button" disabled={busy} onClick={() => void submitConcern()} style={{ minHeight: 44 }}>{busy ? "저장 중…" : "관리자에게 보내기"}</button>
           <button type="button" disabled={busy} onClick={resetConcern} style={{ minHeight: 44 }}>취소</button>
@@ -199,7 +202,7 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
 
     {upcoming.length > 0 && <aside className="quick-review-upcoming" aria-label="다음 검토 교회">
       <h3>다음 교회</h3>
-      <ol>{upcoming.map((church) => <li key={church.id}><strong>{church.name}</strong><span>{church.pastor} · {church.region}</span></li>)}</ol>
+      <ol>{upcoming.map((church) => <li key={church.id}><strong>{church.name}</strong><span>{pastorLabel(church.pastor)} · {church.region}</span></li>)}</ol>
     </aside>}
 
     <details className="quick-review-all">
@@ -208,7 +211,7 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
         <label htmlFor="quick-review-list-search">대기 교회 검색</label>
         <input id="quick-review-list-search" type="search" value={listQuery} onChange={(event)=>setListQuery(event.target.value)} placeholder="교회명, 목사님, 지역, 교단 검색" />
         <p className="quick-review-list-count">{listQuery.trim()?`검색 결과 ${visibleQueue.length}곳`:`현재 대기 중인 ${queue.length}곳`}{remaining>queue.length?` · 전체 ${remaining}곳 중 표시` : ""}</p>
-        <ul>{visibleQueue.map((church)=><li key={church.id}><button type="button" aria-current={church.id===current.id?"true":undefined} onClick={()=>selectChurch(church.id)}><span><strong>{church.name}</strong><small>{church.pastor} · {church.denomination}</small></span><em>{church.region}</em></button></li>)}</ul>
+        <ul>{visibleQueue.map((church)=><li key={church.id}><button type="button" aria-current={church.id===current.id?"true":undefined} onClick={()=>selectChurch(church.id)}><span><strong>{church.name}</strong><small><b>{pastorLabel(church.pastor)}</b> · {church.denomination}</small></span><em>{church.region}</em></button></li>)}</ul>
         {!visibleQueue.length&&<p className="admin-empty">검색 조건에 맞는 대기 교회가 없습니다.</p>}
       </div>
     </details>
