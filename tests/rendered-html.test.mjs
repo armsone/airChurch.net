@@ -249,8 +249,8 @@ test("gives pastors a focused queue and groups concern resolution safely for adm
   assert.match(quickQueue,/목회자 관련 우려/);
   assert.match(quickQueue,/교회 운영·윤리 문제/);
   assert.doesNotMatch(quickQueue,/공식 채널 아님|최근 활동 없음/);
-  assert.match(quickQueue,/알고 계신 내용 또는 확인 근거 <small>· 필수<\/small>/);
-  assert.match(quickQueue,/note\.trim\(\)\.length < 3/);
+  assert.match(quickQueue,/알고 계신 내용 또는 확인 근거 <small>· 선택<\/small>/);
+  assert.doesNotMatch(quickQueue,/note\.trim\(\)\.length < 3/);
   assert.match(review,/COALESCE\(r\.status,'unreviewed'\)='unreviewed' ORDER BY c\.name/);
   assert.match(review,/SUM\(CASE WHEN c\.review_status='approved'/);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS `reviewer_church_reviews`/);
@@ -314,7 +314,7 @@ test("adapts administrator and pastor screens for tablet and phone without clipp
   assert.match(styles,/\.quick-review-all ul\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(styles,/@media \(max-width:999px\)\{[\s\S]*?\.admin-title p\{font-size:15px;line-height:1\.65\}[\s\S]*?\.reviewer-opinion-copy p\{font-size:14px;line-height:1\.7\}/);
   assert.match(styles,/\.quick-review-concern>label\{[^}]*font-size:17px!important;[^}]*font-weight:900!important/);
-  assert.match(styles,/\.quick-review-concern>label small\{[^}]*color:#b64e2d!important;[^}]*font-size:16px!important/);
+  assert.match(styles,/\.quick-review-concern>label small\{[^}]*color:#526a62!important;[^}]*font-size:16px!important/);
   assert.match(styles,/\.quick-review-concern textarea\{[^}]*font-size:17px!important/);
   assert.match(styles,/\.admin-shell :where\(p,small,span,strong,b,label,legend,button,a,input,textarea,select,time,em\),\.admin-login-shell :where\(p,small,span,strong,b,label,button,a,input\)\{font-size:14px!important;line-height:1\.55\}/);
   assert.match(styles,/\.reviewer-shell \.quick-review-actions button,[^{]+\{min-height:52px!important/);

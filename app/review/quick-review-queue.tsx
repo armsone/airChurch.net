@@ -102,10 +102,6 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
       setError("알리고 싶은 의견의 종류를 먼저 선택해 주세요.");
       return;
     }
-    if (note.trim().length < 3) {
-      setError("운영팀이 다시 살펴볼 수 있도록 알고 계신 내용이나 근거를 3자 이상 적어 주세요.");
-      return;
-    }
     setBusy(true);
     setError("");
     setSuccess("");
@@ -186,8 +182,8 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
             {concernReasons.map((item) => <button type="button" key={item} aria-pressed={reason === item} className={reason === item ? "is-selected" : ""} disabled={busy} onClick={() => { setReason(item); setError(""); }} style={{ minHeight: 44 }}>{item}</button>)}
           </div>
         </fieldset>
-        <label htmlFor="quick-review-note">알고 계신 내용 또는 확인 근거 <small>· 필수</small></label>
-        <textarea id="quick-review-note" value={note} maxLength={500} rows={3} disabled={busy} required onChange={(event) => setNote(event.target.value)} placeholder="관련 설교, 발언, 제보 내용 등 운영팀이 다시 살펴볼 단서를 적어 주세요." />
+        <label htmlFor="quick-review-note">알고 계신 내용 또는 확인 근거 <small>· 선택</small></label>
+        <textarea id="quick-review-note" value={note} maxLength={500} rows={3} disabled={busy} onChange={(event) => setNote(event.target.value)} placeholder="추가로 전할 내용이 있다면 관련 설교, 발언, 제보 등의 단서를 적어 주세요." />
         <div className="quick-review-concern-actions">
           <button type="button" disabled={busy} onClick={() => void submitConcern()} style={{ minHeight: 44 }}>{busy ? "보내는 중…" : "이 의견 보내기"}</button>
           <button type="button" disabled={busy} onClick={resetConcern} style={{ minHeight: 44 }}>취소</button>
