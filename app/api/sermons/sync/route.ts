@@ -39,6 +39,7 @@ async function seedHeldSources(db:D1Database) {
 }
 
 const sources:Source[]=[
+  {name:"과천영광교회",pastor:"우진성 목사",region:"경기 과천",denomination:"한국기독교장로회",channelId:"UCsVzcHPbcjdg3gK1MSBp1hw"},
   {name:"온누리교회",pastor:"이재훈 목사",region:"서울 용산",denomination:"대한예수교장로회 통합",handle:"@Onnuriservice"},
   {name:"분당우리교회",pastor:"이찬수 목사",region:"경기 성남",denomination:"대한예수교장로회 합동",handle:"@BundangWooriChurch"},
   {name:"거룩한빛광성교회",pastor:"곽승현 목사",region:"경기 고양",denomination:"대한예수교장로회 통합",channelId:"UCpRPXBwj33S73e3SFDD9_-Q"},
