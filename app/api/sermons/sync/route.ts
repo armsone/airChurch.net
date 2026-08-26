@@ -39,6 +39,7 @@ async function seedHeldSources(db:D1Database) {
 }
 
 const sources:Source[]=[
+  {name:"가나안교회",pastor:"서진영 목사",region:"경기 광주",denomination:"대한예수교장로회 합동",channelId:"UCQ97oMrF68ctJVeTWp3Rm_Q"},
   {name:"주다산교회",pastor:"권순웅 목사",region:"경기 화성",denomination:"대한예수교장로회 합동",channelId:"UCHPObmscdWflQ2pKvzU0ksg"},
   {name:"덕소교회",pastor:"문홍선 목사",region:"경기 남양주",denomination:"대한예수교장로회 합동",channelId:"UCqmluYfs0hWw0KFXzAqt4iQ"},
   {name:"과천영광교회",pastor:"우진성 목사",region:"경기 과천",denomination:"한국기독교장로회",channelId:"UCsVzcHPbcjdg3gK1MSBp1hw"},
