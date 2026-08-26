@@ -1,4 +1,6 @@
 export const churchHomepageUrls: Readonly<Record<string,string>> = {
+  "주다산교회": "http://www.joodasan.org/",
+  "덕소교회": "https://deoksochurch.org/",
   "과천영광교회": "https://www.gcglorychurch.or.kr/",
   "온누리교회": "https://www.onnuri.org/",
   "분당우리교회": "https://www.woorichurch.org/",
