@@ -242,6 +242,10 @@ test("gives pastors a focused queue and groups concern resolution safely for adm
   assert.match(quickQueue,/router\.refresh\(\)/);
   assert.match(quickQueue,/공식 홈페이지 확인/);
   assert.match(quickQueue,/disabled=\{busy\|\|!hasReference\}/);
+  assert.match(quickQueue,/전체 대기 목록/);
+  assert.match(quickQueue,/대기 교회 검색/);
+  assert.match(quickQueue,/selectChurch\(church\.id\)/);
+  assert.match(review,/COALESCE\(r\.status,'unreviewed'\)='unreviewed' ORDER BY c\.name/);
   assert.match(review,/SUM\(CASE WHEN c\.review_status='approved'/);
   assert.match(migration,/CREATE TABLE IF NOT EXISTS `reviewer_church_reviews`/);
   assert.match(migration,/`admin_resolution` text/);
@@ -301,6 +305,8 @@ test("adapts administrator and pastor screens for tablet and phone without clipp
   assert.match(titleRule,/word-break:keep-all/);
   assert.match(styles,/\.path-list span\{overflow:visible;text-overflow:clip;white-space:normal/);
   assert.match(styles,/\.sermon-copy h3\{display:block;min-height:0;overflow:visible;-webkit-line-clamp:unset\}/);
+  assert.match(styles,/\.quick-review-all ul\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(styles,/@media \(max-width:999px\)\{[\s\S]*?\.admin-title p\{font-size:15px;line-height:1\.65\}[\s\S]*?\.reviewer-opinion-copy p\{font-size:14px;line-height:1\.7\}/);
 });
 
 test("keeps the home footer labels intact and gives edge panels responsive gutters", async () => {

@@ -48,6 +48,7 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [listQuery, setListQuery] = useState("");
 
   const current = queue[activeIndex];
   const hasReference = Boolean(current?.homepage_url || current?.youtube_channel_id);
@@ -55,6 +56,11 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
     if (queue.length < 2) return [];
     return Array.from({ length: queue.length - 1 }, (_, offset) => queue[(activeIndex + offset + 1) % queue.length]).slice(0, 3);
   }, [activeIndex, queue]);
+  const visibleQueue = useMemo(() => {
+    const query=listQuery.trim().toLocaleLowerCase("ko-KR");
+    if(!query) return queue;
+    return queue.filter((church)=>`${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLocaleLowerCase("ko-KR").includes(query));
+  },[listQuery,queue]);
 
   function resetConcern() {
     setShowConcern(false);
@@ -126,6 +132,16 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
     setSuccess(`${current.name}은(는) 건너뛰고 다음 교회를 보여드립니다.`);
   }
 
+  function selectChurch(id:number) {
+    const index=queue.findIndex((church)=>church.id===id);
+    if(index<0) return;
+    setActiveIndex(index);
+    resetConcern();
+    setError("");
+    setSuccess(`${queue[index].name}을(를) 먼저 확인합니다.`);
+    window.requestAnimationFrame(()=>document.getElementById("quick-review-title")?.scrollIntoView({behavior:"smooth",block:"start"}));
+  }
+
   if (!current && remaining > 0) {
     return <section className="quick-review-queue is-loading" aria-live="polite"><p className="quick-review-kicker">다음 검토 준비</p><h2>다음 교회를 불러오고 있습니다</h2><p>잠시만 기다려 주세요.</p></section>;
   }
@@ -185,6 +201,17 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
       <h3>다음 교회</h3>
       <ol>{upcoming.map((church) => <li key={church.id}><strong>{church.name}</strong><span>{church.pastor} · {church.region}</span></li>)}</ol>
     </aside>}
+
+    <details className="quick-review-all">
+      <summary><span><strong>전체 대기 목록</strong><small>목록에서 원하는 교회를 먼저 선택할 수 있습니다.</small></span><b>{queue.length}곳 보기</b></summary>
+      <div className="quick-review-all-body">
+        <label htmlFor="quick-review-list-search">대기 교회 검색</label>
+        <input id="quick-review-list-search" type="search" value={listQuery} onChange={(event)=>setListQuery(event.target.value)} placeholder="교회명, 목사님, 지역, 교단 검색" />
+        <p className="quick-review-list-count">{listQuery.trim()?`검색 결과 ${visibleQueue.length}곳`:`현재 대기 중인 ${queue.length}곳`}{remaining>queue.length?` · 전체 ${remaining}곳 중 표시` : ""}</p>
+        <ul>{visibleQueue.map((church)=><li key={church.id}><button type="button" aria-current={church.id===current.id?"true":undefined} onClick={()=>selectChurch(church.id)}><span><strong>{church.name}</strong><small>{church.pastor} · {church.denomination}</small></span><em>{church.region}</em></button></li>)}</ul>
+        {!visibleQueue.length&&<p className="admin-empty">검색 조건에 맞는 대기 교회가 없습니다.</p>}
+      </div>
+    </details>
   </section>;
 }
 
