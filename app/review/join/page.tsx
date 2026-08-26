@@ -1,3 +1,3 @@
-import ReviewerSignup from "./reviewer-signup";
+import { redirect } from "next/navigation";
 
-export default function ReviewerJoinPage() { return <ReviewerSignup />; }
+export default function LegacyReviewerJoinPage() { redirect("/pastor/join"); }

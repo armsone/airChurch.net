@@ -20,7 +20,7 @@ export default function AdminLogin({context="admin"}:{context?:"admin"|"reviewer
       return;
     }
     const result=await response.json().catch(()=>({})) as {role?:string};
-    window.location.replace(result.role === "reviewer" ? "/review" : "/admin");
+    window.location.replace(result.role === "reviewer" ? "/pastor" : "/admin");
   }
 
   return <main className="admin-login-shell">
@@ -35,7 +35,7 @@ export default function AdminLogin({context="admin"}:{context?:"admin"|"reviewer
         <button disabled={busy} type="submit">{busy ? "확인 중…" : "로그인"}</button>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
       </form>
-      <div className="admin-login-links">{context==="reviewer"&&<a className="reviewer-join-link" href="/review/join">교회 검토 참여 신청</a>}<HomeReloadLink>← 에어처치로 돌아가기</HomeReloadLink></div>
+      <div className="admin-login-links">{context==="reviewer"&&<a className="reviewer-join-link" href="/pastor/join">교회 검토 참여 신청</a>}<HomeReloadLink>← 에어처치로 돌아가기</HomeReloadLink></div>
     </section>
   </main>;
 }

@@ -197,8 +197,8 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
     </div>
 
     {upcoming.length > 0 && <aside className="quick-review-upcoming" aria-label="다음에 살펴볼 교회">
-      <h3>다음에 살펴볼 교회</h3>
-      <ol>{upcoming.map((church) => <li key={church.id}><strong>{church.name}</strong><span>{pastorLabel(church.pastor)} · {church.region}</span></li>)}</ol>
+      <h3>다음에 살펴볼 교회 <small>· 누르면 바로 살펴봅니다</small></h3>
+      <ol>{upcoming.map((church) => <li key={church.id}><button type="button" onClick={()=>selectChurch(church.id)}><strong>{church.name}</strong><span>{pastorLabel(church.pastor)} · {church.region}</span></button></li>)}</ol>
     </aside>}
 
     <details className="quick-review-all">

@@ -23,14 +23,14 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
     readFile(new URL("../app/api/church-recommendations/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/churches/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
-    readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../.env.example",import.meta.url),"utf8"),
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
-    readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/pastor/join/reviewer-signup.tsx",import.meta.url),"utf8"),
   ]);
   for(const phrase of ["AI에 의해 자동 검색되고 등록된 리스트입니다","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
   assert.match(churches,/review_status='approved'/);
@@ -167,7 +167,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(access,/role==="reviewer"&&reviewerId>0/);
   assert.match(access,/reviewer_accounts WHERE id=\? AND status='approved'/);
   assert.match(signup,/status,fingerprint\) VALUES \(\?,\?,\?,\?,\?,'pending',\?\)/);
-  assert.match(login,/\/review\/join/);
+  assert.match(login,/\/pastor\/join/);
   assert.match(admin,/목회자 검토 참여 신청/);
   assert.match(manage,/kind==="reviewer-account"/);
   assert.match(shared,/CREATE TABLE IF NOT EXISTS reviewer_accounts/);
@@ -181,10 +181,10 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(manage,/DELETE FROM \$\{table\} WHERE id=\?/);
   assert.match(controls,/이 목회자 계정과 검토 기록을 모두 삭제할까요/);
   for(const label of ["교회 추천","익명 글","달란트"]) assert.match(controls,new RegExp(label));
-  assert.match(admin,/href="\/review">목사님 페이지/);
+  assert.match(admin,/href="\/pastor">목사님 페이지/);
   assert.match(admin,/관리자가 최종 결정/);
   assert.match(admin,/opinionsByChurch/);
-  const review=await readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8");
+  const review=await readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8");
   assert.match(review,/href="\/admin">전체 관리/);
 });
 
@@ -200,8 +200,8 @@ test("shows reviewer decisions as one-tap choices with a right-aligned save", as
 test("gives pastors a focused queue and groups concern resolution safely for administrators", async () => {
   const [admin,review,quickQueue,resolutionControls,liveRefresh,manage,shared,schema,migration,styles]=await Promise.all([
     readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
-    readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8"),
-    readFile(new URL("../app/review/quick-review-queue.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/pastor/quick-review-queue.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/reviewer-resolution-controls.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-live-refresh.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
@@ -245,6 +245,7 @@ test("gives pastors a focused queue and groups concern resolution safely for adm
   assert.match(quickQueue,/아직 살펴볼 교회 전체 목록/);
   assert.match(quickQueue,/살펴볼 교회 검색/);
   assert.match(quickQueue,/selectChurch\(church\.id\)/);
+  assert.match(quickQueue,/upcoming\.map\(\(church\) => <li key=\{church\.id\}><button type="button" onClick=\{\(\)=>selectChurch\(church\.id\)\}/);
   assert.match(quickQueue,/이단성·교리 검토 필요/);
   assert.match(quickQueue,/목회자 관련 우려/);
   assert.match(quickQueue,/교회 운영·윤리 문제/);
@@ -332,11 +333,24 @@ test("keeps the home footer labels intact and gives edge panels responsive gutte
 });
 
 test("right-aligns the login return links", async () => {
-  const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/pastor/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(login,/className="admin-login-links"/);
   assert.match(signup,/className="admin-login-links single"/);
   assert.match(signup,/운영팀 승인 후 교회 검토에 참여하실 수 있습니다/);
   assert.match(styles,/\.admin-login-links\.single \{ justify-content:flex-end; \}/);
+});
+
+test("uses pastor as the public ministry route and preserves legacy review links", async () => {
+  const [legacyPage,legacyJoin,login,footer]=await Promise.all([
+    readFile(new URL("../app/review/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/review/join/page.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
+  ]);
+  assert.match(legacyPage,/redirect\("\/pastor"\)/);
+  assert.match(legacyJoin,/redirect\("\/pastor\/join"\)/);
+  assert.match(login,/result\.role === "reviewer" \? "\/pastor"/);
+  assert.match(footer,/href="\/pastor">목사님/);
 });
 
 test("links church directory cards to verified homepages and official YouTube channels", async () => {
