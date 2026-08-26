@@ -4,10 +4,11 @@ import AdminListSearch from "../admin/admin-list-search";
 import { ChurchReviewControls } from "../admin/admin-controls";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
+import QuickReviewQueue from "./quick-review-queue";
 
 export const dynamic="force-dynamic";
 
-type ChurchReviewRow={id:number;name:string;pastor:string;region:string;denomination:string;youtube_channel_id:string|null;review_status:string;reviewer_status:string;reviewer_note:string|null;reviewed_at:string|null;handled_at:string|null};
+type ChurchReviewRow={id:number;name:string;pastor:string;region:string;denomination:string;youtube_channel_id:string|null;homepage_url:string|null;review_status:string;reviewer_status:string;reviewer_note:string|null;reviewed_at:string|null;handled_at:string|null};
 function reviewLabel(status:string){return status==="confirmed"?"확인 완료":status==="concern"?"재검토 요청":"미검토";}
 
 function ChurchCard({church}:{church:ChurchReviewRow}) {
@@ -19,16 +20,25 @@ export default async function ReviewPage() {
   if(!session) return <AdminLogin />;
   const {role}=session;
   const db=database();await Promise.all([ensureSermonTables(db),ensureReviewerTables(db)]);
-  const result=await db.prepare("SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.youtube_channel_id,c.review_status,COALESCE(r.status,'unreviewed') AS reviewer_status,r.note AS reviewer_note,r.reviewed_at,r.handled_at FROM churches c LEFT JOIN reviewer_church_reviews r ON r.church_id=c.id AND r.reviewer_id=? WHERE c.review_status IN ('approved','removed') ORDER BY CASE COALESCE(r.status,'unreviewed') WHEN 'unreviewed' THEN 0 WHEN 'concern' THEN 1 ELSE 2 END,c.name LIMIT 400").bind(session.reviewerId).all<ChurchReviewRow>();
-  const todo=result.results.filter((item)=>item.reviewer_status==="unreviewed"),concerns=result.results.filter((item)=>item.reviewer_status==="concern"),done=result.results.filter((item)=>item.reviewer_status==="confirmed");
-  return <main className="admin-shell reviewer-shell"><header className="admin-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><div><span>{role==="admin"?"관리자 검토 모드":"교회 검토자"}</span>{role==="admin"&&<a href="/admin">전체 관리</a>}<form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div></header>
-    <section className="admin-title"><div><span>CHURCH REVIEW</span><h1>교회 목록 검토</h1><p>아직 검토하지 않은 교회부터 확인해 주세요. 의견을 저장하면 관리자가 바로 확인합니다.</p></div><HomeReloadLink>사이트 보기 ↗</HomeReloadLink></section>
-    <section className="reviewer-metrics"><a href="#review-todo"><small>아직 검토 안 함</small><strong>{todo.length}</strong><span>여기부터 시작 ↓</span></a><a className="concern" href="#review-concern"><small>재검토 요청함</small><strong>{concerns.length}</strong><span>처리 상태 보기 ↓</span></a><a href="#review-done"><small>확인 끝남</small><strong>{done.length}</strong><span>다시 보기 ↓</span></a></section>
-    <section className="admin-panel reviewer-panel"><div className="admin-panel-title"><div><small>REGISTERED CHURCHES</small><h2>등록 교회 {result.results.length}곳</h2><p>교회명, 담임목사, 지역, 교단과 공식 채널을 확인해 주세요.</p></div></div><AdminListSearch targetId="reviewer-church-lists" total={result.results.length} label="검토 교회 검색" placeholder="교회명, 목사님, 지역, 교단 검색"/>
-      <div id="reviewer-church-lists">
-        <section className="review-section" id="review-todo"><div className="review-section-title"><div><small>먼저 할 일</small><h2>아직 검토하지 않은 교회</h2></div><strong>{todo.length}곳</strong></div><div className="reviewer-church-list">{todo.length?todo.map((church)=><ChurchCard church={church} key={church.id}/>):<p className="admin-empty">검토할 교회가 없습니다.</p>}</div></section>
-        <section className="review-section" id="review-concern"><div className="review-section-title"><div><small>보낸 의견</small><h2>재검토 요청한 교회</h2></div><strong>{concerns.length}곳</strong></div><div className="reviewer-church-list">{concerns.length?concerns.map((church)=><ChurchCard church={church} key={church.id}/>):<p className="admin-empty">보낸 재검토 요청이 없습니다.</p>}</div></section>
-        <details className="review-section review-done" id="review-done"><summary><span><small>완료한 일</small><b>확인이 끝난 교회</b></span><strong>{done.length}곳 · 펼쳐 보기</strong></summary><div className="reviewer-church-list">{done.length?done.map((church)=><ChurchCard church={church} key={church.id}/>):<p className="admin-empty">아직 확인한 교회가 없습니다.</p>}</div></details>
+  const reviewerAccount=session.reviewerId>0?await db.prepare("SELECT name FROM reviewer_accounts WHERE id=? AND status='approved'").bind(session.reviewerId).first<{name:string}>():null;
+  const reviewerName=role==="admin"?"관리자":reviewerAccount?.name??"교회 검토자";
+  const selectReview="SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.youtube_channel_id,c.homepage_url,c.review_status,COALESCE(r.status,'unreviewed') AS reviewer_status,r.note AS reviewer_note,r.reviewed_at,r.handled_at FROM churches c LEFT JOIN reviewer_church_reviews r ON r.church_id=c.id AND r.reviewer_id=?";
+  const [todoRows,concernRows,doneRows,reviewCounts]=await Promise.all([
+    db.prepare(`${selectReview} WHERE c.review_status='approved' AND COALESCE(r.status,'unreviewed')='unreviewed' ORDER BY c.name LIMIT 100`).bind(session.reviewerId).all<ChurchReviewRow>(),
+    db.prepare(`${selectReview} WHERE c.review_status IN ('approved','removed') AND r.status='concern' ORDER BY r.reviewed_at DESC LIMIT 400`).bind(session.reviewerId).all<ChurchReviewRow>(),
+    db.prepare(`${selectReview} WHERE c.review_status IN ('approved','removed') AND r.status='confirmed' ORDER BY r.reviewed_at DESC LIMIT 400`).bind(session.reviewerId).all<ChurchReviewRow>(),
+    db.prepare("SELECT SUM(CASE WHEN c.review_status='approved' AND COALESCE(r.status,'unreviewed')='unreviewed' THEN 1 ELSE 0 END) AS todo_count,SUM(CASE WHEN r.status='concern' THEN 1 ELSE 0 END) AS concern_count,SUM(CASE WHEN r.status='confirmed' THEN 1 ELSE 0 END) AS done_count FROM churches c LEFT JOIN reviewer_church_reviews r ON r.church_id=c.id AND r.reviewer_id=? WHERE c.review_status IN ('approved','removed')").bind(session.reviewerId).first<{todo_count:number;concern_count:number;done_count:number}>(),
+  ]);
+  const todo=todoRows.results,concerns=concernRows.results,done=doneRows.results;
+  const todoTotal=Number(reviewCounts?.todo_count??todo.length),concernTotal=Number(reviewCounts?.concern_count??concerns.length),doneTotal=Number(reviewCounts?.done_count??done.length);
+  return <main className="admin-shell reviewer-shell"><header className="admin-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><div><span>{role==="admin"?"관리자 검토 모드":`${reviewerName}님`}</span>{role==="admin"&&<a href="/admin">전체 관리</a>}<form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div></header>
+    <section className="admin-title"><div><span>CHURCH REVIEW</span><h1>{reviewerName}님, 한 곳씩 확인해 주세요</h1><p>문제가 없으면 한 번만 누르면 됩니다. 확인이 필요한 경우에만 이유를 남겨 주세요.</p></div><HomeReloadLink>사이트 보기 ↗</HomeReloadLink></section>
+    <section className="reviewer-metrics"><a href="#review-todo"><small>남은 검토</small><strong>{todoTotal}</strong><span>바로 시작 ↓</span></a><a className="concern" href="#review-concern"><small>관리자 확인 요청</small><strong>{concernTotal}</strong><span>처리 상태 보기 ↓</span></a><a href="#review-done"><small>문제 없음 확인</small><strong>{doneTotal}</strong><span>완료 내역 ↓</span></a></section>
+    <div id="review-todo"><QuickReviewQueue key={`${todo[0]?.id??0}-${todo.length}-${todoTotal}`} todo={todo} total={todoTotal}/></div>
+    <section className="admin-panel reviewer-panel reviewer-history"><div className="admin-panel-title"><div><small>MY REVIEW HISTORY</small><h2>내가 보낸 의견</h2><p>관리자 확인 요청의 처리 상태와 완료한 검토를 다시 볼 수 있습니다.</p></div><span>{concernTotal+doneTotal}곳</span></div><AdminListSearch targetId="reviewer-history-lists" total={concerns.length+done.length} label="내 검토 내역 검색" placeholder="교회명, 목사님, 지역, 교단 검색"/>
+      <div id="reviewer-history-lists">
+        <section className="review-section" id="review-concern"><div className="review-section-title"><div><small>보낸 의견</small><h2>재검토 요청한 교회</h2></div><strong>{concernTotal}곳</strong></div><div className="reviewer-church-list">{concerns.length?concerns.map((church)=><ChurchCard church={church} key={church.id}/>):<p className="admin-empty">보낸 재검토 요청이 없습니다.</p>}</div></section>
+        <details className="review-section review-done" id="review-done"><summary><span><small>완료한 일</small><b>확인이 끝난 교회</b></span><strong>{doneTotal}곳 · 펼쳐 보기</strong></summary><div className="reviewer-church-list">{done.length?done.map((church)=><ChurchCard church={church} key={church.id}/>):<p className="admin-empty">아직 확인한 교회가 없습니다.</p>}</div></details>
       </div>
     </section>
   </main>;

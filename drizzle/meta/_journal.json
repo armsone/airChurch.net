@@ -57,6 +57,13 @@
       "when": 1787443200000,
       "tag": "0007_pinup_priority",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1787701517452,
+      "tag": "0008_fat_silverclaw",
+      "breakpoints": true
     }
   ]
 }

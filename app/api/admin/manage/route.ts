@@ -40,10 +40,56 @@ export async function PATCH(request: Request) {
     const status=clean(data.status,20),note=clean(data.note,500);
     if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
     if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});
+    const reviewChurch=await db.prepare("SELECT id FROM churches WHERE id=? AND review_status IN ('approved','removed') LIMIT 1").bind(id).first<{id:number}>();
+    if(!reviewChurch) return Response.json({error:"검토할 수 있는 교회를 찾을 수 없습니다."},{status:404});
     await db.batch([
-      db.prepare("INSERT INTO reviewer_church_reviews (reviewer_id,church_id,status,note,reviewed_at,handled_at) VALUES (?,?,?,?,CURRENT_TIMESTAMP,NULL) ON CONFLICT(reviewer_id,church_id) DO UPDATE SET status=excluded.status,note=excluded.note,reviewed_at=CURRENT_TIMESTAMP,handled_at=NULL").bind(session.reviewerId,id,status,note||null),
-      db.prepare("UPDATE churches SET reviewer_status=?,reviewer_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(status,note||null,id),
+      db.prepare("INSERT INTO reviewer_church_reviews (reviewer_id,church_id,status,note,reviewed_at,handled_at,admin_resolution,admin_note,resolved_by) VALUES (?,?,?,?,CURRENT_TIMESTAMP,NULL,NULL,NULL,NULL) ON CONFLICT(reviewer_id,church_id) DO UPDATE SET status=excluded.status,note=excluded.note,reviewed_at=CURRENT_TIMESTAMP,handled_at=NULL,admin_resolution=NULL,admin_note=NULL,resolved_by=NULL").bind(session.reviewerId,id,status,note||null),
+      db.prepare("UPDATE churches SET reviewer_status=CASE WHEN EXISTS(SELECT 1 FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL) THEN 'concern' WHEN EXISTS(SELECT 1 FROM reviewer_church_reviews WHERE church_id=? AND status='confirmed') THEN 'confirmed' ELSE 'unreviewed' END,reviewer_note=COALESCE((SELECT note FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL ORDER BY reviewed_at DESC LIMIT 1),(SELECT note FROM reviewer_church_reviews WHERE church_id=? AND status='confirmed' ORDER BY reviewed_at DESC LIMIT 1)),reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_status IN ('approved','removed')").bind(id,id,id,id,id),
     ]);
+  } else if(kind==="church-review-resolution") {
+    if(role!=="admin") return Response.json({error:"관리자만 재검토 의견을 결정할 수 있습니다."},{status:403});
+    const resolution=clean(data.resolution,30),adminNote=clean(data.adminNote,500),holdReason=clean(data.holdReason,40);
+    if(!["kept_public","held","needs_follow_up"].includes(resolution)) return Response.json({error:"처리 결정을 확인해 주세요."},{status:400});
+    const opinions:{id:number;reviewedAt:string}[]=[],seenOpinionIds=new Set<number>();
+    for(const supplied of (Array.isArray(data.opinions)?data.opinions:[]).slice(0,1000)) {
+      if(!supplied||typeof supplied!=="object") continue;
+      const opinionId=Number((supplied as Record<string,unknown>).id),reviewedAt=clean((supplied as Record<string,unknown>).reviewedAt,40);
+      if(!Number.isInteger(opinionId)||opinionId<1||!reviewedAt||seenOpinionIds.has(opinionId)) continue;
+      seenOpinionIds.add(opinionId);opinions.push({id:opinionId,reviewedAt});
+    }
+    if(!opinions.length) return Response.json({error:"화면에서 확인한 목사님 의견을 찾을 수 없습니다."},{status:400});
+    if((resolution==="held"||resolution==="needs_follow_up")&&adminNote.length<3) return Response.json({error:"처리 근거를 3자 이상 적어 주세요."},{status:400});
+    if(resolution==="held"&&!["youtube_unavailable","inactive","info_unverified","review_needed","other"].includes(holdReason)) return Response.json({error:"보류 사유를 선택해 주세요."},{status:400});
+    const opinionIds=opinions.map((opinion)=>opinion.id),placeholders=opinionIds.map(()=>"?").join(","),claimToken=`processing:${crypto.randomUUID()}`;
+    const claimStatements:Array<ReturnType<typeof db.prepare>>=[
+      db.prepare(`UPDATE churches SET review_resolution_token=? WHERE id=? AND review_resolution_token IS NULL AND (SELECT COUNT(*) FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL)=? AND (SELECT COUNT(*) FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL AND id IN (${placeholders}))=?`).bind(claimToken,id,id,opinions.length,id,...opinionIds,opinions.length),
+      ...opinions.map((opinion)=>db.prepare("UPDATE reviewer_church_reviews SET admin_resolution=? WHERE id=? AND church_id=? AND status='concern' AND handled_at IS NULL AND reviewed_at=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)").bind(claimToken,opinion.id,id,opinion.reviewedAt,id,claimToken)),
+    ];
+    const claimResults=await db.batch(claimStatements);
+    if(Number(claimResults[0]?.meta?.changes??0)!==1||claimResults.slice(1).some((result:{meta?:{changes?:number}})=>Number(result.meta?.changes??0)!==1)) {
+      await db.batch([db.prepare("UPDATE reviewer_church_reviews SET admin_resolution=NULL WHERE church_id=? AND admin_resolution=?").bind(id,claimToken),db.prepare("UPDATE churches SET review_resolution_token=NULL WHERE id=? AND review_resolution_token=?").bind(id,claimToken)]);
+      return Response.json({error:"목사님 의견이 변경되었거나 다른 관리자가 처리 중입니다. 최신 내용을 다시 확인해 주세요."},{status:409});
+    }
+    const allClaims=`(SELECT COUNT(*) FROM reviewer_church_reviews WHERE church_id=? AND admin_resolution=? AND status='concern' AND handled_at IS NULL AND id IN (${placeholders}))=?`;
+    const finalStatements:Array<ReturnType<typeof db.prepare>>=[];
+    if(resolution==="held") {
+      finalStatements.push(db.prepare(`UPDATE churches SET review_status='removed',hold_reason=?,hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(holdReason,adminNote,id,claimToken,id,claimToken,...opinionIds,opinions.length));
+      finalStatements.push(db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
+    } else if(resolution==="kept_public") {
+      finalStatements.push(db.prepare(`UPDATE churches SET review_status='approved',hold_reason=NULL,hold_note=NULL WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
+    } else {
+      finalStatements.push(db.prepare(`UPDATE churches SET review_resolution_token=review_resolution_token WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
+    }
+    const reviewResultIndex=finalStatements.length;
+    if(resolution==="needs_follow_up") finalStatements.push(db.prepare(`UPDATE reviewer_church_reviews SET admin_resolution='needs_follow_up',admin_note=?,resolved_by='admin' WHERE church_id=? AND admin_resolution=? AND id IN (${placeholders}) AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(adminNote,id,claimToken,...opinionIds,id,claimToken));
+    else finalStatements.push(db.prepare(`UPDATE reviewer_church_reviews SET handled_at=CURRENT_TIMESTAMP,admin_resolution=?,admin_note=?,resolved_by='admin' WHERE church_id=? AND admin_resolution=? AND id IN (${placeholders}) AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(resolution,adminNote||null,id,claimToken,...opinionIds,id,claimToken));
+    finalStatements.push(db.prepare("UPDATE churches SET reviewer_status=CASE WHEN EXISTS(SELECT 1 FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL) THEN 'concern' WHEN EXISTS(SELECT 1 FROM reviewer_church_reviews WHERE church_id=? AND status='confirmed') THEN 'confirmed' ELSE 'unreviewed' END,reviewer_note=COALESCE((SELECT note FROM reviewer_church_reviews WHERE church_id=? AND status='concern' AND handled_at IS NULL ORDER BY reviewed_at DESC LIMIT 1),(SELECT note FROM reviewer_church_reviews WHERE church_id=? AND status='confirmed' ORDER BY reviewed_at DESC LIMIT 1)),reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND review_resolution_token=?").bind(id,id,id,id,id,claimToken));
+    finalStatements.push(db.prepare("UPDATE churches SET review_resolution_token=NULL WHERE id=? AND review_resolution_token=?").bind(id,claimToken));
+    const finalResults=await db.batch(finalStatements);
+    if(Number(finalResults[0]?.meta?.changes??0)!==1||Number(finalResults[reviewResultIndex]?.meta?.changes??0)!==opinions.length) {
+      await db.batch([db.prepare("UPDATE reviewer_church_reviews SET handled_at=NULL,admin_resolution=NULL,admin_note=NULL,resolved_by=NULL WHERE church_id=? AND id IN ("+placeholders+") AND (admin_resolution=? OR admin_resolution IN ('kept_public','held','needs_follow_up'))").bind(id,...opinionIds,claimToken),db.prepare("UPDATE churches SET review_resolution_token=NULL WHERE id=? AND review_resolution_token=?").bind(id,claimToken)]);
+      return Response.json({error:"처리 중 의견이 변경되었습니다. 최신 내용을 다시 확인해 주세요."},{status:409});
+    }
   } else if(kind==="church-review-handled") {
     if(role!=="admin") return Response.json({error:"관리자만 의견을 처리할 수 있습니다."},{status:403});
     const handled=data.handled===true;

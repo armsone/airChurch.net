@@ -79,7 +79,14 @@ export async function accessSession(request?:Request):Promise<AccessSession|null
   const now = Math.floor(Date.now() / 1000);
   if (!issuedAt || !["admin","reviewer"].includes(role) || !Number.isInteger(reviewerId) || reviewerId<0 || !suppliedSignature || !Number.isInteger(issued) || issued > now + 60 || now - issued > SESSION_SECONDS) return null;
   const payload=`${issuedAt}.${role}.${reviewerId}`;
-  return constantTimeEqual(suppliedSignature, await signature(payload, secret)) ? {role:role as AccessRole,reviewerId} : null;
+  if(!constantTimeEqual(suppliedSignature,await signature(payload,secret))) return null;
+  if(role==="reviewer"&&reviewerId>0) {
+    const db=database();
+    await ensureReviewerTables(db);
+    const reviewer=await db.prepare("SELECT id FROM reviewer_accounts WHERE id=? AND status='approved' LIMIT 1").bind(reviewerId).first<{id:number}>();
+    if(!reviewer) return null;
+  }
+  return {role:role as AccessRole,reviewerId};
 }
 
 export async function accessRole(request?:Request):Promise<AccessRole|null> { return (await accessSession(request))?.role??null; }

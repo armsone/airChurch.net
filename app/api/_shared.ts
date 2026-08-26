@@ -1,5 +1,10 @@
 import { env } from "cloudflare:workers";
 export function database() { if (!env.DB) throw new Error("Database unavailable"); return env.DB as D1Database; }
+async function addColumnIfMissing(db:D1Database,columns:{name:string}[],name:string,sql:string) {
+  if(columns.some((column)=>column.name===name)) return;
+  try { await db.prepare(sql).run(); }
+  catch(error) { if(!String(error).toLowerCase().includes("duplicate column")) throw error; }
+}
 export async function ensureCommunityTables(db: D1Database) {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS talent_offers (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, region TEXT NOT NULL, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -26,6 +31,7 @@ export async function ensureSermonTables(db:D1Database) {
   if (!churchColumns.results.some((column) => column.name === "reviewed_at")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewed_at TEXT").run();
   if (!churchColumns.results.some((column) => column.name === "channel_image_url")) await db.prepare("ALTER TABLE churches ADD COLUMN channel_image_url TEXT").run();
   if (!churchColumns.results.some((column) => column.name === "homepage_url")) await db.prepare("ALTER TABLE churches ADD COLUMN homepage_url TEXT").run();
+  await addColumnIfMissing(db,churchColumns.results,"review_resolution_token","ALTER TABLE churches ADD COLUMN review_resolution_token TEXT");
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
 }
 export async function ensurePraiseTables(db:D1Database) {
@@ -44,11 +50,14 @@ export async function ensureReviewerTables(db:D1Database) {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, contact TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_accounts_status_created ON reviewer_accounts(status, created_at DESC)"),
-    db.prepare("CREATE TABLE IF NOT EXISTS reviewer_church_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unreviewed', note TEXT, reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(reviewer_id,church_id))"),
+    db.prepare("CREATE TABLE IF NOT EXISTS reviewer_church_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unreviewed', note TEXT, reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, handled_at TEXT, admin_resolution TEXT, admin_note TEXT, resolved_by TEXT, UNIQUE(reviewer_id,church_id))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_church_reviews_church ON reviewer_church_reviews(church_id, reviewed_at DESC)"),
   ]);
   const reviewColumns=await db.prepare("PRAGMA table_info(reviewer_church_reviews)").all<{name:string}>();
-  if(!reviewColumns.results.some((column)=>column.name==="handled_at")) await db.prepare("ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT").run();
+  await addColumnIfMissing(db,reviewColumns.results,"handled_at","ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT");
+  await addColumnIfMissing(db,reviewColumns.results,"admin_resolution","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_resolution TEXT");
+  await addColumnIfMissing(db,reviewColumns.results,"admin_note","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_note TEXT");
+  await addColumnIfMissing(db,reviewColumns.results,"resolved_by","ALTER TABLE reviewer_church_reviews ADD COLUMN resolved_by TEXT");
 }
 export async function ensureAnalyticsTables(db:D1Database) {
   await db.batch([
