@@ -36,7 +36,7 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
   assert.match(churches,/review_status='approved'/);
   assert.match(recommendations,/status:"pending"/);
   assert.match(admin,/교회 추천 검토/);
-  assert.match(review,/한 곳씩 확인해 주세요/);
+  assert.match(review,/한 곳씩 살펴봐 주세요/);
   assert.match(controls,/kind:"church-review"/);
   assert.match(controls,/admin-church-details/);
   assert.match(manage,/role==="reviewer"&&kind!=="church-review"/);
@@ -168,7 +168,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(access,/reviewer_accounts WHERE id=\? AND status='approved'/);
   assert.match(signup,/status,fingerprint\) VALUES \(\?,\?,\?,\?,\?,'pending',\?\)/);
   assert.match(login,/\/review\/join/);
-  assert.match(admin,/목회자 검토자 가입/);
+  assert.match(admin,/목회자 검토 참여 신청/);
   assert.match(manage,/kind==="reviewer-account"/);
   assert.match(shared,/CREATE TABLE IF NOT EXISTS reviewer_accounts/);
   assert.match(schema,/reviewerAccounts = sqliteTable\("reviewer_accounts"/);
@@ -179,7 +179,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(manage,/DELETE FROM reviewer_accounts WHERE id=\?/);
   assert.match(manage,/DELETE FROM church_recommendations WHERE id=\?/);
   assert.match(manage,/DELETE FROM \$\{table\} WHERE id=\?/);
-  assert.match(controls,/이 목회자 검토자 계정과 검토 기록을 모두 삭제할까요/);
+  assert.match(controls,/이 목회자 계정과 검토 기록을 모두 삭제할까요/);
   for(const label of ["교회 추천","익명 글","달란트"]) assert.match(controls,new RegExp(label));
   assert.match(admin,/href="\/review">목사님 페이지/);
   assert.match(admin,/관리자가 최종 결정/);
@@ -233,23 +233,23 @@ test("gives pastors a focused queue and groups concern resolution safely for adm
   assert.match(review,/QuickReviewQueue[^>]*todo=\{todo\}[^>]*total=/);
   assert.match(review,/id="review-concern"/);
   assert.match(review,/id="review-done"/);
-  assert.match(review,/관리자 확인을 기다리고 있어요/);
+  assert.match(review,/운영팀이 의견을 살펴보고 있습니다/);
   assert.match(review,/r\.reviewer_id=\?/);
-  assert.match(quickQueue,/문제 없음/);
-  assert.match(quickQueue,/관리자 확인 필요/);
+  assert.match(quickQueue,/특이사항 없습니다/);
+  assert.match(quickQueue,/검토 의견 보내기/);
   assert.match(quickQueue,/setQueue\(next\)/);
   assert.doesNotMatch(quickQueue,/window\.location\.reload/);
   assert.match(quickQueue,/router\.refresh\(\)/);
   assert.match(quickQueue,/공식 홈페이지 확인/);
-  assert.match(quickQueue,/disabled=\{busy\|\|!hasReference\}/);
-  assert.match(quickQueue,/전체 대기 목록/);
-  assert.match(quickQueue,/대기 교회 검색/);
+  assert.doesNotMatch(quickQueue,/disabled=\{busy\|\|!hasReference\}/);
+  assert.match(quickQueue,/아직 살펴볼 교회 전체 목록/);
+  assert.match(quickQueue,/살펴볼 교회 검색/);
   assert.match(quickQueue,/selectChurch\(church\.id\)/);
   assert.match(quickQueue,/이단성·교리 검토 필요/);
   assert.match(quickQueue,/목회자 관련 우려/);
   assert.match(quickQueue,/교회 운영·윤리 문제/);
   assert.doesNotMatch(quickQueue,/공식 채널 아님|최근 활동 없음/);
-  assert.match(quickQueue,/확인 근거나 내용 <small>· 필수<\/small>/);
+  assert.match(quickQueue,/알고 계신 내용 또는 확인 근거 <small>· 필수<\/small>/);
   assert.match(quickQueue,/note\.trim\(\)\.length < 3/);
   assert.match(review,/COALESCE\(r\.status,'unreviewed'\)='unreviewed' ORDER BY c\.name/);
   assert.match(review,/SUM\(CASE WHEN c\.review_status='approved'/);
@@ -313,6 +313,9 @@ test("adapts administrator and pastor screens for tablet and phone without clipp
   assert.match(styles,/\.sermon-copy h3\{display:block;min-height:0;overflow:visible;-webkit-line-clamp:unset\}/);
   assert.match(styles,/\.quick-review-all ul\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(styles,/@media \(max-width:999px\)\{[\s\S]*?\.admin-title p\{font-size:15px;line-height:1\.65\}[\s\S]*?\.reviewer-opinion-copy p\{font-size:14px;line-height:1\.7\}/);
+  assert.match(styles,/\.quick-review-concern>label\{[^}]*font-size:17px!important;[^}]*font-weight:900!important/);
+  assert.match(styles,/\.quick-review-concern>label small\{[^}]*color:#b64e2d!important;[^}]*font-size:16px!important/);
+  assert.match(styles,/\.quick-review-concern textarea\{[^}]*font-size:17px!important/);
 });
 
 test("keeps the home footer labels intact and gives edge panels responsive gutters", async () => {
@@ -329,7 +332,7 @@ test("right-aligns the login return links", async () => {
   const [login,signup,styles]=await Promise.all([readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),readFile(new URL("../app/review/join/reviewer-signup.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(login,/className="admin-login-links"/);
   assert.match(signup,/className="admin-login-links single"/);
-  assert.match(signup,/관리자가 승인해야 교회 목록 검토 작업이 가능합니다/);
+  assert.match(signup,/운영팀 승인 후 교회 검토에 참여하실 수 있습니다/);
   assert.match(styles,/\.admin-login-links\.single \{ justify-content:flex-end; \}/);
 });
 

@@ -81,7 +81,7 @@ export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function setStatus(next:"pending"|"approved"|"rejected"|"deleted") {
     if(next==="rejected"&&!window.confirm("이 목회자 가입 신청을 거절할까요?")) return;
-    if(next==="deleted"&&!window.confirm("이 목회자 검토자 계정과 검토 기록을 모두 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) return;
+    if(next==="deleted"&&!window.confirm("이 목회자 계정과 검토 기록을 모두 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) return;
     setBusy(true);setError("");
     try { await updateAdmin({kind:"reviewer-account",id,status:next}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
@@ -104,6 +104,6 @@ export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;stat
     const values=Object.fromEntries(new FormData(event.currentTarget));
     try { await updateAdmin({kind:"church-review",id,...values}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
-  const results=[["unreviewed","미검토"],["confirmed","확인 완료"],["concern","재검토 필요"]] as const;
-  return <form className="church-review-control" onSubmit={save}><fieldset><legend>검토 결과</legend><div className="review-result-options">{results.map(([value,label])=><label className={selectedStatus===value?"is-selected":""} key={value}><input type="radio" name="status" value={value} checked={selectedStatus===value} onChange={()=>setSelectedStatus(value)}/><span>{label}</span></label>)}</div></fieldset><label>검토 메모<textarea name="note" defaultValue={note??""} maxLength={500} rows={3} placeholder="확인한 내용이나 재검토 이유를 적어 주세요." /></label><div className="review-save-row">{reviewedAt&&<small>최근 검토 {new Date(`${reviewedAt}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>}<button disabled={busy} type="submit">검토 결과 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form>;
+  const results=[["unreviewed","아직 확인 전"],["confirmed","특이사항 없음"],["concern","검토 의견 있음"]] as const;
+  return <form className="church-review-control" onSubmit={save}><fieldset><legend>내 검토 상태</legend><div className="review-result-options">{results.map(([value,label])=><label className={selectedStatus===value?"is-selected":""} key={value}><input type="radio" name="status" value={value} checked={selectedStatus===value} onChange={()=>setSelectedStatus(value)}/><span>{label}</span></label>)}</div></fieldset><label>내가 남긴 내용<textarea name="note" defaultValue={note??""} maxLength={500} rows={3} placeholder="알고 계신 내용이나 의견을 적어 주세요." /></label><div className="review-save-row">{reviewedAt&&<small>마지막 확인 {new Date(`${reviewedAt}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</small>}<button disabled={busy} type="submit">내 검토 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form>;
 }

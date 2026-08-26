@@ -38,8 +38,8 @@ export async function PATCH(request: Request) {
     }
   } else if(kind==="church-review") {
     const status=clean(data.status,20),note=clean(data.note,500);
-    if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"검토 상태를 확인해 주세요."},{status:400});
-    if(status==="concern"&&note.length<3) return Response.json({error:"재검토가 필요한 이유를 3자 이상 적어 주세요."},{status:400});
+    if(!["unreviewed","confirmed","concern"].includes(status)) return Response.json({error:"선택한 검토 내용을 다시 확인해 주세요."},{status:400});
+    if(status==="concern"&&note.length<3) return Response.json({error:"운영팀에 전할 내용을 3자 이상 적어 주세요."},{status:400});
     const reviewChurch=await db.prepare("SELECT id FROM churches WHERE id=? AND review_status IN ('approved','removed') LIMIT 1").bind(id).first<{id:number}>();
     if(!reviewChurch) return Response.json({error:"검토할 수 있는 교회를 찾을 수 없습니다."},{status:404});
     await db.batch([

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import HomeReloadLink from "../home-reload-link";
 
-export default function AdminLogin() {
+export default function AdminLogin({context="admin"}:{context?:"admin"|"reviewer"}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,16 +26,16 @@ export default function AdminLogin() {
   return <main className="admin-login-shell">
     <section className="admin-login-card">
       <span className="brand-mark" aria-hidden="true" />
-      <small>AIRCHURCH OPERATIONS</small>
-      <h1>운영자 로그인</h1>
-      <p>관리자 또는 교회 검토자 아이디로 로그인해 주세요.</p>
+      <small>{context==="reviewer"?"목회자 교회 검토":"AIRCHURCH OPERATIONS"}</small>
+      <h1>{context==="reviewer"?"목사님 로그인":"운영자 로그인"}</h1>
+      <p>{context==="reviewer"?"승인받은 아이디로 로그인해 교회 검토를 시작해 주세요.":"관리자 아이디로 로그인해 주세요."}</p>
       <form onSubmit={login}>
         <label>아이디<input name="username" autoComplete="username" required /></label>
         <label>비밀번호<input name="password" type="password" autoComplete="current-password" required /></label>
         <button disabled={busy} type="submit">{busy ? "확인 중…" : "로그인"}</button>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
       </form>
-      <div className="admin-login-links"><a className="reviewer-join-link" href="/review/join">목회자 검토자 가입 신청</a><HomeReloadLink>← 사이트로 돌아가기</HomeReloadLink></div>
+      <div className="admin-login-links">{context==="reviewer"&&<a className="reviewer-join-link" href="/review/join">교회 검토 참여 신청</a>}<HomeReloadLink>← 에어처치로 돌아가기</HomeReloadLink></div>
     </section>
   </main>;
 }
