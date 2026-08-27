@@ -198,3 +198,19 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .analytics-grid .analytics-wide{grid-column:1/-1}
 .analytics-grid .traffic-chart.is-dense{justify-content:stretch;overflow:visible}
 .analytics-grid .traffic-chart.is-dense .traffic-day{flex:1;min-width:0}
+
+/* Keep the public and held church management panels on one visual grid. */
+.admin-management-grid>.admin-panel>.admin-panel-title{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:16px}
+.admin-management-grid>.admin-panel>.admin-panel-title>div{min-width:0}
+.admin-management-grid>.admin-panel>.admin-panel-title p{min-height:44px;margin-top:8px}
+.admin-management-grid>.admin-panel>.admin-panel-title>span{align-self:start;min-width:70px;padding:8px 12px;border-radius:999px;background:#eef4f0;color:var(--ink);font-weight:850;text-align:center;white-space:nowrap}
+.admin-management-grid .admin-list-search{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;min-height:48px;margin-top:18px}
+.admin-management-grid .admin-list-search input{min-height:48px}
+.admin-management-grid .admin-search-count{min-width:72px;text-align:center}
+.admin-management-grid .admin-random-refresh{min-height:48px}
+
+@media (max-width:760px){
+  .admin-management-grid>.admin-panel>.admin-panel-title p{min-height:0}
+  .admin-management-grid .admin-list-search{grid-template-columns:minmax(0,1fr) auto}
+  .admin-management-grid .admin-random-refresh{grid-column:1/-1;width:100%}
+}
