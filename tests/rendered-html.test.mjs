@@ -444,7 +444,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/const prioritized=filteredChurches\.filter/);
   assert.match(page,/const standard=shuffled/);
   assert.match(page,/filteredChurches\.slice\(0,12\)\):radarChurches/);
-  assert.match(page,/className="church-match-reason"/);
+  assert.doesNotMatch(page,/className="church-match-reason"/);
   assert.doesNotMatch(page,/전체 등록교회 보기/);
   assert.match(page,/id="church-radar-region"/);
   assert.doesNotMatch(page,/navigator\.geolocation/);
