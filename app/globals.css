@@ -296,7 +296,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 
 /* Admin church lists reuse the public card and open from the card body. */
 .admin-management-grid .admin-manage-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0}
-.admin-management-grid .admin-manage-list>article.admin-directory-card{min-width:0;padding:20px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+.admin-management-grid .admin-manage-list>article.admin-directory-card{min-width:0;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
 .admin-management-grid .admin-manage-list>article.admin-directory-card:hover{border-color:#bfd0c7;box-shadow:0 4px 16px rgba(24,54,47,.06)}
 .admin-management-grid .admin-directory-card .admin-church-details{cursor:default;margin:0;padding:0;border:0}
 .admin-management-grid .admin-directory-card .admin-church-details>summary{display:none}
@@ -304,7 +304,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-church-details .admin-edit-form{margin-top:0}
 
 #church-hold .admin-manage-list{grid-template-columns:1fr}
-#church-hold .admin-directory-card.is-held-card{padding:20px;cursor:default}
+#church-hold .admin-directory-card.is-held-card{padding:10px;cursor:default}
 .is-held-card .admin-held-card-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:start}
 .admin-held-card-public{min-width:0;cursor:pointer}
 .admin-directory-hold-panel{min-width:0;padding:10px 12px 10px 14px;display:flex;flex-direction:column;border-radius:12px;background:#fff4ee;color:#865844;cursor:default}
