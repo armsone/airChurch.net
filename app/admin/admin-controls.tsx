@@ -41,7 +41,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     setBusy(true); setError("");
     try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <details className="admin-church-details"><summary>정보 · 노출 · 보류 관리</summary><form className="admin-edit-form" onSubmit={save}>
+  return <details className="admin-church-details"><summary><span className="admin-church-details-open">교회 정보 및 공개 상태 관리</span><span className="admin-church-details-close">관리 화면 닫기</span><b aria-hidden="true">⌄</b></summary><form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
       <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option><option value="4">핀업 · 항상 최상단</option></select></label>

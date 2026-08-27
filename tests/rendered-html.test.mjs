@@ -17,6 +17,12 @@ test("server-renders the Airchurch portal", async () => {
   const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/나와 맞는 교회를 찾아보세요/); assert.match(html,/AI가 찾고, 기준을 통과한 교회만 등록합니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
 
+test("gives every managed church a clear management control", async () => {
+  const controls = await readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8");
+  assert.match(controls, /교회 정보 및 공개 상태 관리/);
+  assert.match(controls, /관리 화면 닫기/);
+});
+
 test("restores a reviewed church directory and restricted pastor workflow", async () => {
   const [page,recommendations,churches,admin,review,controls,manage,access,schema,envExample,signupRoute,signupForm]=await Promise.all([
     readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
@@ -360,17 +366,21 @@ test("uses pastor as the public ministry route and preserves legacy review links
 });
 
 test("syncs kosin sources alongside hapdong without breaking existing scopes", async () => {
-  const [route,kosinSources]=await Promise.all([
+  const [route,kosinSources,prokSources]=await Promise.all([
     readFile(new URL("../app/api/sermons/sync/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/sermons/kosin-sources.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/prok-sources.ts",import.meta.url),"utf8"),
   ]);
   assert.match(route,/import \{ kosinSources \} from "\.\.\/kosin-sources";/);
-  assert.match(route,/\.\.\.kosinSources,\n\];/);
-  assert.match(route,/scope=requestedScope==="hapdong"\?"hapdong":requestedScope==="kosin"\?"kosin":"all"/);
-  assert.match(route,/sourcePool:readonly Source\[\]=scope==="hapdong"\?hapdongSources:scope==="kosin"\?kosinSources:sources/);
-  assert.match(route,/syncKey=scope==="hapdong"\?"youtube-v9-hapdong":scope==="kosin"\?"youtube-v9-kosin":"youtube-v9-regional-130"/);
+  assert.match(route,/import \{ prokSources \} from "\.\.\/prok-sources";/);
+  assert.match(route,/\.\.\.prokSources,\n\];/);
+  assert.match(route,/scope=requestedScope==="hapdong"\?"hapdong":requestedScope==="kosin"\?"kosin":requestedScope==="prok"\?"prok":"all"/);
+  assert.match(route,/sourcePool:readonly Source\[\]=scope==="hapdong"\?hapdongSources:scope==="kosin"\?kosinSources:scope==="prok"\?prokSources:sources/);
+  assert.match(route,/syncKey=scope==="hapdong"\?"youtube-v9-hapdong":scope==="kosin"\?"youtube-v9-kosin":scope==="prok"\?"youtube-v9-prok":"youtube-v9-regional-130"/);
   assert.match(kosinSources,/export const kosinSources=\[/);
   assert.match(kosinSources,/\] as const;/);
+  assert.match(prokSources,/export const prokSources=\[/);
+  assert.match(prokSources,/\] as const;/);
 });
 
 test("generalizes the registration CLI for hapdong and kosin scopes", async () => {
@@ -379,14 +389,16 @@ test("generalizes the registration CLI for hapdong and kosin scopes", async () =
   assert.match(cli,/DEFAULT_SOURCES_BY_SCOPE = \{/);
   assert.match(cli,/hapdong: "app\/api\/sermons\/hapdong-sources\.ts"/);
   assert.match(cli,/kosin: "app\/api\/sermons\/kosin-sources\.ts"/);
+  assert.match(cli,/prok: "app\/api\/sermons\/prok-sources\.ts"/);
   assert.match(cli,/const DEFAULT_SCOPE = "hapdong";/);
-  assert.match(cli,/--scope <hapdong\|kosin>/);
+  assert.match(cli,/--scope <hapdong\|kosin\|prok>/);
   assert.match(cli,/url\.searchParams\.set\("scope",args\.scope\)/);
 
   const help=spawnSync(process.execPath,[cliPath.pathname,"--help"],{encoding:"utf8"});
   assert.equal(help.status,0);
-  assert.match(help.stdout,/--scope <hapdong\|kosin>/);
+  assert.match(help.stdout,/--scope <hapdong\|kosin\|prok>/);
   assert.match(help.stdout,/scope kosin --sync/);
+  assert.match(help.stdout,/scope prok --sync/);
 
   const invalidScope=spawnSync(process.execPath,[cliPath.pathname,"--scope","bogus","--prepare","--input","missing.json"],{encoding:"utf8"});
   assert.notEqual(invalidScope.status,0);
@@ -417,6 +429,16 @@ test("generalizes the registration CLI for hapdong and kosin scopes", async () =
     assert.equal(explicitHapdongPrepare.status,0,explicitHapdongPrepare.stderr);
     const explicitReport=JSON.parse(explicitHapdongPrepare.stdout);
     assert.equal(explicitReport.prepare.added,1);
+
+    const prokInputPath=join(directory,"prok-verified.json");
+    const prokSourcesPath=join(directory,"prok-sources.ts");
+    await writeFile(prokInputPath,JSON.stringify({approved:[{name:"테스트기장교회",pastor:"박기장 목사",region:"서울 서대문",denomination:"한국기독교장로회",channelId:"UC11111111111111111111",status:"verified"}]}),"utf8");
+    await writeFile(prokSourcesPath,"export const prokSources=[\n] as const;\n","utf8");
+    const prokPrepare=spawnSync(process.execPath,[cliPath.pathname,"--scope","prok","--sources",prokSourcesPath,"--input",prokInputPath,"--prepare"],{encoding:"utf8"});
+    assert.equal(prokPrepare.status,0,prokPrepare.stderr);
+    const prokReport=JSON.parse(prokPrepare.stdout);
+    assert.equal(prokReport.prepare.mode,"preview");
+    assert.equal(prokReport.prepare.added,1);
   } finally {
     await rm(directory,{recursive:true,force:true});
   }
