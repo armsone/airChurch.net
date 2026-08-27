@@ -224,6 +224,8 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(review,/ChurchRequestManager/);
   assert.match(review,/찾고, 요청하면 끝입니다/);
   assert.match(requestManager,/교회명, 목사님, 지역, 교단 검색/);
+  assert.doesNotMatch(requestManager,/slice\(0,40\)/);
+  assert.match(styles,/\.pastor-search-results\{max-height:none;overflow:visible\}/);
   assert.match(requestManager,/정보 수정/);
   assert.match(requestManager,/보류/);
   assert.match(requestManager,/삭제/);

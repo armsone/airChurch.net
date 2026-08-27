@@ -10,7 +10,7 @@ const statusLabels={pending:"관리자 확인 대기",approved:"승인",rejected
 
 export default function ChurchRequestManager({churches,requests}:{churches:Church[];requests:RequestItem[]}) {
   const [query,setQuery]=useState(""),[selected,setSelected]=useState<Church|null>(null),[action,setAction]=useState<keyof typeof actionLabels>("edit"),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
-  const results=useMemo(()=>{const needle=query.trim().toLocaleLowerCase("ko-KR");if(!needle)return [];return churches.filter((church)=>`${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLocaleLowerCase("ko-KR").includes(needle)).slice(0,40);},[churches,query]);
+  const results=useMemo(()=>{const needle=query.trim().toLocaleLowerCase("ko-KR");if(!needle)return [];return churches.filter((church)=>`${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLocaleLowerCase("ko-KR").includes(needle));},[churches,query]);
 
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();if(!selected||busy)return;setBusy(true);setMessage("");

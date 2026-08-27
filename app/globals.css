@@ -172,3 +172,6 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .action-center-cards .admin-operation-card>small{grid-area:label;white-space:nowrap}
 .action-center-cards .admin-operation-card>strong{grid-area:count}
 .action-center-cards .admin-operation-card>span{grid-area:detail;white-space:nowrap}
+
+/* Search results follow the page scroll; never create a nested scroll area. */
+.pastor-search-results{max-height:none;overflow:visible}
