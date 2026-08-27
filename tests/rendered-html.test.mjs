@@ -390,4 +390,5 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/\/denominations\/pck-tonghap\.png/);
   assert.match(page,/<small>\{church\.denomination\}<\/small>/);
   assert.match(styles,/\.church-denomination-mark \{/);
+  assert.match(styles,/\.church-denomination-mark \{ width:9px;height:12px;/);
 });
