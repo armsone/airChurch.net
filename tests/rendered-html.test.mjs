@@ -374,7 +374,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/className="church-directory-meta"/);
   assert.match(page,/const churchPrimaryUrl=church\.homepageUrl\|\|/);
   assert.match(page,/className="church-primary-link"/);
-  assert.match(page,/\/api\/churches\?catalog=60/);
+  assert.match(page,/\/api\/churches\?catalog=1000&count=full/);
   assert.match(page,/church\.homepageUrl/);
   assert.doesNotMatch(page,/search\.naver\.com/);
   assert.match(page,/youtube\.com\/channel/);
