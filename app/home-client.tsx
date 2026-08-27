@@ -7,7 +7,7 @@ type Sermon = { id:number; church:string; pastor:string; region:string; denomina
 type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string; pinned?:boolean };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
-type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null };
+type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
@@ -195,28 +195,16 @@ export default function Home() {
   const hasActiveChurchFilter = Boolean(query.trim() || churchQuery.trim() || region !== "전체" || denomination !== "전체 교단");
   const radarChurches=useMemo(()=>{
     if(hasActiveChurchFilter) return filteredChurches;
-    const selected:ChurchItem[]=[];
-    const groups=new Set<string>();
-    for(const church of filteredChurches) {
-      const group=`${church.region.split(" ")[0]}|${church.denomination}`;
-      if(groups.has(group)) continue;
-      groups.add(group);
-      selected.push(church);
-      if(selected.length===12) return selected;
-    }
-    for(const church of filteredChurches) {
-      if(selected.some((item)=>item.id===church.id)) continue;
-      selected.push(church);
-      if(selected.length===12) break;
-    }
-    return selected;
+    const prioritized=filteredChurches.filter((church)=>(church.priorityWeight??1)>1).sort((a,b)=>(b.priorityWeight??1)-(a.priorityWeight??1));
+    const standard=shuffled(filteredChurches.filter((church)=>(church.priorityWeight??1)<=1));
+    return [...prioritized,...standard].slice(0,12);
   },[filteredChurches,hasActiveChurchFilter]);
-  const visibleChurches=showAllChurches?filteredChurches:hasActiveChurchFilter?filteredChurches.slice(0,12):radarChurches;
+  const visibleChurches=hasActiveChurchFilter?(showAllChurches?filteredChurches:filteredChurches.slice(0,12)):radarChurches;
   const isUnfilteredChurchDirectory=!query.trim()&&region==="전체"&&denomination==="전체 교단";
   const churchSearchTotal=trimmedChurchQuery?(currentChurchSearch?.total??0):isUnfilteredChurchDirectory?churchTotal:filteredChurches.length;
   const churchSearchPending=Boolean(trimmedChurchQuery&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":churchSearchTotal>filteredChurches.length?`${churchSearchTotal}개 중 ${filteredChurches.length}개 표시`:`${filteredChurches.length}개 교회`;
-  const churchDirectoryMoreLabel=showAllChurches?"추천 12곳만 보기":hasActiveChurchFilter?`검색 결과 더 보기 (${filteredChurches.length}곳)`:"전체 등록교회 보기";
+  const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${filteredChurches.length}곳)`;
 
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
@@ -360,12 +348,12 @@ export default function Home() {
             placeholder="등록된 교회명, 목사님, 지역, 교단으로 찾아보세요"
             aria-controls="church-directory-grid"
           />
-          {churchQuery && <button className="church-search-clear" type="button" onClick={() => setChurchQuery("")} aria-label="검색어 지우기">✕</button>}
+          {churchQuery && <button className="church-search-clear" type="button" onClick={() => {setChurchQuery("");setShowAllChurches(false);}} aria-label="검색어 지우기">✕</button>}
           <span className="church-search-count" aria-live="polite">{churchLoading ? "불러오는 중…" : churchCountLabel}</span>
         </div>
-        <div className="church-radar-results-heading"><div><strong>{hasActiveChurchFilter?"조건에 맞는 교회":"오늘 발견할 교회"}</strong><p>{hasActiveChurchFilter?"가장 관련 있는 교회부터 12곳씩 보여드립니다.":"지역과 교단이 한쪽에 치우치지 않도록 다양하게 골랐습니다."}</p></div><span>{churchSearchPending?"검색 중…":`${churchSearchTotal.toLocaleString("ko-KR")}곳 중 ${visibleChurches.length}곳`}</span></div>
+        <div className="church-radar-results-heading"><div><strong>{hasActiveChurchFilter?"조건에 맞는 교회":"오늘 발견할 교회"}</strong><p>{hasActiveChurchFilter?"가장 관련 있는 교회부터 12곳씩 보여드립니다.":"관리자 추천을 먼저 보여드리고, 나머지는 방문할 때마다 새롭게 골라드립니다."}</p></div><span>{churchSearchPending?"검색 중…":`${churchSearchTotal.toLocaleString("ko-KR")}곳 중 ${visibleChurches.length}곳`}</span></div>
         {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const churchPrimaryUrl=church.homepageUrl||(church.youtubeChannelId?`https://www.youtube.com/channel/${church.youtubeChannelId}`:null);const churchPrimaryLabel=`${church.name} ${church.homepageUrl?"공식 홈페이지":"공식 YouTube"} 열기`;const mark=denominationMark(church.denomination);const reason=region!=="전체"?`${region} 지역 검증 교회`:denomination!=="전체 교단"?`${denomination} 소속`:trimmedChurchQuery?"검색어와 일치":"공식 채널 검증";return <article key={church.id}><span className="church-match-reason">{reason}</span><div className="church-directory-top"><span>{church.region}</span>{mark&&<img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}</div><h3>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a>:church.name}</h3><div className="church-directory-meta"><div className="church-directory-meta-copy"><p>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.pastor}</a>:church.pastor}</p><small>{church.denomination}</small></div><div className="church-directory-links">{church.homepageUrl&&<a className="homepage-link" href={church.homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{church.channelImageUrl&&<img src={church.channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event)=>{event.currentTarget.hidden=true}} />}</span></a>}{church.youtubeChannelId&&<a className="youtube-link" href={`https://www.youtube.com/channel/${church.youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}</div></div></article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
-        {!churchLoading&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{churchDirectoryMoreLabel}</button>}
+        {!churchLoading&&hasActiveChurchFilter&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{churchDirectoryMoreLabel}</button>}
         <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
           <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>
           {showRecommendationForm&&<form className="church-recommendation-form" id="church-recommendation-form" onSubmit={submitChurchRecommendation}>

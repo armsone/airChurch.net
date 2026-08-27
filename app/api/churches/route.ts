@@ -2,7 +2,7 @@ import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 
-type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null};
+type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
 type CountRow={total:number};
 
 export async function GET(request:Request) {
@@ -23,7 +23,7 @@ export async function GET(request:Request) {
   const where=conditions.join(" AND ");
   const isSearch=Boolean(query);
   const limit=isSearch?200:1000;
-  const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl FROM churches WHERE ${where} ORDER BY priority_weight DESC,name LIMIT ${limit}`;
+  const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY priority_weight DESC,name LIMIT ${limit}`;
   const result=await db.prepare(selectSql).bind(...bindings).all<ChurchRow>();
   const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
