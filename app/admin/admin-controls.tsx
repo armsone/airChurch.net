@@ -18,12 +18,210 @@ const holdReasons = [
   ["other", "기타"],
 ] as const;
 
-export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number; iconOnly?:boolean; markTrigger?:{src:string|null;alt:string}; cardTrigger?:ReactNode; heldQuickActions?:boolean }) {
+export function denominationMark(denomination:string) {
+  if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
+  if (denomination === "대한예수교장로회 합동") return { src:"/denominations/pck-hapdong.svg", alt:"대한예수교장로회 합동 교단 심볼" };
+  if (denomination === "기독교대한감리회") return { src:"/denominations/kmc.ico", alt:"기독교대한감리회 교단 심볼" };
+  if (denomination === "대한예수교장로회 고신") return { src:"/denominations/pck-kosin.jpg", alt:"대한예수교장로회 고신 교단 심볼" };
+  if (denomination === "기독교한국침례회") return { src:"/denominations/kbch.png", alt:"기독교한국침례회 공식 로고" };
+  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc.png", alt:"기독교대한성결교회 교단 심볼" };
+  if (denomination === "대한예수교장로회 합신") return { src:"/denominations/pck-hapshin.png", alt:"대한예수교장로회 합신 공식 로고" };
+  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok.png", alt:"대한예수교장로회 백석 교단 심볼" };
+  if (denomination === "기독교대한하나님의성회") return { src:"/denominations/agk.png", alt:"기독교대한하나님의성회 공식 로고" };
+  if (denomination === "기독교대한하나님의성회 광화문총회") return { src:"/denominations/agk-gwanghwamun.png", alt:"기독교대한하나님의성회 광화문총회 공식 로고" };
+  if (denomination === "한국기독교장로회") return { src:"/denominations/prok.png", alt:"한국기독교장로회 교단 심볼" };
+  if (denomination === "한국독립교회선교단체연합회") return { src:"/denominations/kaicam.png", alt:"한국독립교회선교단체연합회 공식 로고" };
+  return null;
+}
+
+export type AdminChurchItem = {
+  id: number;
+  name: string;
+  pastor: string;
+  region: string;
+  denomination: string;
+  review_status?: string;
+  status?: string;
+  hold_reason?: string | null;
+  holdReason?: string | null;
+  hold_note?: string | null;
+  holdNote?: string | null;
+  held_at?: string | null;
+  heldAt?: string | null;
+  priority_weight?: number;
+  priorityWeight?: number;
+  homepage_url?: string | null;
+  homepageUrl?: string | null;
+  youtube_channel_id?: string | null;
+  youtubeChannelId?: string | null;
+  channel_image_url?: string | null;
+  channelImageUrl?: string | null;
+};
+
+export function AdminChurchCard({ church, preview, isHeld = false }: { church: AdminChurchItem; preview: boolean; isHeld?: boolean }) {
+  const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const status = church.review_status ?? church.status ?? (isHeld ? "removed" : "approved");
+  const holdReasonValue = church.hold_reason ?? church.holdReason ?? null;
+  const holdNoteValue = church.hold_note ?? church.holdNote ?? "";
+  const heldAtValue = church.held_at ?? church.heldAt ?? null;
+  const priorityWeightValue = church.priority_weight ?? church.priorityWeight ?? 1;
+
+  const [holdReason, setHoldReason] = useState(holdReasonValue || "review_needed");
+  const [holdNote, setHoldNote] = useState(holdNoteValue || "");
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  const homepageUrl = church.homepage_url ?? church.homepageUrl ?? null;
+  const youtubeChannelId = church.youtube_channel_id ?? church.youtubeChannelId ?? null;
+  const channelImageUrl = church.channel_image_url ?? church.channelImageUrl ?? null;
+
+  const churchPrimaryUrl = homepageUrl || (youtubeChannelId ? `https://www.youtube.com/channel/${youtubeChannelId}` : null);
+  const churchPrimaryLabel = `${church.name} ${homepageUrl ? "공식 홈페이지" : "공식 YouTube"} 열기`;
+  const mark = denominationMark(church.denomination);
+  const holdReasonText = holdReasons.find(([value]) => value === (holdReasonValue || holdReason))?.[1] ?? (holdReasonValue ? "기타" : "사유 미기록");
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); setError("");
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    try { await updateAdmin({ kind: "church", id: church.id, ...values }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
+  }
+
+  async function changeStatus(next: "approved" | "removed" | "deleted") {
+    if (next === "removed" && (!holdReason || holdNote.trim().length < 3)) {
+      setError("보류 사유를 선택하고 3자 이상의 관리자 메모를 입력해 주세요.");
+      return;
+    }
+    const message = next === "removed"
+      ? "이 교회를 보류 목록으로 옮길까요? 관련 말씀과 찬양도 함께 숨겨집니다."
+      : next === "deleted"
+        ? "이 교회를 삭제 처리할까요? 관련 말씀과 찬양도 즉시 숨겨집니다."
+        : "이 교회를 다시 공개할까요? 숨겨진 설교는 자동 공개되지 않습니다.";
+    if (!window.confirm(message)) return;
+    setBusy(true); setError("");
+    try {
+      await updateAdmin({ kind: "church", id: church.id, status: next, holdReason, holdNote }, next !== "deleted");
+      if (next === "deleted") {
+        const article = detailsRef.current?.closest<HTMLElement>("[data-admin-search]"), targetId = article?.parentElement?.id;
+        article?.remove();
+        if (targetId) window.dispatchEvent(new CustomEvent("admin-church-removed", { detail: { targetId } }));
+      }
+    } catch (reason) { setError((reason as Error).message); setBusy(false); }
+  }
+
+  function handleCardClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("a, button, input, select, textarea, label, form")) return;
+    if (detailsRef.current) detailsRef.current.open = !detailsRef.current.open;
+  }
+
+  const publicCardContent = (
+    <>
+      <div className="church-directory-top">
+        <span>{church.region}</span>
+        {mark && <img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
+      </div>
+      <h3>{churchPrimaryUrl ? <a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a> : church.name}</h3>
+      <div className="church-directory-meta">
+        <div className="church-directory-meta-copy">
+          <p>{churchPrimaryUrl ? <a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.pastor}</a> : church.pastor}</p>
+          <small>{church.denomination}</small>
+        </div>
+        <div className="church-directory-links">
+          {homepageUrl && <a className="homepage-link" href={homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{channelImageUrl && <img src={channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.hidden = true; }} />}</span></a>}
+          {youtubeChannelId && <a className="youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}
+        </div>
+      </div>
+    </>
+  );
+
+  const editForm = (
+    <details ref={detailsRef} className="admin-church-details">
+      <summary className="sr-only">교회 정보 및 공개 상태 관리</summary>
+      <form className="admin-edit-form" onSubmit={save}>
+        <div className="admin-edit-fields">
+          <input name="name" defaultValue={church.name} aria-label="교회명" required />
+          <input name="pastor" defaultValue={church.pastor} aria-label="목사님" required />
+          <input name="region" defaultValue={church.region} aria-label="지역" required />
+          <input name="denomination" defaultValue={church.denomination} aria-label="교단" required />
+        </div>
+        <div className="admin-preference-fields">
+          <label>
+            <span>노출 비중</span>
+            <select name="priorityWeight" defaultValue={String(priorityWeightValue)}>
+              <option value="1">기본 · 균등 노출</option>
+              <option value="2">높음 · 최대 2배</option>
+              <option value="3">매우 높음 · 최대 3배</option>
+              <option value="4">핀업 · 항상 최상단</option>
+            </select>
+          </label>
+          <label>
+            <span>보류 사유</span>
+            <select name="holdReason" value={holdReason} onChange={(event) => setHoldReason(event.target.value)}>
+              <option value="">선택해 주세요</option>
+              {holdReasons.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+            </select>
+          </label>
+        </div>
+        <label className="admin-note-field">
+          <span>관리자 메모 {status === "approved" && <small>· 보류 시 필수</small>}</span>
+          <textarea name="holdNote" value={holdNote} onChange={(event) => setHoldNote(event.target.value)} maxLength={500} rows={3} placeholder="확인한 근거와 다시 검토할 내용을 남겨 주세요." />
+        </label>
+        {status === "removed" && heldAtValue && <p className="admin-held-at">최근 보류: {new Date(`${heldAtValue}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p>}
+        <div className="admin-action-row">
+          <button disabled={busy} type="submit">정보 저장</button>
+          {status === "approved" ? (
+            <>
+              <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button>
+              <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button>
+            </>
+          ) : (
+            <>
+              <button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button>
+              <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button>
+            </>
+          )}
+        </div>
+        {error && <p className="admin-error">{error}</p>}
+      </form>
+    </details>
+  );
+
+  if (isHeld) {
+    return (
+      <article className="managed-church-card admin-directory-card is-held-card" key={church.id} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
+        <div className="admin-held-card-body">
+          <div className="admin-held-card-public" onClick={handleCardClick}>
+            {publicCardContent}
+          </div>
+          <div className="admin-directory-hold-panel">
+            <div className="admin-directory-hold-reason">
+              <b>{holdReasonText}</b>
+              <span>{holdNoteValue || "관리자 메모가 없습니다."}</span>
+            </div>
+            <div className="admin-directory-hold-actions">
+              <button disabled={busy} type="button" onClick={() => void changeStatus("approved")}>노출</button>
+              <button type="button" onClick={() => { if (detailsRef.current) detailsRef.current.open = true; }}>수정</button>
+              <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button>
+            </div>
+          </div>
+        </div>
+        {editForm}
+      </article>
+    );
+  }
+
+  return (
+    <article className="managed-church-card admin-directory-card" key={church.id} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview} onClick={handleCardClick}>
+      {publicCardContent}
+      {editForm}
+    </article>
+  );
+}
+
+export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number; iconOnly?:boolean; markTrigger?:{src:string|null;alt:string}; cardTrigger?:ReactNode; overlayTrigger?:boolean; heldQuickActions?:boolean }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [holdReason, setHoldReason] = useState(props.holdReason || "review_needed");
   const [holdNote, setHoldNote] = useState(props.holdNote || "");
   const detailsRef=useRef<HTMLDetailsElement>(null);
-  const holdReasonText=holdReasons.find(([value])=>value===props.holdReason)?.[1]??"사유 미기록";
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
@@ -43,7 +241,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     setBusy(true); setError("");
     try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote },next!=="deleted");if(next==="deleted"){const article=detailsRef.current?.closest<HTMLElement>("[data-admin-search]"),targetId=article?.parentElement?.id;article?.remove();if(targetId)window.dispatchEvent(new CustomEvent("admin-church-removed",{detail:{targetId}}));} } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <details ref={detailsRef} className={`admin-church-details${props.iconOnly||props.markTrigger?" is-icon-editor":""}${props.markTrigger?" is-mark-editor":""}${props.cardTrigger?" is-card-editor":""}`}><summary aria-label="교회 정보 및 공개 상태 관리">{props.cardTrigger?<>{props.cardTrigger}{props.heldQuickActions&&<span className="admin-directory-hold-panel"><span className="admin-directory-hold-reason"><b>{holdReasonText}</b><span>{props.holdNote||"관리자 메모가 없습니다."}</span></span><span className="admin-directory-hold-actions"><button disabled={busy} type="button" onClick={(event)=>{event.preventDefault();event.stopPropagation();void changeStatus("approved");}}>노출</button><button type="button" onClick={(event)=>{event.preventDefault();event.stopPropagation();if(detailsRef.current)detailsRef.current.open=true;}}>수정</button><button disabled={busy} className="danger" type="button" onClick={(event)=>{event.preventDefault();event.stopPropagation();void changeStatus("deleted");}}>삭제</button></span></span>}</>:props.markTrigger?(props.markTrigger.src?<img src={props.markTrigger.src} alt={props.markTrigger.alt}/>:<span className="church-admin-mark-fallback" aria-hidden="true">✝</span>):props.iconOnly?<span aria-hidden="true">✎</span>:<><span className="admin-church-details-open">정보 관리</span><span className="admin-church-details-close" aria-label="관리 화면 닫기">관리 닫기</span><b aria-hidden="true">⌄</b></>}</summary><form className="admin-edit-form" onSubmit={save}>
+  return <details ref={detailsRef} className={`admin-church-details${props.iconOnly||props.markTrigger?" is-icon-editor":""}${props.markTrigger?" is-mark-editor":""}`}><summary aria-label="교회 정보 및 공개 상태 관리">{props.markTrigger?(props.markTrigger.src?<img src={props.markTrigger.src} alt={props.markTrigger.alt}/>:<span className="church-admin-mark-fallback" aria-hidden="true">✝</span>):props.iconOnly?<span aria-hidden="true">✎</span>:<><span className="admin-church-details-open">정보 관리</span><span className="admin-church-details-close" aria-label="관리 화면 닫기">관리 닫기</span><b aria-hidden="true">⌄</b></>}</summary><form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
       <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option><option value="4">핀업 · 항상 최상단</option></select></label>

@@ -197,7 +197,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/initialLimit=\{20\}/);
   assert.equal((admin.match(/initialLimit=\{20\}/g)??[]).length,2);
   assert.match(adminListSearch,/다른 \{initialLimit\}곳 보기/);
-  assert.match(admin,/data-admin-preview/);
+  assert.match(controls,/data-admin-preview/);
   assert.match(admin,/church_homepage_url/);
   assert.match(admin,/church_youtube_channel_id/);
   assert.match(admin,/문제가 제보된 교회/);
