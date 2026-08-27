@@ -423,7 +423,9 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
-  const syncKey="youtube-v9-regional-130";
+  const scope=new URL(request.url).searchParams.get("scope")==="hapdong"?"hapdong":"all";
+  const sourcePool:readonly Source[]=scope==="hapdong"?hapdongSources:sources;
+  const syncKey=scope==="hapdong"?"youtube-v9-hapdong":"youtube-v9-regional-130";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;
@@ -431,7 +433,7 @@ export async function POST(request:Request) {
   const start=Number.isInteger(requestedStart)&&requestedStart>=0?requestedStart:0;
   const requestedLimit=Number(new URL(request.url).searchParams.get("limit")??"20");
   const limit=Number.isInteger(requestedLimit)&&requestedLimit>0?Math.min(requestedLimit,20):20;
-  const batch=sources.slice(start,start+limit);
+  const batch=sourcePool.slice(start,start+limit);
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
@@ -476,9 +478,9 @@ export async function POST(request:Request) {
     for(const item of recentSermons.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); imported++; }
   }
   const nextStart=start+batch.length;
-  const nextCursor=nextStart<sources.length?nextStart:0;
+  const nextCursor=nextStart<sourcePool.length?nextStart:0;
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
   if(nextCursor===0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
-  return Response.json({ok:true,verified,approved:approved?.count??0,removed,imported,nextStart:nextCursor||null});
+  return Response.json({ok:true,scope,verified,approved:approved?.count??0,removed,imported,nextStart:nextCursor||null});
 }
