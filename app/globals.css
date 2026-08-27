@@ -225,3 +225,73 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-church-details-close{display:none}
 .admin-management-grid .admin-church-details[open] .admin-church-details-open{display:none}
 .admin-management-grid .admin-church-details[open] .admin-church-details-close{display:inline}
+
+/* Managed church rows: quiet reference links, one status, one clear action. */
+.admin-management-grid .admin-manage-list>article{padding:20px 0}
+.admin-management-grid .admin-church-card-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:10px}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links{min-height:44px;margin:0;align-items:center;gap:16px}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links a,.admin-management-grid .admin-church-card-actions .admin-church-reference-links span{padding:7px 0;border-radius:0;background:transparent;font-weight:750}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links a{color:#496b5c;text-decoration:underline;text-decoration-color:#b9cbc2;text-underline-offset:4px}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links span{color:#87968f}
+.admin-management-grid .admin-church-card-actions .admin-church-details{margin:0;padding:0;border:0}
+.admin-management-grid .admin-church-card-actions .admin-church-details>summary{width:auto;min-width:116px;min-height:44px;padding:9px 13px;border-color:#b9cbc2;border-radius:999px;background:white}
+.admin-management-grid .admin-church-card-actions .admin-church-details>summary b{font-size:16px!important}
+.admin-management-grid .admin-church-card-actions .admin-church-details[open]{grid-column:1/-1}
+.admin-management-grid .admin-church-card-actions .admin-church-details[open]>summary{width:max-content;margin-left:auto}
+.admin-management-grid .admin-church-card-actions .admin-edit-form{margin-top:12px;padding:16px;border-radius:12px;background:#f5f8f6}
+
+@media (max-width:520px){
+  .admin-management-grid .admin-church-card-actions{grid-template-columns:1fr}
+  .admin-management-grid .admin-church-card-actions .admin-church-details>summary{width:100%}
+  .admin-management-grid .admin-church-card-actions .admin-church-details[open]>summary{width:100%;margin-left:0}
+}
+
+.admin-management-grid .admin-church-identity{min-width:0;display:flex;align-items:center;gap:12px}
+.admin-management-grid .admin-church-identity>img,.admin-management-grid .admin-church-identity>span{flex:none;width:42px;height:42px;padding:5px;display:grid;place-items:center;border:1px solid #d9e2dc;border-radius:10px;background:white;object-fit:contain;color:#6d8178;font-size:10px!important;font-weight:850}
+.admin-management-grid .admin-church-identity>div{min-width:0}
+.admin-management-grid .admin-church-identity small{display:flex;flex-wrap:wrap;align-items:center;gap:3px 10px;margin-top:5px}
+.admin-management-grid .admin-church-identity small b,.admin-management-grid .admin-church-identity small em{font-size:12px!important;font-style:normal}
+.admin-management-grid .admin-church-identity small em{color:var(--muted);font-weight:600}
+.admin-management-grid .admin-church-identity small em::before{content:"·";margin-right:8px;color:#b1bdb7}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links a,.admin-management-grid .admin-church-card-actions .admin-church-reference-links span{min-height:40px;display:inline-flex;align-items:center;gap:7px;text-decoration:none}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links a b,.admin-management-grid .admin-church-card-actions .admin-church-reference-links span b{font-size:12px!important}
+.admin-management-grid .admin-church-card-actions .admin-church-reference-links .homepage-visual{width:30px;height:30px;border:1px solid #d6e0da;background:white}
+.admin-management-grid .admin-church-card-actions .admin-youtube-link{color:#c94636!important}
+.admin-management-grid .admin-church-card-actions .admin-reference-empty i{width:28px;height:28px;display:grid;place-items:center;border:1px dashed #c4d0ca;border-radius:8px;color:#94a39c;font-style:normal}
+.admin-management-grid .admin-church-hold-summary{margin:10px 0 0;padding:9px 11px;border-radius:9px;background:#fff5f0;color:#8d5c49;line-height:1.5}
+.admin-management-grid .admin-church-hold-summary b,.admin-management-grid .admin-church-hold-summary span{font-size:12px!important}
+.admin-management-grid .admin-church-hold-summary span{display:block;margin-top:2px;color:#806f67;font-weight:500}
+
+/* One church-card language across the public, pastor, and admin surfaces. */
+.managed-church-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.managed-church-card-top>span:first-child{color:var(--orange);font-size:12px!important;font-weight:850}
+.managed-church-card-top>div,.managed-church-card-top>span:last-child{display:flex;align-items:center;justify-content:flex-end;gap:7px}
+.managed-church-card-top img{width:25px;height:25px;display:block;object-fit:contain}
+.managed-church-card-top b{padding:5px 8px;border-radius:999px;background:#edf3ef;color:#537464;font-size:11px!important;white-space:nowrap}
+.managed-church-card-top .status-removed{background:#f7eae4;color:#9a5d47}
+.managed-church-card-copy{display:block;margin-top:9px}
+.managed-church-card-copy>strong{display:block;font-size:17px!important;line-height:1.4}
+.managed-church-card-copy>p,.managed-church-card-copy>span{display:block;margin:5px 0 0;color:var(--ink);font-size:13px!important;font-weight:750}
+.managed-church-card-copy>small{display:block;margin-top:5px;color:var(--muted);font-size:12px!important;line-height:1.45}
+
+.pastor-search-results .pastor-church-select{padding:16px;text-align:left}
+.pastor-search-results .managed-church-card-top{display:flex;margin:0}
+.pastor-search-results .managed-church-card-top>span{margin:0}
+.pastor-search-results .managed-church-card-copy{margin-top:9px;color:inherit}
+.pastor-search-results .managed-church-card-copy>span{margin-top:5px;color:var(--ink)}
+.pastor-search-results .managed-church-card-copy>small{display:block;margin-top:5px;color:var(--muted)}
+.pastor-search-results .pastor-proposal-action{float:none!important;min-height:38px;margin:13px 0 0!important;padding:8px 11px;display:flex;align-items:center;justify-content:center;border:1px solid #cbd8d1;border-radius:9px;background:#f4f8f5;color:#496b5c!important;font-size:12px!important;font-style:normal;font-weight:850}
+.pastor-search-results>article.is-selected .pastor-proposal-action{border-color:var(--orange);background:var(--orange);color:white!important}
+.pastor-church-links{min-height:48px;align-items:center;gap:16px;padding:0 16px 14px}
+.pastor-church-links a,.pastor-church-links>span{min-height:40px;padding:5px 0;display:inline-flex;align-items:center;gap:7px;border-radius:0;background:transparent;color:#496b5c;text-decoration:none}
+.pastor-church-links a b,.pastor-church-links>span b{font-size:12px!important}
+.pastor-church-links .homepage-visual{width:30px;height:30px;border:1px solid #d6e0da;background:white}
+.pastor-church-links .pastor-youtube-link{color:#c94636}
+.pastor-church-links .pastor-reference-empty{color:#87968f}
+.pastor-church-links .pastor-reference-empty i{width:28px;height:28px;display:grid;place-items:center;border:1px dashed #c4d0ca;border-radius:8px;font-style:normal}
+.pastor-search-results .admin-church-info-edit{margin:0 16px 14px;padding-top:12px}
+.pastor-search-results .admin-church-info-edit>summary{width:100%;padding:10px 12px;border:1px solid #cbd8d1;border-radius:9px;background:#f4f8f5;color:var(--ink);font-weight:850;list-style-position:inside}
+
+.church-directory-grid .admin-church-info-edit{grid-column:1/-1;margin-top:14px;padding-top:12px;border-top:1px solid #e4e9e6}
+.church-directory-grid .admin-church-info-edit>summary{min-height:42px;padding:9px 11px;display:flex;align-items:center;border:1px solid #cbd8d1;border-radius:9px;background:#f4f8f5;color:var(--ink);font-size:12px;font-weight:850;cursor:pointer}
+.church-directory-grid .admin-church-info-edit .admin-edit-fields{grid-template-columns:1fr;margin-top:10px}
