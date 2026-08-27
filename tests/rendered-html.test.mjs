@@ -14,7 +14,7 @@ async function render() {
 
 test("server-renders the Airchurch portal", async () => {
   const response=await render(); assert.equal(response.status,200); assert.match(response.headers.get("content-type")??"",/^text\/html\b/i);
-  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/등록 교회 목록/); assert.match(html,/AI가 찾고, 관리자가 확인한 교회만 등록합니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
+  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/등록 교회 목록/); assert.match(html,/AI가 찾고, 기준을 통과한 교회만 등록합니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
 
 test("restores a reviewed church directory and restricted pastor workflow", async () => {
@@ -32,7 +32,7 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/pastor/join/reviewer-signup.tsx",import.meta.url),"utf8"),
   ]);
-  for(const phrase of ["AI가 찾고, 관리자가 확인한 교회만 등록합니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
+  for(const phrase of ["AI가 찾고, 기준을 통과한 교회만 등록합니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
   assert.match(churches,/review_status='approved'/);
   assert.match(recommendations,/status:"pending"/);
   assert.match(admin,/교회 추천 검토/);
