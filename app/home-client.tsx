@@ -50,6 +50,12 @@ const knownDenominations = [
   "기독교한국침례회", "기독교대한성결교회", "대한예수교장로회 합신", "대한예수교장로회 백석",
   "기독교대한하나님의성회", "기독교대한하나님의성회 광화문총회", "한국기독교장로회", "독립교회", "한국독립교회선교단체연합회",
 ];
+const churchSourceRows = knownDenominations.map((denomination) => ({
+  denomination,
+  source: "교단·노회 공개 홈페이지 및 공식 YouTube 채널",
+  access: "공개(로그인 없이 열람 가능)",
+  lastChecked: "공개 자료 확인 시 갱신",
+}));
 const menuItems = [["말씀","#sermons"],["찬양","#praises"],["등록교회","#church-directory"],["랭킹","#rankings"],["착한나눔","#goodshare"],["광장","#community"],["비전","#vision"]] as const;
 const headerAdminLinks = [["관리자","/admin"],["목사님","/pastor"]] as const;
 
@@ -337,7 +343,15 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span aria-hidden="true">AI</span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회 자료로 교회명·지역·담임목사를 확인하고, 공식 홈페이지 또는 공식 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p></div></div>
+        <div className="church-radar-intro"><span aria-hidden="true">AI</span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 자동으로 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p>
+          <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
+            <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
+            <table className="church-radar-sources-table"><caption className="sr-only">자료 확인 기준과 출처</caption>
+              <thead><tr><th scope="col">교단명</th><th scope="col">공식 출처</th><th scope="col">공개/로그인 여부</th><th scope="col">마지막 확인일</th></tr></thead>
+              <tbody>{churchSourceRows.map((row)=><tr key={row.denomination}><td>{row.denomination}</td><td>{row.source}</td><td>{row.access}</td><td>{row.lastChecked}</td></tr>)}</tbody>
+            </table>
+          </details>
+        </div></div>
         <div className="church-radar-actions" aria-label="교회 찾기 방법">
           <label><span aria-hidden="true">◫</span><strong>지역으로 찾기</strong><select id="church-radar-region" aria-label="교회 레이더 지역 선택" value={region} onChange={(event)=>{setRegion(event.target.value);setShowAllChurches(false);}}>{regions.map((item)=><option key={item}>{item}</option>)}</select></label>
           <label><span aria-hidden="true">◇</span><strong>교단으로 찾기</strong><select aria-label="교회 레이더 교단 선택" value={denomination} onChange={(event)=>{setDenomination(event.target.value);setShowAllChurches(false);}}>{denominationOptions.map((item)=><option key={item}>{item}</option>)}</select></label>

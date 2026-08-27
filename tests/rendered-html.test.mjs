@@ -516,6 +516,25 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(styles,/\.church-denomination-mark \{ width:21px;height:21px;/);
 });
 
+test("discloses AI registration source criteria in a collapsed, accessible panel", async () => {
+  const [page,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(page,/교단·노회와 교회가 일반에 공개한 공식 정보만 자동으로 확인합니다\. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 검증합니다\. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다\./);
+  assert.match(page,/<details className="church-radar-sources"><summary>자료 확인 기준과 출처<\/summary>/);
+  assert.doesNotMatch(page,/church-radar-sources"[^>]*\bopen\b/);
+  assert.match(page,/로그인 없이 공개된 자료만 확인합니다\./);
+  for(const label of ["교단명","공식 출처","공개/로그인 여부","마지막 확인일"]) assert.match(page,new RegExp(`<th scope="col">${label}</th>`));
+  assert.match(page,/churchSourceRows = knownDenominations\.map/);
+  assert.match(page,/access: "공개\(로그인 없이 열람 가능\)"/);
+  assert.match(page,/lastChecked: "공개 자료 확인 시 갱신"/);
+  assert.doesNotMatch(page,/\/api\/(?:sync|churches)\?[^"]*(?:token|secret|key)/i);
+  for(const leak of ["D1","sqlite","fetch\\(","waitUntil","spawnSync","route\\.ts"]) assert.doesNotMatch(page.slice(page.indexOf("church-radar-sources"),page.indexOf("church-radar-sources")+2000),new RegExp(leak));
+  assert.match(styles,/\.church-radar-sources \{/);
+  assert.match(styles,/\.church-radar-sources-table \{/);
+  assert.match(styles,/table-layout:fixed/);
+  assert.match(styles,/word-break:keep-all/);
+  assert.match(styles,/@media \(max-width:600px\) \{ \.church-radar-sources-table th,\.church-radar-sources-table td/);
+});
+
 test("keeps admin and pastor links visible in the top header on desktop and mobile", async () => {
   const [page,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
   assert.match(page,/headerAdminLinks = \[\["관리자","\/admin"\],\["목사님","\/pastor"\]\] as const;/);
