@@ -8,9 +8,11 @@
  * (최상위 records 배열)을 생성하는 리서치 전용 CLI.
  *
  * - 고신: 공식 페이지에 게시된 Google My Maps KML을 의존성 없이 직접 파싱한다.
- * - 기장(PROK): 공식 SPA 루트 HTML과 동일 출처 JS 번들만 검사해, 번들 안에
- *   명시적으로 존재하는 동일 출처 JSON/API URL만 후보로 취급하고 검증한다.
- *   추측 경로 브루트포스, 브라우저 자동화, 우회는 절대 하지 않는다.
+ * - 기장(PROK): 공식 지도 API(https://server.prok.or.kr/api/map/churches)를
+ *   직접 호출해 전체 목록을 정규화한다. API 응답을 받지 못할 때만 공식 SPA
+ *   루트 HTML과 동일 출처 JS 번들에서 명시적으로 존재하는 동일 출처
+ *   JSON/API URL을 검사하는 보수적 발견 로직으로 폴백한다. 추측 경로
+ *   브루트포스, 브라우저 자동화, 우회는 절대 하지 않는다.
  * - 백석·합신·대신: 전수 공개 명부를 확인하지 못했거나 로그인이 필요하므로
  *   우회 없이 구조화된 blocked 결과로 보고한다.
  *
@@ -386,15 +388,21 @@ async function collectDaeshin() {
 }
 
 // ---------------------------------------------------------------------------
-// 기장(PROK): 보수적 공개 소스 발견 어댑터
+// 기장(PROK): 공식 지도 API 우선 + 보수적 발견 로직 폴백
 //
-// 공식 SPA 루트 HTML만 요청해 동일 출처 JS 자산 URL을 추출하고, 그 번들
-// 텍스트 안에 "명시적으로 존재하는" 동일 출처 JSON/API/data URL 후보만
-// 검사한다. 추측 경로 브루트포스, 헤드리스 브라우저, 제3자 소스는 사용하지
-// 않는다. 후보 응답이 교회명+주소/지역으로 매핑 가능한 컬렉션일 때만 채택한다.
+// 1순위: 공식 지도 API(server.prok.or.kr)의 전체 교회 목록 엔드포인트를
+// 직접 호출한다. 폐교회/숨김 레코드는 명시적 플래그와 이름/주소 텍스트로
+// 제외한다. 개인정보(전화·팩스·이메일·우편번호)는 응답에 있어도 수집하지
+// 않으며, 1,589곳 각각에 대한 상세 API 추가 호출도 하지 않는다.
+//
+// API 호출이 실패할 때만, 공식 SPA 루트 HTML에서 동일 출처 JS 자산 URL을
+// 추출하고 그 번들 텍스트 안에 "명시적으로 존재하는" 동일 출처 JSON/API/data
+// URL 후보만 검사하는 보수적 발견 로직으로 폴백한다. 추측 경로 브루트포스,
+// 헤드리스 브라우저, 제3자 소스는 사용하지 않는다.
 // ---------------------------------------------------------------------------
 
 const PROK_ROOT = "https://map.prok.or.kr";
+const PROK_OFFICIAL_API_URL = "https://server.prok.or.kr/api/map/churches";
 const MAX_SCRIPT_ASSETS_TO_INSPECT = 6;
 const MAX_CANDIDATE_ENDPOINTS_TO_TEST = 8;
 
@@ -501,7 +509,92 @@ function mapProkArrayToRecords(array, endpointUrl) {
   return { records, matchedKeys: { nameKey, addressKey }, sampleKeys };
 }
 
-async function collectProk(rateGate) {
+function isProkRowClosedOrHidden(row) {
+  const rawName = clean(row?.name);
+  const rawAddress = clean(row?.address);
+  const isClosed = row?.is_closed === true;
+  const delGu = row?.del_gu ?? row?.DelGu;
+  const endDate = row?.end_date ?? row?.EndDate;
+  const isHidden = Boolean(row?.is_hidden);
+  const looksClosedByText = /\(폐교회\)/.test(rawName) || /\(폐교회\)/.test(rawAddress);
+  return isClosed || delGu === "D" || Boolean(endDate) || isHidden || looksClosedByText;
+}
+
+function mapProkOfficialRow(row, denomination) {
+  const rawName = clean(row.name);
+  const name = rawName.endsWith("교회") ? rawName : `${rawName}교회`;
+  const address = clean(row.address) || null;
+  const homepage = normalizeHomepage(row.homepage_url);
+  return {
+    denomination: denomination.name,
+    presbytery: clean(row.noh) || null,
+    name,
+    rawName,
+    address,
+    region: regionFromAddress(address),
+    pastor: formatPastor(row.pastor_name),
+    homepage,
+    homepageStatus: homepage ? "unverified" : "not-provided",
+    youtubeChannelIds: [],
+    youtubeHandleLead: null,
+    evidence: {
+      directorySourceUrl: "https://map.prok.or.kr",
+      sourceApiUrl: PROK_OFFICIAL_API_URL,
+      sourceRegionQuery: null,
+    },
+    recordKey: stableRecordKey(denomination.id, name, address, row.chr_code),
+  };
+}
+
+async function collectProkOfficialApi(rateGate) {
+  const denomination = DENOMINATIONS.prok;
+  progress(`[기장] 공식 지도 API 요청: ${PROK_OFFICIAL_API_URL}`);
+  const response = await fetchWithRetry(
+    PROK_OFFICIAL_API_URL,
+    { headers: { Accept: "application/json" } },
+    rateGate
+  );
+  const json = await response.json();
+  const churches = Array.isArray(json?.churches) ? json.churches : null;
+  if (!churches) {
+    throw new Error("공식 API 응답에 churches 배열이 없습니다.");
+  }
+
+  const rawCount = churches.length;
+  let excludedClosedCount = 0;
+  const records = [];
+
+  for (const row of churches) {
+    if (isProkRowClosedOrHidden(row)) {
+      excludedClosedCount += 1;
+      continue;
+    }
+    if (!clean(row.name)) continue;
+    records.push(mapProkOfficialRow(row, denomination));
+  }
+
+  progress(
+    `[기장] 공식 API 목록 ${rawCount}건 중 폐교회/숨김 ${excludedClosedCount}건 제외, ${records.length}건 채택`
+  );
+
+  return {
+    id: denomination.id,
+    name: denomination.name,
+    status: "ok",
+    source: denomination.officialPage,
+    sourceApi: PROK_OFFICIAL_API_URL,
+    rawCount,
+    excludedClosedCount,
+    count: records.length,
+    records,
+    evidence: {
+      directorySourceUrl: "https://map.prok.or.kr",
+      sourceApiUrl: PROK_OFFICIAL_API_URL,
+    },
+  };
+}
+
+async function collectProkBundleDiscoveryFallback(rateGate) {
   const denomination = DENOMINATIONS.prok;
   const evidence = { inspectedScriptAssets: [], candidateEndpointsTested: [] };
 
@@ -591,6 +684,24 @@ async function collectProk(rateGate) {
     records: [],
     evidence,
   };
+}
+
+async function collectProk(rateGate) {
+  try {
+    return await collectProkOfficialApi(rateGate);
+  } catch (error) {
+    progress(`[기장] 공식 API 호출 실패, 보수적 발견 로직으로 폴백합니다: ${error.message}`);
+    const fallback = await collectProkBundleDiscoveryFallback(rateGate);
+    fallback.evidence = {
+      ...fallback.evidence,
+      officialApiUrl: PROK_OFFICIAL_API_URL,
+      officialApiFailureReason: error.message,
+    };
+    if (fallback.status === "blocked") {
+      fallback.note = `공식 API(${PROK_OFFICIAL_API_URL}) 호출 실패(${error.message})로 폴백했으나, ${fallback.note}`;
+    }
+    return fallback;
+  }
 }
 
 // ---------------------------------------------------------------------------

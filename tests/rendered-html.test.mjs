@@ -366,33 +366,39 @@ test("uses pastor as the public ministry route and preserves legacy review links
 });
 
 test("syncs kosin sources alongside hapdong without breaking existing scopes", async () => {
-  const [route,kosinSources]=await Promise.all([
+  const [route,kosinSources,prokSources]=await Promise.all([
     readFile(new URL("../app/api/sermons/sync/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/sermons/kosin-sources.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/prok-sources.ts",import.meta.url),"utf8"),
   ]);
   assert.match(route,/import \{ kosinSources \} from "\.\.\/kosin-sources";/);
-  assert.match(route,/\.\.\.kosinSources,\n\];/);
-  assert.match(route,/scope=requestedScope==="hapdong"\?"hapdong":requestedScope==="kosin"\?"kosin":"all"/);
-  assert.match(route,/sourcePool:readonly Source\[\]=scope==="hapdong"\?hapdongSources:scope==="kosin"\?kosinSources:sources/);
-  assert.match(route,/syncKey=scope==="hapdong"\?"youtube-v9-hapdong":scope==="kosin"\?"youtube-v9-kosin":"youtube-v9-regional-130"/);
+  assert.match(route,/import \{ prokSources \} from "\.\.\/prok-sources";/);
+  assert.match(route,/\.\.\.prokSources,\n\];/);
+  assert.match(route,/scope=requestedScope==="hapdong"\?"hapdong":requestedScope==="kosin"\?"kosin":requestedScope==="prok"\?"prok":"all"/);
+  assert.match(route,/sourcePool:readonly Source\[\]=scope==="hapdong"\?hapdongSources:scope==="kosin"\?kosinSources:scope==="prok"\?prokSources:sources/);
+  assert.match(route,/syncKey=scope==="hapdong"\?"youtube-v9-hapdong":scope==="kosin"\?"youtube-v9-kosin":scope==="prok"\?"youtube-v9-prok":"youtube-v9-regional-130"/);
   assert.match(kosinSources,/export const kosinSources=\[/);
   assert.match(kosinSources,/\] as const;/);
+  assert.match(prokSources,/export const prokSources=\[/);
+  assert.match(prokSources,/\] as const;/);
 });
 
-test("generalizes the registration CLI for hapdong and kosin scopes", async () => {
+test("generalizes the registration CLI for hapdong, kosin, and prok scopes", async () => {
   const cliPath=new URL("../scripts/register-verified-churches.mjs",import.meta.url);
   const cli=await readFile(cliPath,"utf8");
   assert.match(cli,/DEFAULT_SOURCES_BY_SCOPE = \{/);
   assert.match(cli,/hapdong: "app\/api\/sermons\/hapdong-sources\.ts"/);
   assert.match(cli,/kosin: "app\/api\/sermons\/kosin-sources\.ts"/);
+  assert.match(cli,/prok: "app\/api\/sermons\/prok-sources\.ts"/);
   assert.match(cli,/const DEFAULT_SCOPE = "hapdong";/);
-  assert.match(cli,/--scope <hapdong\|kosin>/);
+  assert.match(cli,/--scope <hapdong\|kosin\|prok>/);
   assert.match(cli,/url\.searchParams\.set\("scope",args\.scope\)/);
 
   const help=spawnSync(process.execPath,[cliPath.pathname,"--help"],{encoding:"utf8"});
   assert.equal(help.status,0);
-  assert.match(help.stdout,/--scope <hapdong\|kosin>/);
+  assert.match(help.stdout,/--scope <hapdong\|kosin\|prok>/);
   assert.match(help.stdout,/scope kosin --sync/);
+  assert.match(help.stdout,/scope prok --sync/);
 
   const invalidScope=spawnSync(process.execPath,[cliPath.pathname,"--scope","bogus","--prepare","--input","missing.json"],{encoding:"utf8"});
   assert.notEqual(invalidScope.status,0);

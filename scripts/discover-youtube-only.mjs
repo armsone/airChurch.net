@@ -194,6 +194,7 @@ function parseRetryAfterMs(response) {
 
 /**
  * InnerTube 검색 요청. 최소 3회까지 시도하며, 매 시도마다 공유 rate gate를 통과한다.
+ * 403은 일시적 차단에 대비해 지터가 포함된 상대적으로 긴 유계 지수 백오프(예: 10초, 20초)로 재시도한다.
  * 429는 Retry-After 헤더가 있으면 그 값을, 없으면 지수 백오프를 사용한다.
  * 5xx/네트워크 오류도 지수 백오프로 재시도한다. 그 외 상태코드는 즉시 실패로 취급한다.
  */
@@ -222,9 +223,24 @@ async function searchYoutubeWithRetry(query, rateGate, maxAttempts = SEARCH_MAX_
 
     lastError = new Error(`HTTP ${response.status}`);
 
-    if ((response.status === 429 || response.status >= 500) && attempt < maxAttempts) {
-      const retryAfterMs = response.status === 429 ? parseRetryAfterMs(response) : null;
-      await sleep(retryAfterMs ?? 1000 * 2 ** (attempt - 1));
+    const isRetryableStatus =
+      response.status === 403 ||
+      response.status === 429 ||
+      response.status >= 500;
+
+    if (isRetryableStatus && attempt < maxAttempts) {
+      let delayMs;
+      if (response.status === 403) {
+        const baseBackoffMs = Math.min(60_000, 10_000 * 2 ** (attempt - 1));
+        const jitterMs = Math.floor(Math.random() * 1_000);
+        delayMs = baseBackoffMs + jitterMs;
+      } else if (response.status === 429) {
+        const retryAfterMs = parseRetryAfterMs(response);
+        delayMs = retryAfterMs ?? 1000 * 2 ** (attempt - 1);
+      } else {
+        delayMs = 1000 * 2 ** (attempt - 1);
+      }
+      await sleep(delayMs);
       continue;
     }
 

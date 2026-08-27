@@ -3,6 +3,7 @@ import { database, ensureSermonTables } from "../../_shared";
 import { isSermonTitle } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
 import { kosinSources } from "../kosin-sources";
+import { prokSources } from "../prok-sources";
 
 type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
@@ -417,6 +418,7 @@ const sources:Source[]=[
   {name:"밀알교회",pastor:"권하원 목사",region:"대전 대덕",denomination:"대한예수교장로회 통합",channelId:"UCdnOXASDGvrgt5B8h6NqS0g"},
   ...hapdongSources,
   ...kosinSources,
+  ...prokSources,
 ];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -426,9 +428,9 @@ export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
-  const scope=requestedScope==="hapdong"?"hapdong":requestedScope==="kosin"?"kosin":"all";
-  const sourcePool:readonly Source[]=scope==="hapdong"?hapdongSources:scope==="kosin"?kosinSources:sources;
-  const syncKey=scope==="hapdong"?"youtube-v9-hapdong":scope==="kosin"?"youtube-v9-kosin":"youtube-v9-regional-130";
+  const scope=requestedScope==="hapdong"?"hapdong":requestedScope==="kosin"?"kosin":requestedScope==="prok"?"prok":"all";
+  const sourcePool:readonly Source[]=scope==="hapdong"?hapdongSources:scope==="kosin"?kosinSources:scope==="prok"?prokSources:sources;
+  const syncKey=scope==="hapdong"?"youtube-v9-hapdong":scope==="kosin"?"youtube-v9-kosin":scope==="prok"?"youtube-v9-prok":"youtube-v9-regional-130";
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;

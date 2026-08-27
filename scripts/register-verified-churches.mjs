@@ -11,6 +11,7 @@ import { readFile, writeFile, rename } from "node:fs/promises";
 const DEFAULT_SOURCES_BY_SCOPE = {
   hapdong: "app/api/sermons/hapdong-sources.ts",
   kosin: "app/api/sermons/kosin-sources.ts",
+  prok: "app/api/sermons/prok-sources.ts",
 };
 const DEFAULT_SCOPE = "hapdong";
 const DEFAULT_SITE = "https://airchurch.net";
@@ -23,13 +24,15 @@ function help() {
    node scripts/register-verified-churches.mjs --input verified.json --prepare
    node scripts/register-verified-churches.mjs --input verified.json --prepare --apply
    node scripts/register-verified-churches.mjs --scope kosin --input verified.json --prepare --apply
+   node scripts/register-verified-churches.mjs --scope prok --input verified.json --prepare --apply
 
 2) 배포 후 새 구간을 운영 DB에 등록:
    node scripts/register-verified-churches.mjs --sync --start <기존 합동 수> --count <추가 수>
    node scripts/register-verified-churches.mjs --scope kosin --sync --start <기존 고신 수> --count <추가 수>
+   node scripts/register-verified-churches.mjs --scope prok --sync --start <기존 기장 수> --count <추가 수>
 
 옵션:
-  --scope <hapdong|kosin>  대상 교단 (기본: ${DEFAULT_SCOPE})
+  --scope <hapdong|kosin|prok>  대상 교단 (기본: ${DEFAULT_SCOPE})
   --input <file>     검증 결과 JSON
   --sources <file>   교단 소스 파일 (기본: scope별 기본 소스 파일)
   --prepare          승인 항목을 소스에 병합
