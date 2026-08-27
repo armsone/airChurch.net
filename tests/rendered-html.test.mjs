@@ -434,7 +434,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/setChurchTotal\(result\.total/);
   assert.match(page,/hasActiveChurchFilter\?\(showAllChurches\?filteredChurches/);
   assert.match(page,/교회 레이더/);
-  assert.match(page,/내 주변 교회/);
+  assert.doesNotMatch(page,/내 주변 교회/);
   assert.match(page,/지역으로 찾기/);
   assert.match(page,/교단으로 찾기/);
   assert.match(page,/교회·목사님 검색/);
