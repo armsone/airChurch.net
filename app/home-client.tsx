@@ -10,7 +10,7 @@ type TalentItem = { id:number; title:string; region:string; description:string; 
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null };
 
 function denominationMark(denomination:string) {
-  if (denomination.includes("통합")) return { src:"https://www.pck.or.kr/img/pck_og.png", alt:"대한예수교장로회 통합 공식 교단 로고" };
+  if (denomination.includes("통합")) return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
   return null;
 }
 

@@ -387,6 +387,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(styles,/\.church-primary-link:hover/);
   assert.match(styles,/\.homepage-visual img/);
   assert.match(page,/className="church-denomination-mark"/);
+  assert.match(page,/\/denominations\/pck-tonghap\.png/);
   assert.match(page,/<small>\{church\.denomination\}<\/small>/);
   assert.match(styles,/\.church-denomination-mark \{/);
 });
