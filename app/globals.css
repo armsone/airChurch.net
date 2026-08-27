@@ -304,15 +304,17 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-church-details .admin-edit-form{margin-top:0}
 
 #church-hold .admin-manage-list{grid-template-columns:1fr}
-#church-hold .admin-directory-card.is-held-card{padding:10px;cursor:default}
-.is-held-card .admin-held-card-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:start}
+.admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}
+.is-held-card .admin-held-card-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:stretch}
 .admin-held-card-public{min-width:0;cursor:pointer}
-.admin-directory-hold-panel{min-width:0;padding:10px 12px 10px 14px;display:flex;flex-direction:column;border-radius:12px;background:#fff4ee;color:#865844;cursor:default}
+.admin-directory-hold-panel{min-width:0;margin:-10px -10px -10px 0;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;border-radius:0 13px 13px 0;background:#fff4ee;color:#865844;cursor:default}
 .admin-directory-hold-reason{display:flex;flex-direction:column}
 .admin-directory-hold-reason b{font-size:13px!important;color:#865844}.admin-directory-hold-reason>span{margin-top:5px;color:#786b65;font-size:12px!important;line-height:1.5}
-.admin-directory-hold-actions{margin-top:10px;padding-top:9px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px solid #ecd8cf}
-.admin-directory-hold-actions button{min-height:30px;padding:5px 8px;border:1px solid #c9d8d0;border-radius:999px;background:white;color:#315847;font-size:11px!important;font-weight:850;cursor:pointer}
+.admin-directory-hold-actions{margin-top:6px;display:flex;align-items:center;gap:4px}
+.admin-directory-hold-actions button{flex:none;min-height:0;padding:3px 7px;border:1px solid #c9d8d0;border-radius:6px;background:white;color:#315847;font-size:10px!important;font-weight:850;line-height:1.3;cursor:pointer;white-space:nowrap}
 .admin-directory-hold-actions button:disabled{opacity:.45;cursor:default}
 .admin-directory-hold-actions button.danger{border-color:#e3b7a7;color:#a34e35;background:#fff9f6}
+.admin-directory-hold-actions button:not(:disabled):hover{background:#f4f8f5;border-color:#b0c6bb}
+.admin-directory-hold-actions button.danger:not(:disabled):hover{background:#ffede6;border-color:#d89e8b}
 @media (max-width:1180px){.admin-management-grid .admin-manage-list{grid-template-columns:1fr}}
-@media (max-width:760px){.is-held-card .admin-held-card-body{grid-template-columns:1fr;gap:16px}}
+@media (max-width:760px){.is-held-card .admin-held-card-body{grid-template-columns:1fr;gap:14px}.admin-directory-hold-panel{margin:0 -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
