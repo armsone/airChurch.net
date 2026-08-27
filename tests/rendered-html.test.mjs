@@ -14,7 +14,7 @@ async function render() {
 
 test("server-renders the Airchurch portal", async () => {
   const response=await render(); assert.equal(response.status,200); assert.match(response.headers.get("content-type")??"",/^text\/html\b/i);
-  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/등록 교회 목록/); assert.match(html,/AI가 찾고, 기준을 통과한 교회만 등록합니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
+  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/나와 맞는 교회를 찾아보세요/); assert.match(html,/처음부터 긴 목록을 펼치지 않습니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
 
 test("restores a reviewed church directory and restricted pastor workflow", async () => {
@@ -32,7 +32,7 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/pastor/join/reviewer-signup.tsx",import.meta.url),"utf8"),
   ]);
-  for(const phrase of ["AI가 찾고, 기준을 통과한 교회만 등록합니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
+  for(const phrase of ["처음부터 긴 목록을 펼치지 않습니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
   assert.match(churches,/review_status='approved'/);
   assert.match(recommendations,/status:"pending"/);
   assert.match(admin,/교회 추천 검토/);
@@ -369,7 +369,19 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/new URLSearchParams\(\{q:trimmed\}\)/);
   assert.match(page,/churchSearchTotal>filteredChurches\.length/);
   assert.match(page,/setChurchTotal\(result\.total/);
-  assert.match(page,/churchTotal>filteredChurches\.length/);
+  assert.match(page,/showAllChurches\?filteredChurches/);
+  assert.match(page,/교회 레이더/);
+  assert.match(page,/내 주변 교회/);
+  assert.match(page,/지역으로 찾기/);
+  assert.match(page,/교단으로 찾기/);
+  assert.match(page,/교회·목사님 검색/);
+  assert.match(page,/const radarChurches=useMemo/);
+  assert.match(page,/selected\.length===12/);
+  assert.match(page,/hasActiveChurchFilter\?filteredChurches\.slice\(0,12\):radarChurches/);
+  assert.match(page,/className="church-match-reason"/);
+  assert.match(page,/전체 등록교회 보기/);
+  assert.match(page,/id="church-radar-region"/);
+  assert.doesNotMatch(page,/navigator\.geolocation/);
   assert.match(page,/church-directory-links/);
   assert.match(page,/className="church-directory-meta"/);
   assert.match(page,/const churchPrimaryUrl=church\.homepageUrl\|\|/);
@@ -395,6 +407,8 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/⛪/);
   assert.match(styles,/\.church-directory-links/);
   assert.match(styles,/\.church-directory-meta \{/);
+  assert.match(styles,/\.church-radar-actions \{/);
+  assert.match(styles,/\.church-radar-results-heading \{/);
   assert.match(styles,/\.church-primary-link:hover/);
   assert.match(styles,/\.homepage-visual img/);
   assert.match(page,/className="church-denomination-mark"/);
