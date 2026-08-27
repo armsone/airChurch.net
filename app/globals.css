@@ -315,7 +315,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-church-details.is-icon-editor[open]>summary{border-color:var(--ink)!important;background:var(--ink)!important;color:white!important}
 .admin-church-details.is-icon-editor[open]{margin-top:14px!important;padding-top:12px!important;border-top:1px solid #e3e8e5!important}
 .admin-church-details.is-icon-editor .admin-edit-form{margin-top:0}
-.admin-management-grid .admin-church-details.is-icon-editor>summary{top:18px;right:32px}
+.admin-management-grid .admin-church-card-actions .admin-church-details.is-icon-editor>summary{top:18px;right:65px;width:36px;min-width:36px;height:36px;min-height:36px!important;padding:0!important;display:grid!important;border-radius:10px!important}
 .admin-management-grid .admin-church-details.is-icon-editor[open]{margin-top:12px!important}
 .pastor-search-results .admin-church-details.is-icon-editor>summary{top:14px;right:48px}
 .pastor-search-results .admin-church-details.is-icon-editor[open]{margin:0 16px 14px!important}
