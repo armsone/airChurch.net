@@ -274,21 +274,26 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .managed-church-card-copy>p,.managed-church-card-copy>span{display:block;margin:5px 0 0;color:var(--ink);font-size:13px!important;font-weight:750}
 .managed-church-card-copy>small{display:block;margin-top:5px;color:var(--muted);font-size:12px!important;line-height:1.45}
 
-.pastor-search-results .pastor-church-select{padding:16px;text-align:left}
+.pastor-search-results .pastor-church-main{padding:16px}
 .pastor-search-results .managed-church-card-top{display:flex;margin:0}
 .pastor-search-results .managed-church-card-top>span{margin:0}
 .pastor-search-results .managed-church-card-copy{margin-top:9px;color:inherit}
 .pastor-search-results .managed-church-card-copy>span{margin-top:5px;color:var(--ink)}
 .pastor-search-results .managed-church-card-copy>small{display:block;margin-top:5px;color:var(--muted)}
-.pastor-search-results .pastor-proposal-action{float:none!important;min-height:38px;margin:13px 0 0!important;padding:8px 11px;display:flex;align-items:center;justify-content:center;border:1px solid #cbd8d1;border-radius:9px;background:#f4f8f5;color:#496b5c!important;font-size:12px!important;font-style:normal;font-weight:850}
-.pastor-search-results>article.is-selected .pastor-proposal-action{border-color:var(--orange);background:var(--orange);color:white!important}
-.pastor-church-links{min-height:48px;align-items:center;gap:16px;padding:0 16px 14px}
+.pastor-church-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px 14px}
+.pastor-church-links{min-height:48px;align-items:center;flex-wrap:wrap;gap:16px;padding:0}
 .pastor-church-links a,.pastor-church-links>span{min-height:40px;padding:5px 0;display:inline-flex;align-items:center;gap:7px;border-radius:0;background:transparent;color:#496b5c;text-decoration:none}
 .pastor-church-links a b,.pastor-church-links>span b{font-size:12px!important}
 .pastor-church-links .homepage-visual{width:30px;height:30px;border:1px solid #d6e0da;background:white}
 .pastor-church-links .pastor-youtube-link{color:#c94636}
 .pastor-church-links .pastor-reference-empty{color:#87968f}
 .pastor-church-links .pastor-reference-empty i{width:28px;height:28px;display:grid;place-items:center;border:1px dashed #c4d0ca;border-radius:8px;font-style:normal}
+.pastor-search-results .pastor-add-request{flex:none;width:auto;min-height:44px;padding:9px 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #9db4a8;border-radius:10px;background:#f3f8f5;color:#315847;font-size:12px!important;font-weight:850;text-align:center}
+.pastor-search-results .pastor-add-request span{width:20px;height:20px;margin:0;display:grid;place-items:center;border-radius:999px;background:white;color:inherit;font-size:15px!important;line-height:1}
+.pastor-search-results>article.is-selected .pastor-add-request{border-color:var(--orange);background:var(--orange);color:white}
+.pastor-selection-bar{position:sticky;z-index:4;bottom:14px;width:100%;min-height:58px;margin:14px 0 4px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-radius:14px;background:var(--ink);color:white;box-shadow:0 10px 28px rgba(24,54,47,.22);cursor:pointer}
+.pastor-selection-bar span,.pastor-selection-bar strong{font-size:12px!important}.pastor-selection-bar span b{color:#ffb08a}.pastor-selection-bar strong{white-space:nowrap}
+@media (max-width:600px){.pastor-church-footer{align-items:stretch;flex-direction:column}.pastor-search-results .pastor-add-request{width:100%}}
 .pastor-search-results .admin-church-info-edit{margin:0 16px 14px;padding-top:12px}
 .pastor-search-results .admin-church-info-edit>summary{width:100%;padding:10px 12px;border:1px solid #cbd8d1;border-radius:9px;background:#f4f8f5;color:var(--ink);font-weight:850;list-style-position:inside}
 
