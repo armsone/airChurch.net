@@ -185,6 +185,9 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/href="\/pastor">목사님 페이지/);
   assert.match(admin,/목사님 요청 결정/);
   assert.match(admin,/ChurchRequestResolution/);
+  assert.match(admin,/ChurchReferenceLinks/);
+  assert.match(admin,/church_homepage_url/);
+  assert.match(admin,/church_youtube_channel_id/);
   assert.match(admin,/문제가 제보된 교회/);
   assert.match(admin,/ReviewerResolutionControls/);
   const review=await readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8");
@@ -224,6 +227,14 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(review,/ChurchRequestManager/);
   assert.match(review,/찾고, 요청하면 끝입니다/);
   assert.match(requestManager,/교회명, 목사님, 지역, 교단 검색/);
+  assert.match(review,/homepage_url,youtube_channel_id/);
+  assert.match(review,/ORDER BY RANDOM\(\) LIMIT 20/);
+  assert.match(requestManager,/featuredChurches/);
+  assert.match(requestManager,/selectedIds/);
+  assert.match(requestManager,/한 번에 요청/);
+  assert.match(requestManager,/홈페이지 ↗/);
+  assert.match(requestManager,/YouTube ↗/);
+  assert.match(requestManager,/등록된 확인 링크 없음/);
   assert.doesNotMatch(requestManager,/slice\(0,40\)/);
   assert.match(styles,/\.pastor-search-results\{max-height:none;overflow:visible\}/);
   assert.match(requestManager,/정보 수정/);

@@ -6,7 +6,7 @@ import ChurchRequestManager from "./church-request-manager";
 
 export const dynamic="force-dynamic";
 
-type Church={id:number;name:string;pastor:string;region:string;denomination:string;review_status:string};
+type Church={id:number;name:string;pastor:string;region:string;denomination:string;review_status:string;homepage_url:string|null;youtube_channel_id:string|null};
 type RequestItem={id:number;church_name:string;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 
 export default async function PastorPage() {
@@ -15,9 +15,10 @@ export default async function PastorPage() {
   const db=database();await Promise.all([ensureSermonTables(db),ensureReviewerTables(db)]);
   const reviewerAccount=session.reviewerId>0?await db.prepare("SELECT name FROM reviewer_accounts WHERE id=? AND status='approved'").bind(session.reviewerId).first<{name:string}>():null;
   const reviewerName=session.role==="admin"?"관리자":reviewerAccount?.name??"목사님";
-  const [churchRows,requestRows]=await Promise.all([
-    db.prepare("SELECT id,name,pastor,region,denomination,review_status FROM churches WHERE review_status IN ('approved','removed') ORDER BY name LIMIT 2000").all<Church>(),
+  const [churchRows,featuredRows,requestRows]=await Promise.all([
+    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id FROM churches WHERE review_status IN ('approved','removed') ORDER BY name LIMIT 2000").all<Church>(),
+    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id FROM churches WHERE review_status IN ('approved','removed') ORDER BY RANDOM() LIMIT 20").all<Church>(),
     db.prepare("SELECT r.id,c.name AS church_name,r.request_type,r.reason,r.status,r.admin_note,r.created_at,r.proposed_name,r.proposed_pastor,r.proposed_region,r.proposed_denomination FROM church_change_requests r JOIN churches c ON c.id=r.church_id WHERE r.reviewer_id=? ORDER BY r.created_at DESC LIMIT 500").bind(session.reviewerId).all<RequestItem>(),
   ]);
-  return <main className="admin-shell reviewer-shell"><header className="admin-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><div><span>{reviewerName}님</span>{session.role==="admin"&&<a href="/admin">전체 관리</a>}<form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div></header><section className="admin-title"><div><span>교회 정보 요청</span><h1>찾고, 요청하면 끝입니다</h1><p>교회를 검색한 뒤 정보 수정·보류·삭제 중 하나를 요청하고 이유를 적어 주세요.</p></div><HomeReloadLink>에어처치 보기 ↗</HomeReloadLink></section><ChurchRequestManager churches={churchRows.results} requests={requestRows.results}/></main>;
+  return <main className="admin-shell reviewer-shell"><header className="admin-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><div><span>{reviewerName}님</span>{session.role==="admin"&&<a href="/admin">전체 관리</a>}<form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div></header><section className="admin-title"><div><span>교회 정보 요청</span><h1>찾고, 요청하면 끝입니다</h1><p>교회를 검색한 뒤 정보 수정·보류·삭제 중 하나를 요청하고 이유를 적어 주세요.</p></div><HomeReloadLink>에어처치 보기 ↗</HomeReloadLink></section><ChurchRequestManager churches={churchRows.results} featuredChurches={featuredRows.results} requests={requestRows.results}/></main>;
 }
