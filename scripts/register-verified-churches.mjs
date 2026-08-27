@@ -12,6 +12,17 @@ const DEFAULT_SOURCES_BY_SCOPE = {
   hapdong: "app/api/sermons/hapdong-sources.ts",
   kosin: "app/api/sermons/kosin-sources.ts",
   prok: "app/api/sermons/prok-sources.ts",
+  tonghap: "app/api/sermons/tonghap-sources.ts",
+  kmc: "app/api/sermons/kmc-sources.ts",
+  salvation: "app/api/sermons/salvation-sources.ts",
+};
+const DENOMINATION_BY_SCOPE = {
+  hapdong: "대한예수교장로회 합동",
+  kosin: "대한예수교장로회 고신",
+  prok: "한국기독교장로회",
+  tonghap: "대한예수교장로회 통합",
+  kmc: "기독교대한감리회",
+  salvation: "구세군대한본영",
 };
 const DEFAULT_SCOPE = "hapdong";
 const DEFAULT_SITE = "https://airchurch.net";
@@ -32,7 +43,7 @@ function help() {
    node scripts/register-verified-churches.mjs --scope prok --sync --start <기존 기장 수> --count <추가 수>
 
 옵션:
-  --scope <hapdong|kosin|prok>  대상 교단 (기본: ${DEFAULT_SCOPE})
+  --scope <hapdong|kosin|prok|tonghap|kmc|salvation>  대상 교단 (기본: ${DEFAULT_SCOPE})
   --input <file>     검증 결과 JSON
   --sources <file>   교단 소스 파일 (기본: scope별 기본 소스 파일)
   --prepare          승인 항목을 소스에 병합
@@ -104,10 +115,15 @@ async function atomicWrite(path, text) {
 async function prepare(args) {
   if(!args.input) throw new Error("--prepare에는 --input이 필요합니다.");
   const input=JSON.parse(await readFile(args.input,"utf8"));
-  const approved=recordsFrom(input).filter(isApproved).map(clean);
+  const targetDenomination=DENOMINATION_BY_SCOPE[args.scope];
+  const approved=recordsFrom(input).filter((record)=>isApproved(record)&&record.denomination===targetDenomination).map(clean);
   const source=await readFile(args.sources,"utf8");
-  const existingChannels=new Set([...source.matchAll(/channelId:"([^"]+)"/g)].map((m)=>m[1]));
-  const existingKeys=new Set([...source.matchAll(/\{name:"([^"]+)"[^\n]*region:"([^"]+)"/g)].map((m)=>`${m[1]}|${m[2]}`));
+  const dedupePaths=new Set(["app/api/sermons/sync/route.ts",...Object.values(DEFAULT_SOURCES_BY_SCOPE)]);
+  const dedupeTexts=[];
+  for(const path of dedupePaths){ try{ dedupeTexts.push(await readFile(path,"utf8")); }catch(error){ if(error?.code!=="ENOENT") throw error; } }
+  const dedupeSource=dedupeTexts.join("\n");
+  const existingChannels=new Set([...dedupeSource.matchAll(/channelId:"([^"]+)"/g)].map((m)=>m[1]));
+  const existingKeys=new Set([...dedupeSource.matchAll(/\{name:"([^"]+)"[^\n]*region:"([^"]+)"/g)].map((m)=>`${m[1]}|${m[2]}`));
   const unique=[]; const seenChannels=new Set(); const skipped=[];
   for(const item of approved){
     const key=`${item.name}|${item.region}`;

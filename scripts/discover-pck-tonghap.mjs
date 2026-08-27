@@ -12,7 +12,9 @@
  */
 
 import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
 const SOURCE_BASE = "https://new.pck.or.kr/address.php";
 const USER_AGENT =
@@ -596,7 +598,36 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error(`${nowKstLabel("collector")} [실패] ${error.message}`);
-  process.exitCode = 1;
-});
+export {
+  SOURCE_BASE,
+  DEFAULT_REGIONS,
+  DEFAULT_DELAY_MS,
+  DEFAULT_MAX_PAGES,
+  createRateGate,
+  stripTags,
+  extractCells,
+  extractHref,
+  extractRows,
+  normalizeChurchName,
+  formatPastor,
+  inferAirChurchRegion,
+  parseRecordsFromHtml,
+  buildDirectoryUrl,
+  pageSignature,
+  collectRegion,
+  dedupeRecords,
+  extractYoutubeHints,
+  enrichHomepage,
+  main,
+};
+
+const isDirectExecution =
+  Boolean(process.argv[1]) &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isDirectExecution) {
+  main().catch((error) => {
+    console.error(`${nowKstLabel("collector")} [실패] ${error.message}`);
+    process.exitCode = 1;
+  });
+}

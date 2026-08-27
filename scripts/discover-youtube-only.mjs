@@ -322,7 +322,7 @@ function extractExistingNames(sourceText) {
 // ---------------------------------------------------------------------------
 
 function pilotRecordKey(record) {
-  return `${record.name}|${record.region || ""}`;
+  return record.recordKey || `${record.denomination || ""}|${record.name}|${record.region || ""}|${record.address || ""}`;
 }
 
 function loadPilotRecords(pilotJson) {
