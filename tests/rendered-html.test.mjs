@@ -210,6 +210,7 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(migration,/CREATE TABLE IF NOT EXISTS `church_change_requests`/);
   assert.match(manage,/kind==="church-change-request"/);
   assert.match(manage,/kind==="church-change-request-resolution"/);
+  assert.match(manage,/const kind = clean\(data\.kind, 40\)/);
   assert.match(manage,/UPDATE praise_videos SET status='hidden'/);
   assert.match(admin,/id="reviewer-queue"/);
   assert.match(admin,/목사님 요청 결정/);

@@ -14,7 +14,7 @@ export async function PATCH(request: Request) {
 
   const data = await request.json().catch(() => ({})) as Record<string, unknown>;
   const id = Number(data.id);
-  const kind = clean(data.kind, 20);
+  const kind = clean(data.kind, 40);
   if(role==="reviewer"&&kind!=="church-change-request") return Response.json({error:"교회 정보 요청 권한만 사용할 수 있습니다."},{status:403});
   if (!Number.isInteger(id) || id < 1) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
@@ -101,6 +101,7 @@ export async function PATCH(request: Request) {
     if(resolution==="held") {
       finalStatements.push(db.prepare(`UPDATE churches SET review_status='removed',hold_reason=?,hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(holdReason,adminNote,id,claimToken,id,claimToken,...opinionIds,opinions.length));
       finalStatements.push(db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
+      finalStatements.push(db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
     } else if(resolution==="kept_public") {
       finalStatements.push(db.prepare(`UPDATE churches SET review_status='approved',hold_reason=NULL,hold_note=NULL WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
     } else if(resolution==="deleted") {
