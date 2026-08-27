@@ -461,10 +461,10 @@ export async function POST(request:Request) {
       await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=?").bind(source.name,source.region).run();
       continue;
     }
-    const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=?").bind(source.name,source.region).first<{id:number}>();
+    const existing=await db.prepare("SELECT id FROM churches WHERE youtube_channel_id=? OR (name=? AND region=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1").bind(found.id,source.name,source.region,found.id).first<{id:number}>();
     let churchId:number;
     if(existing) {
-      await db.prepare("UPDATE churches SET pastor=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.pastor,source.denomination,found.id,channelImageUrl,source.homepage??null,existing.id).run();
+      await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null,existing.id).run();
       churchId=existing.id;
     } else {
       const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,homepage_url,review_status) VALUES (?,?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null).run();
