@@ -40,6 +40,8 @@ async function seedHeldSources(db:D1Database) {
 
 const sources:Source[]=[
   {name:"구파발교회",pastor:"김춘곤 목사",region:"서울 은평",denomination:"대한예수교장로회 통합",channelId:"UCzLn1mDAnao7GAXfYL5Ze2A"},
+  {name:"개봉교회",pastor:"노창영 목사",region:"서울 구로",denomination:"대한예수교장로회 통합",channelId:"UCfttSAr79s5vyYiBstgDUfg"},
+  {name:"문창교회",pastor:"성종근 목사",region:"대전 중구",denomination:"대한예수교장로회 통합",channelId:"UClDQSCD3ZOaJy4sLIX1iXGw"},
   {name:"가나안교회",pastor:"서진영 목사",region:"경기 광주",denomination:"대한예수교장로회 합동",channelId:"UCQ97oMrF68ctJVeTWp3Rm_Q"},
   {name:"주다산교회",pastor:"권순웅 목사",region:"경기 화성",denomination:"대한예수교장로회 합동",channelId:"UCHPObmscdWflQ2pKvzU0ksg"},
   {name:"덕소교회",pastor:"문홍선 목사",region:"경기 남양주",denomination:"대한예수교장로회 합동",channelId:"UCqmluYfs0hWw0KFXzAqt4iQ"},
