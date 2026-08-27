@@ -53,10 +53,10 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
   </form></details>;
 }
 
-export function ChurchInfoEditControls(props:{id:number;name:string;pastor:string;region:string;denomination:string}) {
+export function ChurchInfoEditControls(props:{id:number;name:string;pastor:string;region:string;denomination:string;iconOnly?:boolean}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"church-info",id:props.id,...values});}catch(reason){setError((reason as Error).message);setBusy(false);}}
-  return <details className="admin-church-details admin-church-info-edit"><summary>교회 정보 수정</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required/><input name="pastor" defaultValue={props.pastor} aria-label="담임목사" required/><input name="region" defaultValue={props.region} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination} aria-label="교단" required/></div><div className="admin-action-row"><button disabled={busy} type="submit">수정 내용 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form></details>;
+  return <details className={`admin-church-details admin-church-info-edit${props.iconOnly?" is-icon-editor":""}`}><summary aria-label="교회 정보 수정">{props.iconOnly?<span aria-hidden="true">✎</span>:"교회 정보 수정"}</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required/><input name="pastor" defaultValue={props.pastor} aria-label="담임목사" required/><input name="region" defaultValue={props.region} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination} aria-label="교단" required/></div><div className="admin-action-row"><button disabled={busy} type="submit">수정 내용 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form></details>;
 }
 
 export function SermonControls({ id, status }: { id: number; status: string }) {
