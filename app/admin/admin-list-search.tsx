@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AdminListSearchProps = {
   targetId: string;
@@ -13,6 +13,9 @@ type AdminListSearchProps = {
 export default function AdminListSearch({ targetId, total, label, placeholder, initialLimit }: AdminListSearchProps) {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(initialLimit ? Math.min(initialLimit,total) : total);
+  const [remainingTotal,setRemainingTotal]=useState(total);
+
+  useEffect(()=>{function afterRemoval(event:Event){const detail=(event as CustomEvent<{targetId:string}>).detail;if(detail?.targetId!==targetId)return;const list=document.getElementById(targetId),items=Array.from(list?.querySelectorAll<HTMLElement>("[data-admin-search]")??[]);if(!query&&initialLimit){const visible=items.filter((item)=>!item.hidden);const pool=items.filter((item)=>item.hidden);while(visible.length<initialLimit&&pool.length){const index=Math.floor(Math.random()*pool.length),item=pool.splice(index,1)[0];item.dataset.adminPreview="true";item.hidden=false;visible.push(item);}}setRemainingTotal(items.length);setVisibleCount(items.filter((item)=>!item.hidden).length);}window.addEventListener("admin-church-removed",afterRemoval);return()=>window.removeEventListener("admin-church-removed",afterRemoval);},[initialLimit,query,targetId]);
 
   function filterList(value: string) {
     setQuery(value);
@@ -43,7 +46,7 @@ export default function AdminListSearch({ targetId, total, label, placeholder, i
         aria-controls={targetId}
       />
     </label>
-    <span className="admin-search-count" aria-live="polite">{visibleCount}/{total}</span>
-    {!query&&initialLimit&&total>initialLimit&&<button className="admin-random-refresh" type="button" onClick={showAnotherSet}>↻ 다른 {initialLimit}곳 보기</button>}
+    <span className="admin-search-count" aria-live="polite">{visibleCount}/{remainingTotal}</span>
+    {!query&&initialLimit&&remainingTotal>initialLimit&&<button className="admin-random-refresh" type="button" onClick={showAnotherSet}>↻ 다른 {initialLimit}곳 보기</button>}
   </div>;
 }
