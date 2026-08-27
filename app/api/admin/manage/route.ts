@@ -125,6 +125,12 @@ export async function PATCH(request: Request) {
     if(role!=="admin") return Response.json({error:"관리자만 의견을 처리할 수 있습니다."},{status:403});
     const handled=data.handled===true;
     await db.prepare(`UPDATE reviewer_church_reviews SET handled_at=${handled?"CURRENT_TIMESTAMP":"NULL"} WHERE id=?`).bind(id).run();
+  } else if(kind==="church-info") {
+    if(role!=="admin")return Response.json({error:"관리자만 교회 정보를 수정할 수 있습니다."},{status:403});
+    const name=clean(data.name,100),pastor=clean(data.pastor,80),region=clean(data.region,80),denomination=clean(data.denomination,120);
+    if(!name||!pastor||!region||!denomination)return Response.json({error:"교회 정보를 모두 입력해 주세요."},{status:400});
+    const result=await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=? WHERE id=?").bind(name,pastor,region,denomination,id).run();
+    if(Number(result.meta?.changes??0)!==1)return Response.json({error:"교회를 찾을 수 없습니다."},{status:404});
   } else if (kind === "church") {
     const status = clean(data.status, 20);
     if (status) {

@@ -7,11 +7,12 @@ type AdminListSearchProps = {
   total: number;
   label: string;
   placeholder: string;
+  initialLimit?: number;
 };
 
-export default function AdminListSearch({ targetId, total, label, placeholder }: AdminListSearchProps) {
+export default function AdminListSearch({ targetId, total, label, placeholder, initialLimit }: AdminListSearchProps) {
   const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(total);
+  const [visibleCount, setVisibleCount] = useState(initialLimit ? Math.min(initialLimit,total) : total);
 
   function filterList(value: string) {
     setQuery(value);
@@ -21,7 +22,7 @@ export default function AdminListSearch({ targetId, total, label, placeholder }:
 
     list?.querySelectorAll<HTMLElement>("[data-admin-search]").forEach((item) => {
       const searchableText = item.dataset.adminSearch?.toLocaleLowerCase("ko-KR") ?? "";
-      const isVisible = !needle || searchableText.includes(needle);
+      const isVisible = needle ? searchableText.includes(needle) : initialLimit ? item.dataset.adminPreview === "true" : true;
       item.hidden = !isVisible;
       if (isVisible) matches += 1;
     });

@@ -186,6 +186,9 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/목사님 요청 결정/);
   assert.match(admin,/ChurchRequestResolution/);
   assert.match(admin,/ChurchReferenceLinks/);
+  assert.match(admin,/ChurchInfoEditControls/);
+  assert.match(admin,/initialLimit=\{20\}/);
+  assert.match(admin,/data-admin-preview/);
   assert.match(admin,/church_homepage_url/);
   assert.match(admin,/church_youtube_channel_id/);
   assert.match(admin,/문제가 제보된 교회/);
@@ -214,6 +217,7 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(manage,/kind==="church-change-request"/);
   assert.match(manage,/kind==="church-change-request-resolution"/);
   assert.match(manage,/const kind = clean\(data\.kind, 40\)/);
+  assert.match(manage,/kind==="church-info"/);
   assert.match(manage,/UPDATE praise_videos SET status='hidden'/);
   assert.match(admin,/id="reviewer-queue"/);
   assert.match(admin,/목사님 요청 결정/);

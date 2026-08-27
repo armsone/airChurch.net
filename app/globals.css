@@ -190,3 +190,5 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-church-reference-links a,.admin-church-reference-links span{padding:7px 10px;border-radius:8px;background:#eef4f0;color:var(--ink);font-size:12px!important;font-weight:850}
 .admin-church-reference-links span{color:var(--muted);font-weight:700}
 .admin-manage-list{max-height:none;overflow:visible}
+.admin-reference-missing{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:8px;background:#eef4f0;color:var(--muted);font-size:12px!important;font-weight:700}
+.admin-church-info-edit{margin-top:12px}
