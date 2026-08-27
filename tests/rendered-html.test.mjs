@@ -515,3 +515,14 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(styles,/\.church-denomination-mark \{/);
   assert.match(styles,/\.church-denomination-mark \{ width:21px;height:21px;/);
 });
+
+test("keeps admin and pastor links visible in the top header on desktop and mobile", async () => {
+  const [page,styles]=await Promise.all([readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
+  assert.match(page,/headerAdminLinks = \[\["관리자","\/admin"\],\["목사님","\/pastor"\]\] as const;/);
+  assert.match(page,/className="header-admin-links" aria-label="운영 메뉴"/);
+  assert.match(page,/className="mobile-menu-admin"/);
+  assert.match(page,/<nav aria-label="주요 메뉴">.*<\/nav>\s*<nav className="header-admin-links"/s);
+  assert.match(page,/mobile-menu-panel.*<div className="mobile-menu-admin">/s);
+  assert.match(styles,/\.header-admin-links \{/);
+  assert.match(styles,/\.mobile-menu-admin\{grid-column:1\/-1/);
+});
