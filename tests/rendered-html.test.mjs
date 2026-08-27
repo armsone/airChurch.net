@@ -361,12 +361,15 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(route,/const isSearch=Boolean\(query\)/);
   assert.match(route,/isSearch\?200:1000/);
   assert.match(route,/SELECT COUNT\(\*\) AS total/);
+  assert.match(route,/const count=await db\.prepare/);
   assert.match(route,/\.bind\(\.\.\.bindings\)/);
   assert.match(page,/window\.setTimeout\(async\(\)=>\{/);
   assert.match(page,/\},300\)/);
   assert.match(page,/controller\.abort\(\)/);
   assert.match(page,/new URLSearchParams\(\{q:trimmed\}\)/);
   assert.match(page,/churchSearchTotal>filteredChurches\.length/);
+  assert.match(page,/setChurchTotal\(result\.total/);
+  assert.match(page,/churchTotal>filteredChurches\.length/);
   assert.match(page,/church-directory-links/);
   assert.match(page,/className="church-directory-meta"/);
   assert.match(page,/const churchPrimaryUrl=church\.homepageUrl\|\|/);

@@ -25,7 +25,7 @@ export async function GET(request:Request) {
   const limit=isSearch?200:1000;
   const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl FROM churches WHERE ${where} ORDER BY priority_weight DESC,name LIMIT ${limit}`;
   const result=await db.prepare(selectSql).bind(...bindings).all<ChurchRow>();
-  const count=isSearch?await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>():null;
+  const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
     const homepageUrl=churchHomepageUrls[church.name]||church.homepageUrl||null;
     const channelImageUrl=churchImageUrls[church.name]||church.channelImageUrl||null;

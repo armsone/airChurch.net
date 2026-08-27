@@ -91,6 +91,7 @@ export default function Home() {
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
+  const [churchTotal,setChurchTotal]=useState(0);
   const [churchLoading,setChurchLoading]=useState(true);
   const [showAllChurches,setShowAllChurches]=useState(false);
   const [showRecommendationForm,setShowRecommendationForm]=useState(false);
@@ -122,7 +123,9 @@ export default function Home() {
       }),
       "church-directory": ()=>loadItems("/api/churches?catalog=60").then((data)=>{
         if(!alive) return;
-        setChurchItems((data as {items?:ChurchItem[]}).items||[]);
+        const result=data as {items?:ChurchItem[];total?:number};
+        setChurchItems(result.items||[]);
+        setChurchTotal(result.total??result.items?.length??0);
         setChurchLoading(false);
       }),
     };
@@ -191,9 +194,11 @@ export default function Home() {
   const denominationOptions=useMemo(()=>["전체 교단",...Array.from(new Set([...knownDenominations,...churchItems.map((church)=>church.denomination),...sermonItems.map((sermon)=>sermon.denomination),...praiseItems.map((praise)=>praise.denomination)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,"ko"))],[churchItems,sermonItems,praiseItems]);
   const hasActiveChurchFilter = Boolean(query.trim() || churchQuery.trim() || region !== "전체" || denomination !== "전체 교단");
   const visibleChurches = (showAllChurches || hasActiveChurchFilter) ? filteredChurches : filteredChurches.slice(0, 12);
-  const churchSearchTotal=trimmedChurchQuery?(currentChurchSearch?.total??0):churchItems.length;
+  const isUnfilteredChurchDirectory=!query.trim()&&region==="전체"&&denomination==="전체 교단";
+  const churchSearchTotal=trimmedChurchQuery?(currentChurchSearch?.total??0):isUnfilteredChurchDirectory?churchTotal:filteredChurches.length;
   const churchSearchPending=Boolean(trimmedChurchQuery&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":churchSearchTotal>filteredChurches.length?`${churchSearchTotal}개 중 ${filteredChurches.length}개 표시`:`${filteredChurches.length}개 교회`;
+  const churchDirectoryMoreLabel=showAllChurches?"12개만 보기":churchTotal>filteredChurches.length?`${churchTotal}개 중 ${filteredChurches.length}개 보기`:`전체 ${filteredChurches.length}개 보기`;
 
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
@@ -335,7 +340,7 @@ export default function Home() {
           <span className="church-search-count" aria-live="polite">{churchLoading ? "불러오는 중…" : churchCountLabel}</span>
         </div>
         {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const churchPrimaryUrl=church.homepageUrl||(church.youtubeChannelId?`https://www.youtube.com/channel/${church.youtubeChannelId}`:null);const churchPrimaryLabel=`${church.name} ${church.homepageUrl?"공식 홈페이지":"공식 YouTube"} 열기`;const mark=denominationMark(church.denomination);return <article key={church.id}><div className="church-directory-top"><span>{church.region}</span>{mark&&<img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}</div><h3>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a>:church.name}</h3><div className="church-directory-meta"><div className="church-directory-meta-copy"><p>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.pastor}</a>:church.pastor}</p><small>{church.denomination}</small></div><div className="church-directory-links">{church.homepageUrl&&<a className="homepage-link" href={church.homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{church.channelImageUrl&&<img src={church.channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event)=>{event.currentTarget.hidden=true}} />}</span></a>}{church.youtubeChannelId&&<a className="youtube-link" href={`https://www.youtube.com/channel/${church.youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}</div></div></article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
-        {!churchLoading&&!hasActiveChurchFilter&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{showAllChurches?"12개만 보기":`전체 ${filteredChurches.length}개 보기`}</button>}
+        {!churchLoading&&!hasActiveChurchFilter&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{churchDirectoryMoreLabel}</button>}
         <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
           <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>
           {showRecommendationForm&&<form className="church-recommendation-form" id="church-recommendation-form" onSubmit={submitChurchRecommendation}>
