@@ -147,7 +147,7 @@ const sources:Source[]=[
   {name:"창원상남교회",pastor:"이창교 목사",region:"경남 창원",denomination:"대한예수교장로회 고신",channelId:"UCEFug8Nijd0qUKiRIdNXOng"},
   {name:"거제고현교회",pastor:"박정곤 목사",region:"경남 거제",denomination:"대한예수교장로회 고신",channelId:"UCaB9Fo6J0fC1xBcU9WLH9tw"},
   {name:"제주성안교회",pastor:"류정길 목사",region:"제주 제주",denomination:"대한예수교장로회 통합",channelId:"UCwxF003ice5d-ufS0wu_CrQ"},
-  {name:"제주순복음교회",pastor:"표순호 목사",region:"제주 제주",denomination:"기독교대한하나님의성회",channelId:"UCkR0487FW1G7iC46Jmfodng"},
+  {name:"제주순복음교회",pastor:"표순호 목사",region:"제주 제주",denomination:"기독교대한하나님의성회 광화문총회",channelId:"UCkR0487FW1G7iC46Jmfodng"},
   {name:"광림교회",pastor:"김정석 목사",region:"서울 강남",denomination:"기독교대한감리회",channelId:"UCV1aWMg0Q5sXmpLiK4Rih6A"},
   {name:"금란교회",pastor:"김정민 목사",region:"서울 중랑",denomination:"기독교대한감리회",channelId:"UCRqUsmAoeQL9_o-mxOXeo6A"},
   {name:"오륜교회",pastor:"주경훈 목사",region:"서울 강동",denomination:"대한예수교장로회 합동",channelId:"UCCATFGVyXoa361VN6lELz3w"},

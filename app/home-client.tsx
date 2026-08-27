@@ -10,7 +10,18 @@ type TalentItem = { id:number; title:string; region:string; description:string; 
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null };
 
 function denominationMark(denomination:string) {
-  if (denomination.includes("통합")) return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
+  if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
+  if (denomination === "대한예수교장로회 합동") return { src:"/denominations/pck-hapdong.svg", alt:"대한예수교장로회 합동 교단 심볼" };
+  if (denomination === "기독교대한감리회") return { src:"/denominations/kmc.ico", alt:"기독교대한감리회 교단 심볼" };
+  if (denomination === "대한예수교장로회 고신") return { src:"/denominations/pck-kosin.jpg", alt:"대한예수교장로회 고신 교단 심볼" };
+  if (denomination === "기독교한국침례회") return { src:"/denominations/kbch.png", alt:"기독교한국침례회 공식 로고" };
+  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc.png", alt:"기독교대한성결교회 교단 심볼" };
+  if (denomination === "대한예수교장로회 합신") return { src:"/denominations/pck-hapshin.png", alt:"대한예수교장로회 합신 공식 로고" };
+  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok.png", alt:"대한예수교장로회 백석 교단 심볼" };
+  if (denomination === "기독교대한하나님의성회") return { src:"/denominations/agk.png", alt:"기독교대한하나님의성회 공식 로고" };
+  if (denomination === "기독교대한하나님의성회 광화문총회") return { src:"/denominations/agk-gwanghwamun.png", alt:"기독교대한하나님의성회 광화문총회 공식 로고" };
+  if (denomination === "한국기독교장로회") return { src:"/denominations/prok.png", alt:"한국기독교장로회 교단 심볼" };
+  if (denomination === "한국독립교회선교단체연합회") return { src:"/denominations/kaicam.png", alt:"한국독립교회선교단체연합회 공식 로고" };
   return null;
 }
 
@@ -36,7 +47,7 @@ const regions = [
 const knownDenominations = [
   "대한예수교장로회 통합", "대한예수교장로회 합동", "기독교대한감리회", "대한예수교장로회 고신",
   "기독교한국침례회", "기독교대한성결교회", "대한예수교장로회 합신", "대한예수교장로회 백석",
-  "기독교대한하나님의성회", "한국기독교장로회", "독립교회", "한국독립교회선교단체연합회",
+  "기독교대한하나님의성회", "기독교대한하나님의성회 광화문총회", "한국기독교장로회", "독립교회", "한국독립교회선교단체연합회",
 ];
 const menuItems = [["말씀","#sermons"],["찬양","#praises"],["등록교회","#church-directory"],["랭킹","#rankings"],["착한나눔","#goodshare"],["광장","#community"],["비전","#vision"]] as const;
 

@@ -391,6 +391,14 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(page,/전체 교단/);
   assert.match(page,/s\.denomination === denomination/);
   assert.match(page,/\/denominations\/pck-tonghap\.png/);
+  assert.match(page,/denomination === "대한예수교장로회 통합"/);
+  assert.doesNotMatch(page,/denomination\.includes\("통합"\)/);
+  for (const asset of [
+    "pck-hapdong.svg", "kmc.ico", "pck-kosin.jpg", "kbch.png", "kehc.png",
+    "pck-hapshin.png", "pck-baekseok.png", "agk.png", "agk-gwanghwamun.png",
+    "prok.png", "kaicam.png",
+  ]) assert.match(page,new RegExp(`/denominations/${asset.replace(".","\\.")}`));
+  assert.match(page,/기독교대한하나님의성회 광화문총회/);
   assert.match(page,/<small>\{church\.denomination\}<\/small>/);
   assert.match(styles,/\.church-denomination-mark \{/);
   assert.match(styles,/\.church-denomination-mark \{ width:21px;height:21px;/);
