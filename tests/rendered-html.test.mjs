@@ -358,6 +358,7 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(route,/youtube_channel_id AS youtubeChannelId/);
   assert.match(route,/homepage_url AS homepageUrl/);
   assert.match(route,/channel_image_url AS channelImageUrl/);
+  assert.match(route,/LIMIT 1000/);
   assert.match(page,/church-directory-links/);
   assert.match(page,/className="church-directory-meta"/);
   assert.match(page,/const churchPrimaryUrl=church\.homepageUrl\|\|/);

@@ -7,7 +7,7 @@ type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:s
 export async function GET() {
   const db=database();
   await ensureSermonTables(db);
-  const result=await db.prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl FROM churches WHERE review_status='approved' ORDER BY priority_weight DESC,name LIMIT 300").all<ChurchRow>();
+  const result=await db.prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl FROM churches WHERE review_status='approved' ORDER BY priority_weight DESC,name LIMIT 1000").all<ChurchRow>();
   const items=result.results.map((church)=>{
     const homepageUrl=churchHomepageUrls[church.name]||church.homepageUrl||null;
     const channelImageUrl=churchImageUrls[church.name]||church.channelImageUrl||null;
