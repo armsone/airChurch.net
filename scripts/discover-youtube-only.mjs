@@ -44,7 +44,7 @@ PCK 파일럿 JSON에서 route.ts의 sources 배열에 아직 등록되지 않�
 옵션:
   --input <path>          필수. discover-pck-tonghap.mjs가 생성한 파일럿 JSON 경로.
   --output <path>         필수. 결과 JSON을 저장할 파일 경로.
-  --sources <path>        기존 등록 교회명을 제외할 소스 파일 (기본: app/api/sermons/sync/route.ts)
+  --sources <path|none>   기존 등록 교회명을 제외할 소스 파일. 이미 필터한 입력은 none 사용.
   --checkpoint <path>     체크포인트 파일 경로 (기본: <output>.checkpoint.json)
   --max-records <n>       처리할 최대 레코드 수 (테스트용 상한)
   --delay-ms <n>          YouTube 요청 간 최소 지연(ms) (기본/최소: ${DEFAULT_DELAY_MS})
@@ -826,8 +826,9 @@ async function main() {
 
   const pilotText = await readFile(args.input, "utf8");
   const pilotJson = JSON.parse(pilotText);
-  const sourceText = await readFile(args.sources, "utf8");
-  const existingNames = extractExistingNames(sourceText);
+  const existingNames = args.sources === "none"
+    ? new Set()
+    : extractExistingNames(await readFile(args.sources, "utf8"));
 
   const rawRecords = loadPilotRecords(pilotJson);
   const inputRecordCount = rawRecords.length;
