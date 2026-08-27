@@ -186,6 +186,8 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .pastor-edit-batch{display:grid;gap:12px;margin-bottom:14px}
 .pastor-edit-item{padding:14px;border:1px solid var(--line);border-radius:11px;background:white}
 .pastor-edit-item>strong{display:block;margin-bottom:10px}
+.pastor-random-refresh{display:block;margin:18px auto 0;padding:11px 18px;border:1px solid var(--ink);border-radius:999px;background:white;color:var(--ink);font-size:14px;font-weight:850;cursor:pointer}
+.admin-random-refresh{flex:none;padding:9px 12px;border:1px solid var(--ink);border-radius:999px;background:white;color:var(--ink);font-size:12px!important;font-weight:850;cursor:pointer;white-space:nowrap}
 .admin-church-reference-links{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
 .admin-church-reference-links a,.admin-church-reference-links span{padding:7px 10px;border-radius:8px;background:#eef4f0;color:var(--ink);font-size:12px!important;font-weight:850}
 .admin-church-reference-links span{color:var(--muted);font-weight:700}

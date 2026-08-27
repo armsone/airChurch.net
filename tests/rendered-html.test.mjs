@@ -150,7 +150,7 @@ test("collapses the church list to its heading and reveals recommendations on de
 });
 
 test("supports multiple approved church reviewer accounts", async () => {
-  const [access,signup,login,admin,manage,shared,schema,controls]=await Promise.all([
+  const [access,signup,login,admin,manage,shared,schema,controls,adminListSearch]=await Promise.all([
     readFile(new URL("../app/admin-access.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-login.tsx",import.meta.url),"utf8"),
@@ -159,6 +159,7 @@ test("supports multiple approved church reviewer accounts", async () => {
     readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/admin-list-search.tsx",import.meta.url),"utf8"),
   ]);
   assert.match(access,/PBKDF2/);
   assert.match(access,/const PBKDF2_ITERATIONS = 100_000;/);
@@ -189,6 +190,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/ChurchInfoEditControls/);
   assert.match(admin,/initialLimit=\{20\}/);
   assert.equal((admin.match(/initialLimit=\{20\}/g)??[]).length,2);
+  assert.match(adminListSearch,/다른 \{initialLimit\}곳 보기/);
   assert.match(admin,/data-admin-preview/);
   assert.match(admin,/church_homepage_url/);
   assert.match(admin,/church_youtube_channel_id/);
@@ -241,6 +243,8 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(requestManager,/featuredChurches/);
   assert.match(requestManager,/selectedIds/);
   assert.match(requestManager,/한 번에 요청/);
+  assert.match(requestManager,/다른 교회 20곳 보기/);
+  assert.match(requestManager,/showOtherChurches/);
   assert.match(requestManager,/홈페이지 ↗/);
   assert.match(requestManager,/YouTube ↗/);
   assert.match(requestManager,/등록된 확인 링크 없음/);
