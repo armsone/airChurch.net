@@ -36,7 +36,6 @@ export const prokSources=[
   {name:"가리봉교회",pastor:"최대성 목사",region:"서울 구로",denomination:"한국기독교장로회",channelId:"UCQ9AiX80OM8QT6g1CRY37cA"},
   {name:"서귀포중앙교회",pastor:"김상현 목사",region:"제주 서귀포",denomination:"한국기독교장로회",channelId:"UCqHjpslUbSKjX070QLIXC7A"},
   {name:"난산교회",pastor:"송면규 목사",region:"전북 김제",denomination:"한국기독교장로회",channelId:"UCvqPcalPLipeerlfcwJdifA"},
-  {name:"영주중앙교회",pastor:"간호남 목사",region:"경북 영주",denomination:"한국기독교장로회",channelId:"UCQmEd1upSPx_3AyVtMd2vSg"},
   {name:"한신교회",pastor:"양신 목사",region:"서울 서초",denomination:"한국기독교장로회",channelId:"UC5cJiN3oUx4bwhsUJDTQEqQ"},
   {name:"오송교회",pastor:"박종성 목사",region:"충북 청주",denomination:"한국기독교장로회",channelId:"UCcfwVOFWBNhvyqlaEN47x1A"},
   {name:"목포산정교회",pastor:"한해식 목사",region:"전남 목포",denomination:"한국기독교장로회",channelId:"UCNmHP5L10hd-6L4k0JSPI1w"},
