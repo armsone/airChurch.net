@@ -166,3 +166,9 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .reviewer-shell .quick-review-actions button,.reviewer-shell .quick-review-concern-actions button,.reviewer-shell .quick-review-reasons button{min-height:52px!important;padding:12px 14px}.reviewer-shell .quick-review-card,.reviewer-shell .reviewer-church-list>article{min-width:0}.reviewer-shell .quick-review-church h3,.reviewer-shell .reviewer-church-heading h3{line-height:1.3}
 @media (max-width:760px){.reviewer-shell .quick-review-actions,.reviewer-shell .quick-review-concern-actions{grid-template-columns:1fr}.reviewer-shell .quick-review-concern-actions{display:grid}.reviewer-shell .quick-review-actions button,.reviewer-shell .quick-review-concern-actions button{width:100%;min-height:54px!important}.reviewer-shell .quick-review-reasons{grid-template-columns:repeat(2,minmax(0,1fr))}.reviewer-shell .quick-review-reasons button{width:100%;white-space:normal}.reviewer-shell .quick-review-all li button{min-height:64px}}
 @media (max-width:480px){.reviewer-shell .quick-review-reasons{grid-template-columns:1fr}.reviewer-shell .quick-review-queue{border-radius:16px}.reviewer-shell .quick-review-card{border-radius:13px}}
+
+/* Keep dashboard card labels intact while giving the detail its own line. */
+.action-center-cards .admin-operation-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label count" "detail detail";column-gap:12px;row-gap:8px;align-items:center}
+.action-center-cards .admin-operation-card>small{grid-area:label;white-space:nowrap}
+.action-center-cards .admin-operation-card>strong{grid-area:count}
+.action-center-cards .admin-operation-card>span{grid-area:detail;white-space:nowrap}
