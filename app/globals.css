@@ -312,6 +312,10 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .pastor-search-results .admin-church-details.is-icon-editor>summary{top:14px;right:48px}
 .pastor-search-results .admin-church-details.is-icon-editor[open]{margin:0 16px 14px!important}
 .church-directory-grid .admin-church-details.is-icon-editor>summary{top:14px;right:50px}
+.church-directory-grid .admin-church-details.is-mark-editor>summary{top:14px;right:14px;width:30px;height:30px;min-height:30px!important;border:0!important;border-radius:8px!important;background:transparent!important;box-shadow:none}
+.church-directory-grid .admin-church-details.is-mark-editor>summary:hover,.church-directory-grid .admin-church-details.is-mark-editor[open]>summary{background:#edf4ef!important}
+.church-directory-grid .admin-church-details.is-mark-editor>summary img{width:23px;height:23px;display:block;object-fit:contain}
+.church-directory-grid .admin-church-details.is-mark-editor>summary .church-admin-mark-fallback{font-size:20px!important;color:#527565!important;transform:none}
 .church-directory-grid .admin-church-details.is-icon-editor .admin-edit-fields,.church-directory-grid .admin-church-details.is-icon-editor .admin-preference-fields{grid-template-columns:1fr}
 .pastor-search-results .admin-church-details.is-icon-editor .admin-edit-fields,.pastor-search-results .admin-church-details.is-icon-editor .admin-preference-fields{grid-template-columns:1fr}
 .pastor-church-hold-summary{margin:0 16px 12px;padding:9px 11px;border-radius:9px;background:#fff5f0;color:#8d5c49;line-height:1.5}

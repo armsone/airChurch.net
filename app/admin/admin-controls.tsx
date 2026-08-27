@@ -18,7 +18,7 @@ const holdReasons = [
   ["other", "기타"],
 ] as const;
 
-export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number; iconOnly?:boolean }) {
+export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number; iconOnly?:boolean; markTrigger?:{src:string|null;alt:string} }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [holdReason, setHoldReason] = useState(props.holdReason || "review_needed");
   const [holdNote, setHoldNote] = useState(props.holdNote || "");
@@ -41,7 +41,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     setBusy(true); setError("");
     try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <details className={`admin-church-details${props.iconOnly?" is-icon-editor":""}`}><summary aria-label="교회 정보 및 공개 상태 관리">{props.iconOnly?<span aria-hidden="true">✎</span>:<><span className="admin-church-details-open">정보 관리</span><span className="admin-church-details-close" aria-label="관리 화면 닫기">관리 닫기</span><b aria-hidden="true">⌄</b></>}</summary><form className="admin-edit-form" onSubmit={save}>
+  return <details className={`admin-church-details${props.iconOnly||props.markTrigger?" is-icon-editor":""}${props.markTrigger?" is-mark-editor":""}`}><summary aria-label="교회 정보 및 공개 상태 관리">{props.markTrigger?(props.markTrigger.src?<img src={props.markTrigger.src} alt={props.markTrigger.alt}/>:<span className="church-admin-mark-fallback" aria-hidden="true">✝</span>):props.iconOnly?<span aria-hidden="true">✎</span>:<><span className="admin-church-details-open">정보 관리</span><span className="admin-church-details-close" aria-label="관리 화면 닫기">관리 닫기</span><b aria-hidden="true">⌄</b></>}</summary><form className="admin-edit-form" onSubmit={save}>
     <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
       <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option><option value="4">핀업 · 항상 최상단</option></select></label>
