@@ -53,7 +53,6 @@ export const kosinSources=[
   {name:"구덕산교회",pastor:"남규열 목사",region:"부산 사상",denomination:"대한예수교장로회 고신",channelId:"UClnBEStj5X5xNYMn717Z7wQ"},
   {name:"은혜로교회",pastor:"김은태 목사",region:"부산 사상",denomination:"대한예수교장로회 고신",channelId:"UC2_kizr-4B7OVVKYVY5HK1Q"},
   {name:"학장소망교회",pastor:"조영준 목사",region:"부산 사상",denomination:"대한예수교장로회 고신",channelId:"UCCt1LDcuPSD6YSAVEohW9Dg"},
-  {name:"고신교회",pastor:"김경헌 목사",region:"부산 사상",denomination:"대한예수교장로회 고신",channelId:"UCEhm5xOJZMadH_oS3jFfRFA"},
   {name:"부곡중앙교회",pastor:"인태웅 목사",region:"부산 금정",denomination:"대한예수교장로회 고신",channelId:"UCABMoAhOMiYGF5vPl_Ynczg"},
   {name:"동래언약교회",pastor:"최성림 목사",region:"부산 동래",denomination:"대한예수교장로회 고신",channelId:"UCA8oMgumO0mxcP-nlpYSn-w"},
   {name:"남산은혜교회",pastor:"임경학 목사",region:"부산 금정",denomination:"대한예수교장로회 고신",channelId:"UCkO3fMeqhGvnFZtrVmFCy9A"},
