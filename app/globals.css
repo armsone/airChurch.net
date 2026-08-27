@@ -296,8 +296,12 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 
 /* Admin church lists reuse the public card and open from the card body. */
 .admin-management-grid .admin-manage-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0}
-.admin-management-grid .admin-manage-list>article.admin-directory-card{min-width:0;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease}
+.admin-management-grid .admin-manage-list>article.admin-directory-card{min-width:0;height:114px;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
 .admin-management-grid .admin-manage-list>article.admin-directory-card:hover{border-color:#bfd0c7;box-shadow:0 4px 16px rgba(24,54,47,.06)}
+.admin-management-grid .admin-manage-list>article.admin-directory-card:has(.admin-church-details[open]){height:auto;min-height:114px}
+.admin-management-grid .admin-directory-card h3{margin:7px 0 5px;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-management-grid .admin-directory-card .church-directory-meta-copy p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-management-grid .admin-directory-card .church-directory-meta-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-management-grid .admin-directory-card .admin-church-details{cursor:default;margin:0;padding:0;border:0}
 .admin-management-grid .admin-directory-card .admin-church-details>summary{display:none}
 .admin-management-grid .admin-directory-card .admin-church-details[open]{margin-top:14px;padding-top:12px;border-top:1px solid #e3e8e5}
@@ -305,16 +309,17 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 
 #church-hold .admin-manage-list{grid-template-columns:1fr}
 .admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}
-.is-held-card .admin-held-card-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:stretch}
+.is-held-card .admin-held-card-body{height:92px;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:stretch}
 .admin-held-card-public{min-width:0;cursor:pointer}
-.admin-directory-hold-panel{min-width:0;margin:-10px -10px -10px 0;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;border-radius:0 13px 13px 0;background:#fff4ee;color:#865844;cursor:default}
-.admin-directory-hold-reason{display:flex;flex-direction:column}
-.admin-directory-hold-reason b{font-size:13px!important;color:#865844}.admin-directory-hold-reason>span{margin-top:5px;color:#786b65;font-size:12px!important;line-height:1.5}
-.admin-directory-hold-actions{margin-top:6px;display:flex;align-items:center;gap:4px}
+.admin-directory-hold-panel{min-width:0;height:calc(100% + 20px);margin:-10px -10px -10px 0;padding:10px 14px;display:flex;flex-direction:column;justify-content:space-between;border-radius:0 13px 13px 0;background:#fff4ee;color:#865844;cursor:default}
+.admin-directory-hold-reason{display:flex;flex-direction:column;min-width:0}
+.admin-directory-hold-reason b{font-size:13px!important;line-height:1.25;color:#865844;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-directory-hold-reason>span{margin-top:3px;color:#786b65;font-size:11px!important;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis;word-break:break-word;max-height:2.7em}
+.admin-directory-hold-actions{margin-top:4px;display:flex;align-items:center;gap:4px}
 .admin-directory-hold-actions button{flex:none;min-height:0;padding:3px 7px;border:1px solid #c9d8d0;border-radius:6px;background:white;color:#315847;font-size:10px!important;font-weight:850;line-height:1.3;cursor:pointer;white-space:nowrap}
 .admin-directory-hold-actions button:disabled{opacity:.45;cursor:default}
 .admin-directory-hold-actions button.danger{border-color:#e3b7a7;color:#a34e35;background:#fff9f6}
 .admin-directory-hold-actions button:not(:disabled):hover{background:#f4f8f5;border-color:#b0c6bb}
 .admin-directory-hold-actions button.danger:not(:disabled):hover{background:#ffede6;border-color:#d89e8b}
 @media (max-width:1180px){.admin-management-grid .admin-manage-list{grid-template-columns:1fr}}
-@media (max-width:760px){.is-held-card .admin-held-card-body{grid-template-columns:1fr;gap:14px}.admin-directory-hold-panel{margin:0 -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
+@media (max-width:760px){.admin-management-grid .admin-manage-list>article.admin-directory-card{height:auto;min-height:114px}.is-held-card .admin-held-card-body{height:auto;grid-template-columns:1fr;gap:12px}.admin-directory-hold-panel{height:auto;margin:8px -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
