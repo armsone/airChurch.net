@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -351,6 +351,69 @@ test("uses pastor as the public ministry route and preserves legacy review links
   assert.match(legacyJoin,/redirect\("\/pastor\/join"\)/);
   assert.match(login,/result\.role === "reviewer" \? "\/pastor"/);
   assert.match(footer,/href="\/pastor">목사님/);
+});
+
+test("syncs kosin sources alongside hapdong without breaking existing scopes", async () => {
+  const [route,kosinSources]=await Promise.all([
+    readFile(new URL("../app/api/sermons/sync/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/kosin-sources.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(route,/import \{ kosinSources \} from "\.\.\/kosin-sources";/);
+  assert.match(route,/\.\.\.kosinSources,\n\];/);
+  assert.match(route,/scope=requestedScope==="hapdong"\?"hapdong":requestedScope==="kosin"\?"kosin":"all"/);
+  assert.match(route,/sourcePool:readonly Source\[\]=scope==="hapdong"\?hapdongSources:scope==="kosin"\?kosinSources:sources/);
+  assert.match(route,/syncKey=scope==="hapdong"\?"youtube-v9-hapdong":scope==="kosin"\?"youtube-v9-kosin":"youtube-v9-regional-130"/);
+  assert.match(kosinSources,/export const kosinSources=\[/);
+  assert.match(kosinSources,/\] as const;/);
+});
+
+test("generalizes the registration CLI for hapdong and kosin scopes", async () => {
+  const cliPath=new URL("../scripts/register-verified-churches.mjs",import.meta.url);
+  const cli=await readFile(cliPath,"utf8");
+  assert.match(cli,/DEFAULT_SOURCES_BY_SCOPE = \{/);
+  assert.match(cli,/hapdong: "app\/api\/sermons\/hapdong-sources\.ts"/);
+  assert.match(cli,/kosin: "app\/api\/sermons\/kosin-sources\.ts"/);
+  assert.match(cli,/const DEFAULT_SCOPE = "hapdong";/);
+  assert.match(cli,/--scope <hapdong\|kosin>/);
+  assert.match(cli,/url\.searchParams\.set\("scope",args\.scope\)/);
+
+  const help=spawnSync(process.execPath,[cliPath.pathname,"--help"],{encoding:"utf8"});
+  assert.equal(help.status,0);
+  assert.match(help.stdout,/--scope <hapdong\|kosin>/);
+  assert.match(help.stdout,/scope kosin --sync/);
+
+  const invalidScope=spawnSync(process.execPath,[cliPath.pathname,"--scope","bogus","--prepare","--input","missing.json"],{encoding:"utf8"});
+  assert.notEqual(invalidScope.status,0);
+  assert.match(invalidScope.stderr,/알 수 없는 --scope: bogus/);
+
+  const directory=await mkdtemp(join(tmpdir(),"airchurch-register-"));
+  try {
+    const inputPath=join(directory,"kosin-verified.json");
+    const sourcesPath=join(directory,"kosin-sources.ts");
+    await writeFile(inputPath,JSON.stringify({approved:[{name:"테스트고신교회",pastor:"홍길동 목사",region:"서울 종로",denomination:"대한예수교장로회 고신",channelId:"UC12345678901234567890",status:"verified"},{name:"미승인고신교회",pastor:"이대기 목사",region:"서울 종로",denomination:"대한예수교장로회 고신",channelId:"UC00000000000000000000",status:"pending"}]}),"utf8");
+    await writeFile(sourcesPath,"export const kosinSources=[\n] as const;\n","utf8");
+    const kosinPrepare=spawnSync(process.execPath,[cliPath.pathname,"--scope","kosin","--sources",sourcesPath,"--input",inputPath,"--prepare"],{encoding:"utf8"});
+    assert.equal(kosinPrepare.status,0,kosinPrepare.stderr);
+    const kosinReport=JSON.parse(kosinPrepare.stdout);
+    assert.equal(kosinReport.prepare.mode,"preview");
+    assert.equal(kosinReport.prepare.added,1);
+
+    const hapdongInputPath=join(directory,"hapdong-verified.json");
+    const hapdongSourcesPath=join(directory,"hapdong-sources.ts");
+    await writeFile(hapdongInputPath,JSON.stringify({approved:[{name:"테스트합동교회",pastor:"김철수 목사",region:"서울 강남",denomination:"대한예수교장로회 합동",channelId:"UC98765432109876543210",status:"verified"}]}),"utf8");
+    await writeFile(hapdongSourcesPath,"export const hapdongSources=[\n] as const;\n","utf8");
+    const defaultScopePrepare=spawnSync(process.execPath,[cliPath.pathname,"--sources",hapdongSourcesPath,"--input",hapdongInputPath,"--prepare"],{encoding:"utf8"});
+    assert.equal(defaultScopePrepare.status,0,defaultScopePrepare.stderr);
+    const defaultReport=JSON.parse(defaultScopePrepare.stdout);
+    assert.equal(defaultReport.prepare.added,1);
+
+    const explicitHapdongPrepare=spawnSync(process.execPath,[cliPath.pathname,"--scope","hapdong","--sources",hapdongSourcesPath,"--input",hapdongInputPath,"--prepare"],{encoding:"utf8"});
+    assert.equal(explicitHapdongPrepare.status,0,explicitHapdongPrepare.stderr);
+    const explicitReport=JSON.parse(explicitHapdongPrepare.stdout);
+    assert.equal(explicitReport.prepare.added,1);
+  } finally {
+    await rm(directory,{recursive:true,force:true});
+  }
 });
 
 test("links church directory cards to verified homepages and official YouTube channels", async () => {

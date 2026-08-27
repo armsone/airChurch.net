@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 
 /**
- * AI 검증이 끝난 교회 JSON을 합동 소스에 안전하게 반영하고, 배포 후 운영 DB
+ * AI 검증이 끝난 교회 JSON을 교단 소스에 안전하게 반영하고, 배포 후 운영 DB
  * 동기화를 작은 묶음으로 끝까지 실행하는 CLI입니다. 후보(status=candidate)는
  * 절대 등록하지 않고 status=verified/approved 또는 decision=approved만 받습니다.
  */
 
 import { readFile, writeFile, rename } from "node:fs/promises";
 
-const DEFAULT_SOURCES = "app/api/sermons/hapdong-sources.ts";
+const DEFAULT_SOURCES_BY_SCOPE = {
+  hapdong: "app/api/sermons/hapdong-sources.ts",
+  kosin: "app/api/sermons/kosin-sources.ts",
+};
+const DEFAULT_SCOPE = "hapdong";
 const DEFAULT_SITE = "https://airchurch.net";
 const CHANNEL_ID = /^UC[\w-]{20,}$/;
 
@@ -18,17 +22,20 @@ function help() {
 1) 검증 결과를 소스에 준비 (기본은 미리보기):
    node scripts/register-verified-churches.mjs --input verified.json --prepare
    node scripts/register-verified-churches.mjs --input verified.json --prepare --apply
+   node scripts/register-verified-churches.mjs --scope kosin --input verified.json --prepare --apply
 
 2) 배포 후 새 구간을 운영 DB에 등록:
    node scripts/register-verified-churches.mjs --sync --start <기존 합동 수> --count <추가 수>
+   node scripts/register-verified-churches.mjs --scope kosin --sync --start <기존 고신 수> --count <추가 수>
 
 옵션:
+  --scope <hapdong|kosin>  대상 교단 (기본: ${DEFAULT_SCOPE})
   --input <file>     검증 결과 JSON
-  --sources <file>   합동 소스 파일 (기본: ${DEFAULT_SOURCES})
+  --sources <file>   교단 소스 파일 (기본: scope별 기본 소스 파일)
   --prepare          승인 항목을 소스에 병합
   --apply            실제 소스 수정 (없으면 미리보기)
   --sync             운영 DB 동기화 실행
-  --start <n>        합동 소스 시작 인덱스
+  --start <n>        소스 시작 인덱스
   --count <n>        등록할 항목 수
   --site <url>       사이트 주소 (기본: ${DEFAULT_SITE})
   --batch-size <n>   요청당 교회 수 (기본/최대: 20)
@@ -37,10 +44,11 @@ function help() {
 }
 
 function parseArgs(argv) {
-  const args={input:null,sources:DEFAULT_SOURCES,site:DEFAULT_SITE,prepare:false,apply:false,sync:false,start:null,count:null,batchSize:20,report:null,help:false};
+  const args={scope:DEFAULT_SCOPE,input:null,sources:null,site:DEFAULT_SITE,prepare:false,apply:false,sync:false,start:null,count:null,batchSize:20,report:null,help:false};
   for(let i=0;i<argv.length;i+=1){
     const token=argv[i];
-    if(token==="--input") args.input=argv[++i];
+    if(token==="--scope") args.scope=argv[++i];
+    else if(token==="--input") args.input=argv[++i];
     else if(token==="--sources") args.sources=argv[++i];
     else if(token==="--site") args.site=argv[++i];
     else if(token==="--prepare") args.prepare=true;
@@ -53,12 +61,14 @@ function parseArgs(argv) {
     else if(token==="--help"||token==="-h") args.help=true;
     else throw new Error(`알 수 없는 옵션: ${token}`);
   }
+  if(!args.help&&!Object.prototype.hasOwnProperty.call(DEFAULT_SOURCES_BY_SCOPE,args.scope)) throw new Error(`알 수 없는 --scope: ${args.scope}`);
+  if(!args.sources) args.sources=DEFAULT_SOURCES_BY_SCOPE[args.scope];
   return args;
 }
 
 function recordsFrom(value) {
   if(Array.isArray(value)) return value;
-  for(const key of ["results","records","churches","candidates"]){ if(Array.isArray(value?.[key])) return value[key]; }
+  for(const key of ["results","records","churches","candidates","approved"]){ if(Array.isArray(value?.[key])) return value[key]; }
   return [];
 }
 
@@ -128,13 +138,13 @@ async function sync(args) {
   while(cursor<end){
     const limit=Math.min(args.batchSize,end-cursor);
     const url=new URL("/api/sermons/sync",args.site);
-    url.searchParams.set("scope","hapdong"); url.searchParams.set("start",String(cursor)); url.searchParams.set("limit",String(limit));
+    url.searchParams.set("scope",args.scope); url.searchParams.set("start",String(cursor)); url.searchParams.set("limit",String(limit));
     const result=await fetchJsonWithRetry(url);
     batches.push({start:cursor,limit,...result});
     cursor+=limit;
     console.error(`[register] ${cursor-args.start}/${args.count} 처리, 누적 공개 교회 ${result.approved}`);
   }
-  return {site:args.site,start:args.start,count:args.count,batches,verified:batches.reduce((n,b)=>n+(b.verified||0),0),sermons:batches.reduce((n,b)=>n+(b.imported||0),0)};
+  return {scope:args.scope,site:args.site,start:args.start,count:args.count,batches,verified:batches.reduce((n,b)=>n+(b.verified||0),0),sermons:batches.reduce((n,b)=>n+(b.imported||0),0)};
 }
 
 async function main(){
