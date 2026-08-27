@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-type Resolution = "kept_public" | "held" | "needs_follow_up";
+type Resolution = "kept_public" | "held" | "needs_follow_up" | "deleted";
 type ExpandedAction = "held" | "needs_follow_up" | null;
 
 type ReviewerResolutionControlsProps = {
@@ -61,7 +61,9 @@ export default function ReviewerResolutionControls({
         ? isHeld
           ? "이 교회의 보류 상태를 유지하고, 표시된 목사님 의견을 모두 처리 완료할까요?"
           : "이 교회를 보류하고, 표시된 목사님 의견을 모두 처리 완료할까요? 관련 설교도 함께 숨겨집니다."
-        : "표시된 목사님 의견을 추가 확인이 필요한 상태로 남길까요? 검토 대기 목록에서 계속 확인할 수 있습니다.";
+        : resolution === "deleted"
+          ? "이 교회를 삭제 처리할까요? 표시된 목사님 의견도 함께 처리 완료되며, 관련 설교와 찬양 영상이 모두 숨겨집니다. 이 작업은 되돌릴 수 없습니다."
+          : "표시된 목사님 의견을 추가 확인이 필요한 상태로 남길까요? 검토 대기 목록에서 계속 확인할 수 있습니다.";
     if (!window.confirm(confirmation)) return;
 
     setBusy(true);
@@ -110,7 +112,7 @@ export default function ReviewerResolutionControls({
         onClick={() => void submitResolution("kept_public")}
         style={{ minHeight: 44 }}
         type="button"
-      >{isHeld ? "다시 공개하고 완료" : "공개 유지하고 완료"}</button>
+      >공개</button>
       <button
         aria-controls={panelId}
         aria-expanded={expandedAction === "held"}
@@ -119,7 +121,7 @@ export default function ReviewerResolutionControls({
         onClick={() => openAction("held")}
         style={{ minHeight: 44 }}
         type="button"
-      >{isHeld ? "보류 유지하고 완료" : "보류하고 완료"}</button>
+      >보류</button>
       <button
         aria-controls={panelId}
         aria-expanded={expandedAction === "needs_follow_up"}
@@ -127,7 +129,14 @@ export default function ReviewerResolutionControls({
         onClick={() => openAction("needs_follow_up")}
         style={{ minHeight: 44 }}
         type="button"
-      >추가 확인 필요</button>
+      >재검토</button>
+      <button
+        className="danger"
+        disabled={busy}
+        onClick={() => void submitResolution("deleted")}
+        style={{ minHeight: 44 }}
+        type="button"
+      >삭제</button>
     </div>
 
     {expandedAction && <form className="reviewer-resolution-form" id={panelId} onSubmit={submitExpanded}>
@@ -151,7 +160,7 @@ export default function ReviewerResolutionControls({
       </label>
       <div className="admin-action-row">
         <button className={expandedAction === "held" ? "danger" : "restore"} disabled={busy} style={{ minHeight: 44 }} type="submit">
-          {expandedAction === "held" ? (isHeld ? "보류 유지하고 완료" : "보류하고 완료") : "추가 확인으로 저장"}
+          {expandedAction === "held" ? "보류로 저장" : "재검토로 저장"}
         </button>
         <button disabled={busy} onClick={() => setExpandedAction(null)} style={{ minHeight: 44 }} type="button">취소</button>
       </div>

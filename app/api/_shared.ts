@@ -52,6 +52,9 @@ export async function ensureReviewerTables(db:D1Database) {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_accounts_status_created ON reviewer_accounts(status, created_at DESC)"),
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_church_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unreviewed', note TEXT, reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, handled_at TEXT, admin_resolution TEXT, admin_note TEXT, resolved_by TEXT, UNIQUE(reviewer_id,church_id))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_church_reviews_church ON reviewer_church_reviews(church_id, reviewed_at DESC)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS church_change_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, request_type TEXT NOT NULL, reason TEXT NOT NULL, proposed_name TEXT, proposed_pastor TEXT, proposed_region TEXT, proposed_denomination TEXT, status TEXT NOT NULL DEFAULT 'pending', admin_note TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_change_requests_status_created ON church_change_requests(status, created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_change_requests_reviewer_created ON church_change_requests(reviewer_id, created_at DESC)"),
   ]);
   const reviewColumns=await db.prepare("PRAGMA table_info(reviewer_church_reviews)").all<{name:string}>();
   await addColumnIfMissing(db,reviewColumns.results,"handled_at","ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT");

@@ -332,7 +332,7 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span aria-hidden="true">✦</span><div><strong>전국 {churchTotal.toLocaleString("ko-KR")}개 검증 교회에서 가까운 몇 곳을 발견해 보세요.</strong><p>처음부터 긴 목록을 펼치지 않습니다. 지역과 교단을 고르거나 이름을 검색하면 공식 자료로 확인한 교회만 보여드립니다.</p></div></div>
+        <div className="church-radar-intro"><span aria-hidden="true">AI</span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회 자료로 교회명·지역·담임목사를 확인하고, 공식 홈페이지 또는 공식 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p></div></div>
         <div className="church-radar-actions" aria-label="교회 찾기 방법">
           <label><span aria-hidden="true">◫</span><strong>지역으로 찾기</strong><select id="church-radar-region" aria-label="교회 레이더 지역 선택" value={region} onChange={(event)=>{setRegion(event.target.value);setShowAllChurches(false);}}>{regions.map((item)=><option key={item}>{item}</option>)}</select></label>
           <label><span aria-hidden="true">◇</span><strong>교단으로 찾기</strong><select aria-label="교회 레이더 교단 선택" value={denomination} onChange={(event)=>{setDenomination(event.target.value);setShowAllChurches(false);}}>{denominationOptions.map((item)=><option key={item}>{item}</option>)}</select></label>

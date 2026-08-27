@@ -14,7 +14,7 @@ async function render() {
 
 test("server-renders the Airchurch portal", async () => {
   const response=await render(); assert.equal(response.status,200); assert.match(response.headers.get("content-type")??"",/^text\/html\b/i);
-  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/나와 맞는 교회를 찾아보세요/); assert.match(html,/처음부터 긴 목록을 펼치지 않습니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
+  const html=await response.text(); assert.match(html,/<title>에어처치 \| 말씀과 선한 마음이 만나는 곳<\/title>/); assert.match(html,/좋은 말씀과/); assert.match(html,/착한나눔/); assert.match(html,/달란트 브릿지/); assert.match(html,/나와 맞는 교회를 찾아보세요/); assert.match(html,/AI가 찾고, 기준을 통과한 교회만 등록합니다\./); assert.match(html,/건강한 신앙 생태계/); assert.doesNotMatch(html,/codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
 
 test("restores a reviewed church directory and restricted pastor workflow", async () => {
@@ -32,18 +32,19 @@ test("restores a reviewed church directory and restricted pastor workflow", asyn
     readFile(new URL("../app/api/reviewer-signup/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/pastor/join/reviewer-signup.tsx",import.meta.url),"utf8"),
   ]);
-  for(const phrase of ["처음부터 긴 목록을 펼치지 않습니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
+  for(const phrase of ["AI가 찾고, 기준을 통과한 교회만 등록합니다\\.","교회 추천 보내기","관리자가 교단과 공식 채널"]) assert.match(page,new RegExp(phrase));
   assert.match(churches,/review_status='approved'/);
   assert.match(recommendations,/status:"pending"/);
   assert.match(admin,/교회 추천 검토/);
-  assert.match(review,/한 곳씩 살펴봐 주세요/);
-  assert.match(controls,/kind:"church-review"/);
+  assert.match(review,/찾고, 요청하면 끝입니다/);
+  assert.match(review,/ChurchRequestManager/);
   assert.match(controls,/admin-church-details/);
-  assert.match(manage,/role==="reviewer"&&kind!=="church-review"/);
+  assert.match(manage,/role==="reviewer"&&kind!=="church-change-request"/);
   assert.match(access,/REVIEWER_USERNAME/);
   assert.match(access,/REVIEWER_PASSWORD/);
   assert.match(schema,/churchRecommendations = sqliteTable\("church_recommendations"/);
   assert.match(schema,/reviewerStatus: text\("reviewer_status"\)/);
+  assert.match(schema,/churchChangeRequests = sqliteTable\("church_change_requests"/);
   assert.match(envExample,/REVIEWER_USERNAME=/);
   assert.match(signupRoute,/\|\|!password\)/);
   assert.doesNotMatch(signupRoute,/password\.length/);
@@ -182,99 +183,75 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(controls,/이 목회자 계정과 검토 기록을 모두 삭제할까요/);
   for(const label of ["교회 추천","익명 글","달란트"]) assert.match(controls,new RegExp(label));
   assert.match(admin,/href="\/pastor">목사님 페이지/);
-  assert.match(admin,/관리자가 최종 결정/);
-  assert.match(admin,/opinionsByChurch/);
+  assert.match(admin,/목사님 요청 결정/);
+  assert.match(admin,/ChurchRequestResolution/);
   const review=await readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8");
   assert.match(review,/href="\/admin">전체 관리/);
 });
 
-test("shows reviewer decisions as one-tap choices with a right-aligned save", async () => {
-  const [controls,styles]=await Promise.all([readFile(new URL("../app/admin/admin-controls.tsx",import.meta.url),"utf8"),readFile(new URL("../app/globals.css",import.meta.url),"utf8")]);
-  assert.match(controls,/useState\(props\.holdReason \|\| "review_needed"\)/);
-  assert.match(controls,/className="review-result-options"/);
-  assert.match(controls,/type="radio" name="status"/);
-  assert.match(controls,/className="review-save-row"/);
-  assert.match(styles,/\.church-review-control \.review-save-row \{ justify-content:flex-end; \}/);
-});
-
-test("gives pastors a focused queue and groups concern resolution safely for administrators", async () => {
-  const [admin,review,quickQueue,resolutionControls,liveRefresh,manage,shared,schema,migration,styles]=await Promise.all([
+test("gives pastors a searchable request desk and administrators a focused decision queue", async () => {
+  const [admin,review,requestManager,requestResolution,resolutionControls,liveRefresh,manage,shared,schema,migration,styles]=await Promise.all([
     readFile(new URL("../app/admin/page.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8"),
-    readFile(new URL("../app/pastor/quick-review-queue.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/pastor/church-request-manager.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/admin/church-request-resolution.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/reviewer-resolution-controls.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/admin/admin-live-refresh.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/admin/manage/route.ts",import.meta.url),"utf8"),
     readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
-    readFile(new URL("../drizzle/0008_fat_silverclaw.sql",import.meta.url),"utf8"),
+    readFile(new URL("../drizzle/0009_church_change_requests.sql",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
   ]);
-  assert.match(shared,/ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT/);
-  assert.match(shared,/ALTER TABLE reviewer_church_reviews ADD COLUMN admin_resolution TEXT/);
-  assert.match(schema,/handledAt:text\("handled_at"\)/);
-  assert.match(schema,/adminResolution:text\("admin_resolution"\)/);
-  assert.match(manage,/kind==="church-review-resolution"/);
-  assert.match(manage,/reviewed_at=\?/);
-  assert.match(manage,/claimToken=`processing:\$\{crypto\.randomUUID\(\)\}`/);
-  assert.match(manage,/review_resolution_token/);
-  assert.match(manage,/claimResults\.slice\(1\)\.some/);
-  assert.match(manage,/review_status IN \('approved','removed'\) LIMIT 1/);
+  assert.match(shared,/CREATE TABLE IF NOT EXISTS church_change_requests/);
+  assert.match(schema,/churchChangeRequests = sqliteTable\("church_change_requests"/);
+  assert.match(migration,/CREATE TABLE IF NOT EXISTS `church_change_requests`/);
+  assert.match(manage,/kind==="church-change-request"/);
+  assert.match(manage,/kind==="church-change-request-resolution"/);
+  assert.match(manage,/UPDATE praise_videos SET status='hidden'/);
   assert.match(admin,/id="reviewer-queue"/);
-  assert.match(admin,/목사님이 확인을 요청한 교회/);
-  assert.match(admin,/pendingConcernGroups/);
-  assert.match(admin,/ReviewerResolutionControls/);
-  assert.doesNotMatch(admin,/pendingOpinions/);
-  assert.match(resolutionControls,/공개 유지하고 완료/);
-  assert.match(resolutionControls,/보류하고 완료/);
-  assert.match(resolutionControls,/추가 확인 필요/);
-  assert.match(resolutionControls,/existingHoldReason/);
-  assert.match(review,/id="review-todo"/);
-  assert.match(review,/QuickReviewQueue[^>]*todo=\{todo\}[^>]*total=/);
-  assert.match(review,/id="review-concern"/);
-  assert.match(review,/id="review-done"/);
-  assert.match(review,/운영팀이 의견을 살펴보고 있습니다/);
-  assert.match(review,/r\.reviewer_id=\?/);
-  assert.match(quickQueue,/특이사항 없습니다/);
-  assert.match(quickQueue,/검토 의견 보내기/);
-  assert.match(quickQueue,/setQueue\(next\)/);
-  assert.doesNotMatch(quickQueue,/window\.location\.reload/);
-  assert.match(quickQueue,/router\.refresh\(\)/);
-  assert.match(quickQueue,/공식 홈페이지 확인/);
-  assert.doesNotMatch(quickQueue,/disabled=\{busy\|\|!hasReference\}/);
-  assert.match(quickQueue,/아직 살펴볼 교회 전체 목록/);
-  assert.match(quickQueue,/살펴볼 교회 검색/);
-  assert.match(quickQueue,/selectChurch\(church\.id\)/);
-  assert.match(quickQueue,/upcoming\.map\(\(church\) => <li key=\{church\.id\}><button type="button" onClick=\{\(\)=>selectChurch\(church\.id\)\}/);
-  assert.match(quickQueue,/이단성·교리 검토 필요/);
-  assert.match(quickQueue,/목회자 관련 우려/);
-  assert.match(quickQueue,/교회 운영·윤리 문제/);
-  assert.doesNotMatch(quickQueue,/공식 채널 아님|최근 활동 없음/);
-  assert.match(quickQueue,/알고 계신 내용 또는 확인 근거 <small>· 선택<\/small>/);
-  assert.doesNotMatch(quickQueue,/note\.trim\(\)\.length < 3/);
-  assert.match(review,/COALESCE\(r\.status,'unreviewed'\)='unreviewed' ORDER BY c\.name/);
-  assert.match(review,/SUM\(CASE WHEN c\.review_status='approved'/);
-  assert.match(migration,/CREATE TABLE IF NOT EXISTS `reviewer_church_reviews`/);
-  assert.match(migration,/`admin_resolution` text/);
-  assert.match(migration,/ADD `review_resolution_token` text/);
+  assert.match(admin,/목사님 요청 결정/);
+  assert.match(admin,/ChurchRequestResolution/);
+  assert.doesNotMatch(admin,/목회자 미검토/);
+  assert.doesNotMatch(admin,/수집 영상 긴급 관리/);
+  assert.match(admin,/LIMIT 2000/);
+  assert.match(requestResolution,/그대로 승인/);
+  assert.match(requestResolution,/>반려</);
+  assert.match(requestResolution,/일단 보류/);
+  assert.match(review,/ChurchRequestManager/);
+  assert.match(review,/찾고, 요청하면 끝입니다/);
+  assert.match(requestManager,/교회명, 목사님, 지역, 교단 검색/);
+  assert.match(requestManager,/정보 수정/);
+  assert.match(requestManager,/보류/);
+  assert.match(requestManager,/삭제/);
+  assert.match(requestManager,/요청 이유/);
+  assert.match(requestManager,/관리자 답변/);
+  assert.match(resolutionControls,/>공개<\/button>/);
+  assert.match(resolutionControls,/>보류<\/button>/);
+  assert.match(resolutionControls,/>재검토<\/button>/);
+  assert.match(resolutionControls,/>삭제<\/button>/);
+  assert.match(manage,/"kept_public","held","needs_follow_up","deleted"/);
+  assert.match(manage,/resolution==="deleted"/);
   assert.match(liveRefresh,/document\.visibilityState!=="visible"/);
   assert.match(liveRefresh,/active instanceof HTMLTextAreaElement/);
   assert.match(styles,/\.reviewer-queue/);
-  assert.match(styles,/\.quick-review-actions/);
+  assert.match(styles,/\.pastor-request-actions/);
 });
 
 test("applies every migration to a fresh database including reviewer workflow tables", async () => {
-  const migrationFiles=["0000_public_joseph.sql","0001_condemned_toxin.sql","0002_thankful_storm.sql","0003_chilly_chamber.sql","0004_fuzzy_slayback.sql","0005_medical_shadowcat.sql","0006_legal_stranger.sql","0007_pinup_priority.sql","0008_fat_silverclaw.sql"];
+  const migrationFiles=["0000_public_joseph.sql","0001_condemned_toxin.sql","0002_thankful_storm.sql","0003_chilly_chamber.sql","0004_fuzzy_slayback.sql","0005_medical_shadowcat.sql","0006_legal_stranger.sql","0007_pinup_priority.sql","0008_fat_silverclaw.sql","0009_church_change_requests.sql"];
   const sql=(await Promise.all(migrationFiles.map((file)=>readFile(new URL(`../drizzle/${file}`,import.meta.url),"utf8")))).join("\n");
   const directory=await mkdtemp(join(tmpdir(),"airchurch-migrations-"));
   const databasePath=join(directory,"fresh.sqlite");
   try {
     const migrated=spawnSync("sqlite3",[databasePath],{input:sql,encoding:"utf8"});
     assert.equal(migrated.status,0,migrated.stderr);
-    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(churches);"],{encoding:"utf8"});
+    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches);"],{encoding:"utf8"});
     assert.equal(checked.status,0,checked.stderr);
     assert.match(checked.stdout,/reviewer_accounts/);
     assert.match(checked.stdout,/reviewer_church_reviews/);
+    assert.match(checked.stdout,/church_change_requests/);
+    assert.match(checked.stdout,/request_type/);
     assert.match(checked.stdout,/admin_resolution/);
     assert.match(checked.stdout,/review_resolution_token/);
   } finally {

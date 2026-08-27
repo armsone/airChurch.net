@@ -10,6 +10,7 @@ async function updateAdmin(body: Record<string, unknown>) {
 }
 
 const holdReasons = [
+  ["pastor_request", "목사님 요청"],
   ["youtube_unavailable", "공식 YouTube 확인 불가"],
   ["inactive", "최근 180일 업로드 없음"],
   ["info_unverified", "교회 정보 재확인 필요"],
@@ -32,9 +33,9 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
       return;
     }
     const message = next === "removed"
-      ? "이 교회를 보류 목록으로 옮길까요? 관련 설교도 함께 숨겨집니다."
+      ? "이 교회를 보류 목록으로 옮길까요? 관련 말씀과 찬양도 함께 숨겨집니다."
       : next === "deleted"
-        ? "보류 목록에서 이 교회를 삭제할까요? 삭제 후에는 관리자 화면에 표시되지 않습니다."
+        ? "이 교회를 삭제 처리할까요? 관련 말씀과 찬양도 즉시 숨겨집니다."
         : "이 교회를 다시 공개할까요? 숨겨진 설교는 자동 공개되지 않습니다.";
     if (!window.confirm(message)) return;
     setBusy(true); setError("");
@@ -48,7 +49,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     </div>
     <label className="admin-note-field"><span>관리자 메모 {props.status === "approved" && <small>· 보류 시 필수</small>}</span><textarea name="holdNote" value={holdNote} onChange={(event) => setHoldNote(event.target.value)} maxLength={500} rows={3} placeholder="확인한 근거와 다시 검토할 내용을 남겨 주세요." /></label>
     {props.status === "removed" && props.heldAt && <p className="admin-held-at">최근 보류: {new Date(`${props.heldAt}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}</p>}
-    <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button>{props.status === "approved" ? <button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button> : <><button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></>}</div>{error && <p className="admin-error">{error}</p>}
+    <div className="admin-action-row"><button disabled={busy} type="submit">정보 저장</button>{props.status === "approved" ? <><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("removed")}>보류로 이동</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></> : <><button disabled={busy} className="restore" type="button" onClick={() => void changeStatus("approved")}>공개로 복원</button><button disabled={busy} className="danger" type="button" onClick={() => void changeStatus("deleted")}>삭제</button></>}</div>{error && <p className="admin-error">{error}</p>}
   </form></details>;
 }
 
