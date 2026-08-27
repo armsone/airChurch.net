@@ -429,7 +429,9 @@ export async function POST(request:Request) {
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;
   const requestedStart=Number(explicitStart??cursor?.value??"0");
   const start=Number.isInteger(requestedStart)&&requestedStart>=0?requestedStart:0;
-  const batch=sources.slice(start,start+20);
+  const requestedLimit=Number(new URL(request.url).searchParams.get("limit")??"20");
+  const limit=Number.isInteger(requestedLimit)&&requestedLimit>0?Math.min(requestedLimit,20):20;
+  const batch=sources.slice(start,start+limit);
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
