@@ -336,7 +336,6 @@ export default function Home() {
         <div className="church-radar-actions" aria-label="교회 찾기 방법">
           <label><span aria-hidden="true">◫</span><strong>지역으로 찾기</strong><select id="church-radar-region" aria-label="교회 레이더 지역 선택" value={region} onChange={(event)=>{setRegion(event.target.value);setShowAllChurches(false);}}>{regions.map((item)=><option key={item}>{item}</option>)}</select></label>
           <label><span aria-hidden="true">◇</span><strong>교단으로 찾기</strong><select aria-label="교회 레이더 교단 선택" value={denomination} onChange={(event)=>{setDenomination(event.target.value);setShowAllChurches(false);}}>{denominationOptions.map((item)=><option key={item}>{item}</option>)}</select></label>
-          <button type="button" onClick={()=>document.querySelector<HTMLInputElement>("#church-directory-search-input")?.focus()}><span aria-hidden="true">⌕</span><strong>교회·목사님 검색</strong><small>이름을 바로 입력해 찾기</small></button>
         </div>
         <div className="church-directory-search" role="search">
           <label className="sr-only" htmlFor="church-directory-search-input">등록교회 검색</label>
