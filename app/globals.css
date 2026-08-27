@@ -192,3 +192,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-manage-list{max-height:none;overflow:visible}
 .admin-reference-missing{display:inline-block;margin-top:8px;padding:7px 10px;border-radius:8px;background:#eef4f0;color:var(--muted);font-size:12px!important;font-weight:700}
 .admin-church-info-edit{margin-top:12px}
+.analytics-grid{grid-template-columns:1fr}
+.analytics-grid .analytics-wide{grid-column:1/-1}
+.analytics-grid .traffic-chart.is-dense{justify-content:stretch;overflow:visible}
+.analytics-grid .traffic-chart.is-dense .traffic-day{flex:1;min-width:0}

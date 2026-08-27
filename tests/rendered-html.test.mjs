@@ -119,7 +119,7 @@ test("reports live traffic safely and plays videos in place", async () => {
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
     readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
   ]);
-  for(const label of ["현재 접속자","시간별 방문","일별 방문","월별 방문"]) assert.match(admin,new RegExp(label));
+  for(const label of ["현재 접속자","시간별 방문","날짜별 방문","월별 방문"]) assert.match(admin,new RegExp(label));
   assert.match(admin,/last_seen >= datetime\('now','-5 minutes'\)/);
   assert.match(tracker,/setInterval\(reportActivity, 120_000\)/);
   assert.match(analytics,/INSERT INTO visitor_activity/);
@@ -188,6 +188,7 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/ChurchReferenceLinks/);
   assert.match(admin,/ChurchInfoEditControls/);
   assert.match(admin,/initialLimit=\{20\}/);
+  assert.equal((admin.match(/initialLimit=\{20\}/g)??[]).length,2);
   assert.match(admin,/data-admin-preview/);
   assert.match(admin,/church_homepage_url/);
   assert.match(admin,/church_youtube_channel_id/);
@@ -224,6 +225,10 @@ test("gives pastors a searchable request desk and administrators a focused decis
   assert.match(admin,/ChurchRequestResolution/);
   assert.doesNotMatch(admin,/목회자 미검토/);
   assert.doesNotMatch(admin,/수집 영상 긴급 관리/);
+  assert.doesNotMatch(admin,/인기 페이지/);
+  assert.match(admin,/최근 14일/);
+  assert.match(admin,/WITH RECURSIVE dates/);
+  assert.match(admin,/빠진 날짜 없이/);
   assert.match(admin,/LIMIT 2000/);
   assert.match(requestResolution,/그대로 승인/);
   assert.match(requestResolution,/>반려</);
