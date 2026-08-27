@@ -185,6 +185,8 @@ test("supports multiple approved church reviewer accounts", async () => {
   assert.match(admin,/href="\/pastor">목사님 페이지/);
   assert.match(admin,/목사님 요청 결정/);
   assert.match(admin,/ChurchRequestResolution/);
+  assert.match(admin,/문제가 제보된 교회/);
+  assert.match(admin,/ReviewerResolutionControls/);
   const review=await readFile(new URL("../app/pastor/page.tsx",import.meta.url),"utf8");
   assert.match(review,/href="\/admin">전체 관리/);
 });
