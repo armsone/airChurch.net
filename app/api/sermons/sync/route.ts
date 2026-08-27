@@ -1,8 +1,9 @@
 import { env } from "cloudflare:workers";
 import { database, ensureSermonTables } from "../../_shared";
 import { isSermonTitle } from "../_selection";
+import { hapdongSources } from "../hapdong-sources";
 
-type SourceBase={name:string;pastor:string;region:string;denomination:string;verifiedSermonFeed?:boolean};
+type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
 
 const heldSources:SourceBase[]=[
@@ -413,6 +414,7 @@ const sources:Source[]=[
   {name:"지구촌교회",pastor:"홍성신 목사",region:"경남 창원",denomination:"대한예수교장로회 통합",channelId:"UCdINTfeQhfG_lcV44PDSDLA"},
   {name:"광림교회",pastor:"이병효 목사",region:"광주 북",denomination:"대한예수교장로회 통합",channelId:"UCHYRdCf2DdPve2f0be8kDuQ"},
   {name:"밀알교회",pastor:"권하원 목사",region:"대전 대덕",denomination:"대한예수교장로회 통합",channelId:"UCdnOXASDGvrgt5B8h6NqS0g"},
+  ...hapdongSources,
 ];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -462,10 +464,10 @@ export async function POST(request:Request) {
     const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=?").bind(source.name,source.region).first<{id:number}>();
     let churchId:number;
     if(existing) {
-      await db.prepare("UPDATE churches SET pastor=?,denomination=?,youtube_channel_id=?,channel_image_url=?,review_status=CASE WHEN youtube_channel_id IS NULL THEN 'approved' ELSE review_status END WHERE id=?").bind(source.pastor,source.denomination,found.id,channelImageUrl,existing.id).run();
+      await db.prepare("UPDATE churches SET pastor=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.pastor,source.denomination,found.id,channelImageUrl,source.homepage??null,existing.id).run();
       churchId=existing.id;
     } else {
-      const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,review_status) VALUES (?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl).run();
+      const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,homepage_url,review_status) VALUES (?,?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null).run();
       churchId=Number(inserted.meta.last_row_id);
     }
     verified++;
