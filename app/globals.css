@@ -299,16 +299,21 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 /* Admin-only pencil editor sits immediately left of the denomination mark. */
 .managed-church-card,.church-directory-grid>article{position:relative}
 .has-admin-edit .managed-church-card-top>div,.has-admin-edit .managed-church-card-top>span:last-child{gap:44px}
-.admin-church-info-edit.is-icon-editor{margin:0!important;padding:0!important;border:0!important}
-.admin-church-info-edit.is-icon-editor>summary{position:absolute;z-index:2;top:14px;right:50px;width:36px;height:36px;min-height:36px!important;padding:0!important;display:grid!important;place-items:center;border:1px solid #bfd0c7!important;border-radius:10px!important;background:white!important;color:#496b5c!important;list-style:none;box-shadow:0 3px 10px rgba(24,54,47,.06);cursor:pointer}
-.admin-church-info-edit.is-icon-editor>summary::-webkit-details-marker{display:none}
-.admin-church-info-edit.is-icon-editor>summary span{margin:0!important;color:inherit!important;font-size:20px!important;line-height:1!important;transform:translateY(-1px)}
-.admin-church-info-edit.is-icon-editor>summary:hover{border-color:var(--ink)!important;background:#edf4ef!important}
-.admin-church-info-edit.is-icon-editor[open]>summary{border-color:var(--ink)!important;background:var(--ink)!important;color:white!important}
-.admin-church-info-edit.is-icon-editor[open]{margin-top:14px!important;padding-top:12px!important;border-top:1px solid #e3e8e5!important}
-.admin-church-info-edit.is-icon-editor .admin-edit-form{margin-top:0}
-.admin-management-grid .admin-church-info-edit.is-icon-editor>summary{top:18px;right:32px}
-.admin-management-grid .admin-church-info-edit.is-icon-editor[open]{margin-top:12px!important}
-.pastor-search-results .admin-church-info-edit.is-icon-editor>summary{top:14px;right:48px}
-.pastor-search-results .admin-church-info-edit.is-icon-editor[open]{margin:0 16px 14px!important}
-.church-directory-grid .admin-church-info-edit.is-icon-editor>summary{top:14px;right:50px}
+.admin-church-details.is-icon-editor{margin:0!important;padding:0!important;border:0!important}
+.admin-church-details.is-icon-editor>summary{position:absolute;z-index:2;top:14px;right:50px;width:36px;height:36px;min-height:36px!important;padding:0!important;display:grid!important;place-items:center;border:1px solid #bfd0c7!important;border-radius:10px!important;background:white!important;color:#496b5c!important;list-style:none;box-shadow:0 3px 10px rgba(24,54,47,.06);cursor:pointer}
+.admin-church-details.is-icon-editor>summary::-webkit-details-marker{display:none}
+.admin-church-details.is-icon-editor>summary span{margin:0!important;color:inherit!important;font-size:20px!important;line-height:1!important;transform:translateY(-1px)}
+.admin-church-details.is-icon-editor>summary:hover{border-color:var(--ink)!important;background:#edf4ef!important}
+.admin-church-details.is-icon-editor[open]>summary{border-color:var(--ink)!important;background:var(--ink)!important;color:white!important}
+.admin-church-details.is-icon-editor[open]{margin-top:14px!important;padding-top:12px!important;border-top:1px solid #e3e8e5!important}
+.admin-church-details.is-icon-editor .admin-edit-form{margin-top:0}
+.admin-management-grid .admin-church-details.is-icon-editor>summary{top:18px;right:32px}
+.admin-management-grid .admin-church-details.is-icon-editor[open]{margin-top:12px!important}
+.pastor-search-results .admin-church-details.is-icon-editor>summary{top:14px;right:48px}
+.pastor-search-results .admin-church-details.is-icon-editor[open]{margin:0 16px 14px!important}
+.church-directory-grid .admin-church-details.is-icon-editor>summary{top:14px;right:50px}
+.church-directory-grid .admin-church-details.is-icon-editor .admin-edit-fields,.church-directory-grid .admin-church-details.is-icon-editor .admin-preference-fields{grid-template-columns:1fr}
+.pastor-search-results .admin-church-details.is-icon-editor .admin-edit-fields,.pastor-search-results .admin-church-details.is-icon-editor .admin-preference-fields{grid-template-columns:1fr}
+.pastor-church-hold-summary{margin:0 16px 12px;padding:9px 11px;border-radius:9px;background:#fff5f0;color:#8d5c49;line-height:1.5}
+.pastor-church-hold-summary b,.pastor-church-hold-summary span{font-size:12px!important}
+.pastor-church-hold-summary span{display:block;margin-top:2px;color:#806f67;font-weight:500}
