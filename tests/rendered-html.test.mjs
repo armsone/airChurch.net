@@ -385,4 +385,6 @@ test("links church directory cards to verified homepages and official YouTube ch
   assert.match(styles,/\.church-directory-meta \{/);
   assert.match(styles,/\.church-primary-link:hover/);
   assert.match(styles,/\.homepage-visual img/);
+  assert.match(page,/className="church-denomination-badge"/);
+  assert.match(styles,/\.church-denomination-badge \{/);
 });
