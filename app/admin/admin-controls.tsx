@@ -273,7 +273,7 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
         ? <button disabled={busy} className="restore" type="button" onClick={() => void runBatch("approved")}>노출</button>
         : <button disabled={busy} type="button" onClick={() => void runBatch("removed")}>보류</button>}
       <button disabled={busy} className="danger" type="button" onClick={() => void runBatch("deleted")}>삭제</button>
-      {variant === "held" && <button disabled={busy} type="button" onClick={selectAllVisible}>전체 선택</button>}
+      <button disabled={busy} type="button" onClick={selectAllVisible}>전체 선택</button>
       <button disabled={busy} type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
       {error && <span className="admin-error" role="alert">{error}</span>}
     </div>}
