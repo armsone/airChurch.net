@@ -1,5 +1,5 @@
 import { hasAdminAccess } from "../admin-access";
-import { AdminChurchCard, ChurchControls, ChurchInfoEditControls, ReviewControls, ReviewerAccountControls } from "./admin-controls";
+import { AdminChurchList, ChurchControls, ChurchInfoEditControls, ReviewControls, ReviewerAccountControls } from "./admin-controls";
 import AdminLogin from "./admin-login";
 import AdminListSearch from "./admin-list-search";
 import AdminLiveRefresh from "./admin-live-refresh";
@@ -98,8 +98,8 @@ export default async function AdminPage() {
     </section>
 
     <section className="admin-management-grid">
-      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시합니다. 검색하면 전체 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{publicChurchRows.length}곳</span></div><AdminListSearch targetId="public-church-list" total={publicChurchRows.length} label="공개 교회 검색" placeholder="교회명, 목사님, 지역, 교단 검색" initialLimit={20}/><div className="admin-manage-list" id="public-church-list">{publicChurchRows.length ? publicChurchRows.map((church) => <AdminChurchCard key={church.id} church={church} preview={publicPreviewIds.has(church.id)}/>) : <p className="admin-empty">공개 중인 교회가 없습니다.</p>}</div></article>
-      <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시합니다. 검색하면 전체 보류 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{heldChurchRows.length}곳</span></div><AdminListSearch targetId="held-church-list" total={heldChurchRows.length} label="보류 교회 검색" placeholder="교회명, 목사님, 지역, 보류 메모 검색" initialLimit={10}/><div className="admin-manage-list" id="held-church-list">{heldChurchRows.length ? heldChurchRows.map((church) => <AdminChurchCard key={church.id} church={church} preview={heldPreviewIds.has(church.id)} isHeld/>) : <p className="admin-empty">보류된 교회가 없습니다.</p>}</div></article>
+      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시합니다. 검색하면 전체 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{publicChurchRows.length}곳</span></div><AdminListSearch targetId="public-church-list" total={publicChurchRows.length} label="공개 교회 검색" placeholder="교회명, 목사님, 지역, 교단 검색" initialLimit={20}/><div className="admin-manage-list" id="public-church-list">{publicChurchRows.length ? <AdminChurchList churches={publicChurchRows} previewIds={[...publicPreviewIds]} variant="public"/> : <p className="admin-empty">공개 중인 교회가 없습니다.</p>}</div></article>
+      <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시합니다. 검색하면 전체 보류 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{heldChurchRows.length}곳</span></div><AdminListSearch targetId="held-church-list" total={heldChurchRows.length} label="보류 교회 검색" placeholder="교회명, 목사님, 지역, 보류 메모 검색" initialLimit={10}/><div className="admin-manage-list" id="held-church-list">{heldChurchRows.length ? <AdminChurchList churches={heldChurchRows} previewIds={[...heldPreviewIds]} variant="held"/> : <p className="admin-empty">보류된 교회가 없습니다.</p>}</div></article>
     </section>
 
     <section className="admin-review-grid">

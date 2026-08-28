@@ -58,7 +58,7 @@ export type AdminChurchItem = {
   channelImageUrl?: string | null;
 };
 
-export function AdminChurchCard({ church, preview, isHeld = false }: { church: AdminChurchItem; preview: boolean; isHeld?: boolean }) {
+export function AdminChurchCard({ church, preview, isHeld = false, selected = false, onToggleSelected }: { church: AdminChurchItem; preview: boolean; isHeld?: boolean; selected?: boolean; onToggleSelected?: (id: number, checked: boolean) => void }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const status = church.review_status ?? church.status ?? (isHeld ? "removed" : "approved");
   const holdReasonValue = church.hold_reason ?? church.holdReason ?? null;
@@ -116,7 +116,10 @@ export function AdminChurchCard({ church, preview, isHeld = false }: { church: A
   const publicCardContent = (
     <>
       <div className="church-directory-top">
-        <span>{church.region}</span>
+        <div className="admin-church-region-select">
+          {onToggleSelected && <label className="admin-card-select"><input type="checkbox" checked={selected} onChange={(event) => onToggleSelected(church.id, event.target.checked)} aria-label={`${church.name} 선택`} /></label>}
+          <span>{church.region}</span>
+        </div>
         {mark && <img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
       </div>
       <h3>{churchPrimaryUrl ? <a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a> : church.name}</h3>
@@ -187,7 +190,7 @@ export function AdminChurchCard({ church, preview, isHeld = false }: { church: A
 
   if (isHeld) {
     return (
-      <article className="managed-church-card admin-directory-card is-held-card" key={church.id} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
+      <article className="managed-church-card admin-directory-card is-held-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
         <div className="admin-held-card-body">
           <div className="admin-held-card-public" onClick={handleCardClick}>
             {publicCardContent}
@@ -210,11 +213,65 @@ export function AdminChurchCard({ church, preview, isHeld = false }: { church: A
   }
 
   return (
-    <article className="managed-church-card admin-directory-card" key={church.id} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview} onClick={handleCardClick}>
+    <article className="managed-church-card admin-directory-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview} onClick={handleCardClick}>
       {publicCardContent}
       {editForm}
     </article>
   );
+}
+
+export function AdminChurchList({ churches, previewIds, variant }: { churches: AdminChurchItem[]; previewIds: number[]; variant: "public" | "held" }) {
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const preview = new Set(previewIds);
+
+  function toggleSelected(id: number, checked: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+
+  async function runBatch(status: "approved" | "removed" | "deleted") {
+    const ids = [...selected];
+    if (!ids.length) return;
+    const message = status === "removed"
+      ? `선택한 ${ids.length}곳을 보류할까요? 관련 말씀과 찬양도 함께 숨겨집니다.`
+      : status === "deleted"
+        ? `선택한 ${ids.length}곳을 삭제할까요? 관련 말씀과 찬양도 즉시 숨겨집니다.`
+        : `선택한 ${ids.length}곳을 노출할까요? 숨겨진 설교는 자동 공개되지 않습니다.`;
+    if (!window.confirm(message)) return;
+    setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/admin/manage", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "church-batch", ids, status }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string; updated?: number[]; failed?: number[] };
+      if (!response.ok) throw new Error(result.error || "처리하지 못했습니다.");
+      if (result.failed?.length) window.alert(`${result.updated?.length ?? 0}곳을 처리했고, ${result.failed.length}곳은 이미 상태가 바뀌어 제외했습니다.`);
+      window.location.reload();
+    } catch (reason) {
+      setError((reason as Error).message);
+      setBusy(false);
+    }
+  }
+
+  return <>
+    {selected.size > 0 && <div className="admin-batch-bar" role="toolbar" aria-label="선택한 교회 일괄 처리">
+      <strong>{selected.size}곳 선택</strong>
+      {variant === "held"
+        ? <button disabled={busy} className="restore" type="button" onClick={() => void runBatch("approved")}>노출</button>
+        : <button disabled={busy} type="button" onClick={() => void runBatch("removed")}>보류</button>}
+      <button disabled={busy} className="danger" type="button" onClick={() => void runBatch("deleted")}>삭제</button>
+      <button disabled={busy} type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
+      {error && <span className="admin-error" role="alert">{error}</span>}
+    </div>}
+    {churches.map((church) => <AdminChurchCard key={church.id} church={church} preview={preview.has(church.id)} isHeld={variant === "held"} selected={selected.has(church.id)} onToggleSelected={toggleSelected} />)}
+  </>;
 }
 
 export function ChurchControls(props: { id: number; name: string; pastor: string; region: string; denomination: string; status: string; holdReason: string | null; holdNote: string | null; heldAt: string | null; priorityWeight: number; iconOnly?:boolean; markTrigger?:{src:string|null;alt:string}; cardTrigger?:ReactNode; overlayTrigger?:boolean; heldQuickActions?:boolean }) {

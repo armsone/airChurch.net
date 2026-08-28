@@ -16,12 +16,34 @@ export async function PATCH(request: Request) {
   const id = Number(data.id);
   const kind = clean(data.kind, 40);
   if(role==="reviewer"&&kind!=="church-change-request") return Response.json({error:"교회 정보 요청 권한만 사용할 수 있습니다."},{status:403});
-  if (!Number.isInteger(id) || id < 1) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
+  if (kind !== "church-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
   await Promise.all([ensureCommunityTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 
-  if(kind==="reviewer-account") {
+  if(kind==="church-batch") {
+    if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});
+    const status=clean(data.status,20);
+    if(!["approved","removed","deleted"].includes(status)) return Response.json({error:"상태를 확인해 주세요."},{status:400});
+    const suppliedIds=Array.isArray(data.ids)?data.ids:[];
+    const ids=[...new Set(suppliedIds.map(Number).filter((value)=>Number.isInteger(value)&&value>0))];
+    if(!ids.length) return Response.json({error:"선택한 교회를 확인해 주세요."},{status:400});
+    if(ids.length>500) return Response.json({error:"한 번에 500곳까지 처리할 수 있습니다."},{status:400});
+    const statements=ids.map((churchId)=>status==="removed"
+      ?db.prepare("UPDATE churches SET review_status='removed',hold_reason='review_needed',hold_note='관리자 일괄 보류',held_at=CURRENT_TIMESTAMP WHERE id=? AND review_status='approved'").bind(churchId)
+      :status==="approved"
+        ?db.prepare("UPDATE churches SET review_status='approved' WHERE id=? AND review_status='removed'").bind(churchId)
+        :db.prepare("UPDATE churches SET review_status='deleted' WHERE id=? AND review_status IN ('approved','removed')").bind(churchId));
+    const results=await db.batch(statements),updated:number[]=[],failed:number[]=[];
+    ids.forEach((churchId,index)=>(Number(results[index]?.meta?.changes??0)===1?updated:failed).push(churchId));
+    if(updated.length&&(status==="removed"||status==="deleted")) {
+      for(let offset=0;offset<updated.length;offset+=80) {
+        const chunk=updated.slice(offset,offset+80),placeholders=chunk.map(()=>"?").join(",");
+        await db.batch([db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk)]);
+      }
+    }
+    return Response.json({ok:true,updated,failed},{headers:{"cache-control":"no-store"}});
+  } else if(kind==="reviewer-account") {
     if(role!=="admin") return Response.json({error:"관리자만 검토자 계정을 관리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);
     if(status==="deleted") {
