@@ -46,6 +46,7 @@ async function seedHeldSources(db:D1Database) {
 }
 
 const sources:Source[]=[
+  {name:"더작은교회",pastor:"전영준 목사",region:"인천 계양",denomination:"기독교대한성결교회",channelId:"UCp1lD5gI8JRKZurlAPRSHiw",homepage:"https://cafe.daum.net/the-sc"},
   {name:"구파발교회",pastor:"김춘곤 목사",region:"서울 은평",denomination:"대한예수교장로회 통합",channelId:"UCzLn1mDAnao7GAXfYL5Ze2A"},
   {name:"개봉교회",pastor:"노창영 목사",region:"서울 구로",denomination:"대한예수교장로회 통합",channelId:"UCfttSAr79s5vyYiBstgDUfg"},
   {name:"문창교회",pastor:"성종근 목사",region:"대전 중구",denomination:"대한예수교장로회 통합",channelId:"UClDQSCD3ZOaJy4sLIX1iXGw"},
