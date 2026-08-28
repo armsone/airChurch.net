@@ -12,4 +12,5 @@ export const publicRemainingSources = [
   {name:"물가에심은나무교회",pastor:"김은엽 목사",region:"경기",denomination:"대한기독교나사렛성결회",channelId:"UCdPg8j2s0ZQ5VPCYfJQqqiw"},
   {name:"행복나누리교회",pastor:"윤기철 목사",region:"충남",denomination:"대한기독교나사렛성결회",channelId:"UC41Phti_5ZDua4iqHd5dd2Q"},
   {name:"광주감리교회",pastor:"최종호 감독",region:"경기 광주",denomination:"기독교대한감리회",channelId:"UC4gQIstDzDhQvbYK4I7cOEQ",homepage:"https://gjmc.kr/"},
+  {name:"운정참존교회",pastor:"고병찬 목사",region:"경기 파주",denomination:"대한예수교장로회",channelId:"UCkOkgVhksDPR3vdCjflq2aQ",homepage:"http://www.czch.org/"},
 ] as const;
