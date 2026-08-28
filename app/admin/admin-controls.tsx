@@ -234,6 +234,12 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
     });
   }
 
+  function selectAllVisible() {
+    const targetId = variant === "held" ? "held-church-list" : "public-church-list";
+    const cards = document.getElementById(targetId)?.querySelectorAll<HTMLElement>("[data-admin-id]") ?? [];
+    setSelected(new Set([...cards].filter((card) => !card.hidden).map((card) => Number(card.dataset.adminId)).filter(Number.isInteger)));
+  }
+
   async function runBatch(status: "approved" | "removed" | "deleted") {
     const ids = [...selected];
     if (!ids.length) return;
@@ -267,6 +273,7 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
         ? <button disabled={busy} className="restore" type="button" onClick={() => void runBatch("approved")}>노출</button>
         : <button disabled={busy} type="button" onClick={() => void runBatch("removed")}>보류</button>}
       <button disabled={busy} className="danger" type="button" onClick={() => void runBatch("deleted")}>삭제</button>
+      {variant === "public" && <button disabled={busy} type="button" onClick={selectAllVisible}>전체 선택</button>}
       <button disabled={busy} type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
       {error && <span className="admin-error" role="alert">{error}</span>}
     </div>}
