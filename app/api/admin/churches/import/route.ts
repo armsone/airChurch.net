@@ -34,7 +34,8 @@ export async function POST(request:Request) {
     const recent=((await playlistResponse.json()) as PlaylistResponse).items?.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isSermonTitle(item.snippet.title))??[];
     if(!recent.length){skipped.push({name:source.name,reason:"no_recent_sermon"});continue;}
     const image=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
-    const existing=await db.prepare("SELECT id FROM churches WHERE youtube_channel_id=? OR (name=? AND region=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1").bind(found.id,source.name,source.region,found.id).first<{id:number}>();
+    const existing=await db.prepare("SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (name=? AND region=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1").bind(found.id,source.name,source.region,found.id).first<{id:number;review_status:string}>();
+    if(existing?.review_status==="deleted"){skipped.push({name:source.name,reason:"deleted_by_admin"});continue;}
     let churchId:number;
     if(existing){await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,image,source.homepage||null,existing.id).run();churchId=existing.id;}
     else {const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,homepage_url,review_status) VALUES (?,?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,image,source.homepage||null).run();churchId=Number(inserted.meta.last_row_id);}
