@@ -328,6 +328,10 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-church-details>summary{display:none}
 .admin-management-grid .admin-directory-card .admin-church-details[open]{margin-top:14px;padding-top:12px;border-top:1px solid #e3e8e5}
 .admin-management-grid .admin-directory-card .admin-church-details .admin-edit-form{margin-top:0}
+.admin-management-grid .admin-directory-card .admin-edit-fields,.admin-management-grid .admin-directory-card .admin-preference-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.admin-management-grid .admin-directory-card .admin-preference-fields>label{min-width:0}
+.admin-management-grid .admin-directory-card .admin-action-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.admin-management-grid .admin-directory-card .admin-action-row button{width:100%;justify-content:center;text-align:center;white-space:nowrap}
 
 #church-hold .admin-manage-list{grid-template-columns:1fr}
 .admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}
@@ -343,5 +347,5 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-directory-hold-actions button.danger{border-color:#e3b7a7;color:#a34e35;background:#fff9f6}
 .admin-directory-hold-actions button:not(:disabled):hover{background:#f4f8f5;border-color:#b0c6bb}
 .admin-directory-hold-actions button.danger:not(:disabled):hover{background:#ffede6;border-color:#d89e8b}
-@media (max-width:1180px){.admin-management-grid .admin-manage-list{grid-template-columns:1fr}}
-@media (max-width:760px){.admin-management-grid .admin-manage-list>article.admin-directory-card{height:auto;min-height:114px}.is-held-card .admin-held-card-body{height:auto;grid-template-columns:1fr;gap:12px}.admin-directory-hold-panel{height:auto;margin:8px -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
+@media (max-width:1180px){.admin-management-grid{grid-template-columns:1fr}.admin-management-grid .admin-manage-list{grid-template-columns:1fr}}
+@media (max-width:760px){.admin-management-grid .admin-manage-list>article.admin-directory-card{height:auto;min-height:114px}.admin-management-grid .admin-directory-card .admin-edit-fields,.admin-management-grid .admin-directory-card .admin-preference-fields{grid-template-columns:1fr}.is-held-card .admin-held-card-body{height:auto;grid-template-columns:1fr;gap:12px}.admin-directory-hold-panel{height:auto;margin:8px -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
