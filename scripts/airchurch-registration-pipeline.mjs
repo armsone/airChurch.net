@@ -3,30 +3,61 @@
 import { spawn } from "node:child_process";
 import { mkdir, readFile, rename, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { CATALOG, CATALOG_BY_ID, EXECUTABLE_IDS, buildCatalogPayload } from "./airchurch-denomination-catalog.mjs";
 
 const ROOT=process.cwd();
 const WORK=path.join(ROOT,"out","desktop-registration");
 const DIRECTORY=path.join(WORK,"directory.json");
 const VALIDATED=path.join(WORK,"validated.json");
 const REVIEW=path.join(WORK,"review.json");
-const IDS=new Set(["tonghap","kmc","salvation"]);
-const DENOMINATIONS={tonghap:"대한예수교장로회 통합",kmc:"기독교대한감리회",salvation:"구세군대한본영"};
+const IDS=new Set(EXECUTABLE_IDS);
+const DENOMINATIONS=Object.fromEntries(CATALOG.map((item)=>[item.id,item.name]));
 
 function progress(stage,current,total,message){console.log(`PROGRESS|${stage}|${current}|${total}|${message}`);}
 async function exists(file){try{await stat(file);return true;}catch{return false;}}
 async function json(file,fallback=null){try{return JSON.parse(await readFile(file,"utf8"));}catch{return fallback;}}
 function run(command,args,{quiet=false}={}){return new Promise((resolve,reject)=>{const child=spawn(command,args,{cwd:ROOT,stdio:["ignore",quiet?"ignore":"inherit",quiet?"ignore":"inherit"]});child.on("error",reject);child.on("exit",(code)=>code===0?resolve():reject(new Error(`${command} 종료 코드 ${code}`)));});}
-function selected(raw){const ids=String(raw||"tonghap,kmc,salvation").split(",").map((v)=>v.trim()).filter((v)=>IDS.has(v));if(!ids.length)throw new Error("교단을 하나 이상 선택하세요.");return ids;}
+function selected(raw){const ids=String(raw||EXECUTABLE_IDS.join(",")).split(",").map((v)=>v.trim()).filter((v)=>IDS.has(v));if(!ids.length)throw new Error("교단을 하나 이상 선택하세요.");return ids;}
 
 async function reset(){
   if(await exists(WORK)){const target=path.join(ROOT,"out",`desktop-registration-${new Date().toISOString().replaceAll(":","-")}`);await rename(WORK,target);console.log(`이전 작업 보관: ${target}`);}
   await mkdir(WORK,{recursive:true});progress("reset",1,1,"새 작업을 시작할 준비가 됐습니다.");
 }
 
+const GROUP_RUNNERS={
+  remaining: (ids,tmpOut)=>run("node",["scripts/batch-register-remaining-denominations.mjs","--only",ids.join(","),"--output",tmpOut,"--checkpoint",`${tmpOut}.checkpoint.json`,"--report",`${tmpOut}.report.json`,"--resume"]),
+  five: (ids,tmpOut)=>run("node",["scripts/collect-five-denomination-directories.mjs","--only",ids.join(","),"--output",tmpOut]),
+  hapdong: (_ids,tmpOut)=>run("node",["scripts/discover-pck-hapdong.mjs","--output",tmpOut]),
+  public: (ids,tmpOut)=>run("node",["scripts/collect-public-remaining-denominations.mjs","--only",ids.join(","),"--output",tmpOut]),
+};
+
+function recordMergeKey(record){return `${record.denomination}::${record.name}::${record.address||record.region||""}`;}
+
+function mergeRecords(existing,incoming){
+  const map=new Map();
+  for(const record of existing) map.set(recordMergeKey(record),record);
+  for(const record of incoming) map.set(recordMergeKey(record),record);
+  return [...map.values()];
+}
+
 async function collect(ids){
   await mkdir(WORK,{recursive:true});progress("collect",0,1,"공식 공개 명부 수집을 시작합니다.");
-  await run("node",["scripts/batch-register-remaining-denominations.mjs","--only",ids.join(","),"--output",DIRECTORY,"--checkpoint",`${DIRECTORY}.checkpoint.json`,"--report",`${DIRECTORY}.report.json`,"--resume"]);
-  const data=await json(DIRECTORY,{records:[]});progress("collect",data.records?.length||0,data.records?.length||1,`공개 명부 ${data.records?.length||0}곳을 수집했습니다.`);
+  const groups=new Map();
+  for(const id of ids){
+    const group=CATALOG_BY_ID[id]?.collectGroup;
+    if(!group) throw new Error(`${DENOMINATIONS[id]||id}는 자동 수집을 지원하지 않습니다.`);
+    if(!groups.has(group)) groups.set(group,[]);
+    groups.get(group).push(id);
+  }
+  let merged=(await json(DIRECTORY,{records:[]})).records||[];
+  for(const [group,groupIds] of groups){
+    const tmpOut=path.join(WORK,`collect-${group}.json`);
+    await GROUP_RUNNERS[group](groupIds,tmpOut);
+    const incoming=(await json(tmpOut,{records:[]})).records||[];
+    merged=mergeRecords(merged,incoming);
+  }
+  await writeFile(DIRECTORY,JSON.stringify({records:merged},null,2)+"\n");
+  progress("collect",merged.length,merged.length||1,`공개 명부 ${merged.length}곳을 수집했습니다.`);
 }
 
 async function registeredKeys(ids){
@@ -73,5 +104,7 @@ async function register(){
 
 async function status(){const directory=await json(DIRECTORY,{records:[]}),validated=await json(VALIDATED,{results:[]}),review=await json(REVIEW,{results:[]}),report=await json(path.join(WORK,"registration-report.json"),{});console.log(JSON.stringify({directory:directory.records?.length||0,verified:validated.results?.length||0,review:review.results?.length||0,registered:report.verified||0,approved:report.approved||0}));}
 
-async function main(){const [command,...rest]=process.argv.slice(2);const only=rest.find((_,index)=>rest[index-1]==="--only");const ids=selected(only);if(command==="reset")return reset();if(command==="collect")return collect(ids);if(command==="discover")return discover(ids);if(command==="validate")return validate();if(command==="register")return register();if(command==="status")return status();throw new Error("사용법: airchurch-registration-pipeline.mjs <reset|collect|discover|validate|register|status> [--only tonghap,kmc,salvation]");}
+async function list(){const payload=await buildCatalogPayload();console.log(JSON.stringify(payload));}
+
+async function main(){const [command,...rest]=process.argv.slice(2);if(command==="list")return list();if(command==="status")return status();const only=rest.find((_,index)=>rest[index-1]==="--only");const ids=selected(only);if(command==="reset")return reset();if(command==="collect")return collect(ids);if(command==="discover")return discover(ids);if(command==="validate")return validate();if(command==="register")return register();throw new Error("사용법: airchurch-registration-pipeline.mjs <list|reset|collect|discover|validate|register|status> [--only <교단id,...>]");}
 main().catch((error)=>{console.error(`ERROR|${error.message}`);process.exitCode=1;});

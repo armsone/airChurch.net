@@ -7,6 +7,7 @@ import { prokSources } from "../prok-sources";
 import { tonghapSources } from "../tonghap-sources";
 import { kmcSources } from "../kmc-sources";
 import { salvationSources } from "../salvation-sources";
+import { publicRemainingSources } from "../public-remaining-sources";
 
 type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
@@ -425,6 +426,7 @@ const sources:Source[]=[
   ...tonghapSources,
   ...kmcSources,
   ...salvationSources,
+  ...publicRemainingSources,
 ];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -434,7 +436,7 @@ export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   const db=database(); await ensureSermonTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
-  const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources} as const;
+  const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
   const scope=requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
   const sourcePool:readonly Source[]=scope==="all"?sources:scopedSources[scope];
   const syncKey=scope==="all"?"youtube-v9-regional-130":`youtube-v9-${scope}`;
