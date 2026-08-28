@@ -234,10 +234,8 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
     });
   }
 
-  function selectAllVisible() {
-    const targetId = variant === "held" ? "held-church-list" : "public-church-list";
-    const cards = document.getElementById(targetId)?.querySelectorAll<HTMLElement>("[data-admin-id]") ?? [];
-    setSelected(new Set([...cards].filter((card) => !card.hidden).map((card) => Number(card.dataset.adminId)).filter(Number.isInteger)));
+  function selectAll() {
+    setSelected(new Set(churches.map((church) => church.id)));
   }
 
   async function runBatch(status: "approved" | "removed" | "deleted") {
@@ -251,14 +249,22 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
     if (!window.confirm(message)) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch("/api/admin/manage", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind: "church-batch", ids, status }),
-      });
-      const result = await response.json().catch(() => ({})) as { error?: string; updated?: number[]; failed?: number[] };
-      if (!response.ok) throw new Error(result.error || "처리하지 못했습니다.");
-      if (result.failed?.length) window.alert(`${result.updated?.length ?? 0}곳을 처리했고, ${result.failed.length}곳은 이미 상태가 바뀌어 제외했습니다.`);
+      let updatedCount = 0, failedCount = 0;
+      for (let offset = 0; offset < ids.length; offset += 500) {
+        const response = await fetch("/api/admin/manage", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ kind: "church-batch", ids: ids.slice(offset, offset + 500), status }),
+        });
+        const result = await response.json().catch(() => ({})) as { error?: string; updated?: number[]; failed?: number[] };
+        if (!response.ok) throw new Error(result.error || "처리하지 못했습니다.");
+        updatedCount += result.updated?.length ?? 0;
+        failedCount += result.failed?.length ?? 0;
+      }
+      const action = status === "removed" ? "보류" : status === "deleted" ? "삭제" : "노출";
+      window.alert(failedCount
+        ? `${updatedCount}곳을 ${action}했고, ${failedCount}곳은 이미 상태가 바뀌어 제외했습니다.`
+        : `${updatedCount}곳을 ${action}했습니다.`);
       window.location.reload();
     } catch (reason) {
       setError((reason as Error).message);
@@ -273,7 +279,7 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
         ? <button disabled={busy} className="restore" type="button" onClick={() => void runBatch("approved")}>노출</button>
         : <button disabled={busy} type="button" onClick={() => void runBatch("removed")}>보류</button>}
       <button disabled={busy} className="danger" type="button" onClick={() => void runBatch("deleted")}>삭제</button>
-      <button disabled={busy} type="button" onClick={selectAllVisible}>전체 선택</button>
+      <button disabled={busy} type="button" onClick={selectAll}>전체 선택</button>
       <button disabled={busy} type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
       {error && <span className="admin-error" role="alert">{error}</span>}
     </div>}
