@@ -234,8 +234,14 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
     });
   }
 
-  function selectAll() {
-    setSelected(new Set(churches.map((church) => church.id)));
+  function selectAllVisible() {
+    const targetId = variant === "held" ? "held-church-list" : "public-church-list";
+    const cards = document.getElementById(targetId)?.querySelectorAll<HTMLElement>("[data-admin-id]") ?? [];
+    const visibleIds = [...cards]
+      .filter((card) => !card.hidden)
+      .map((card) => Number(card.dataset.adminId))
+      .filter(Number.isInteger);
+    setSelected(new Set(visibleIds));
   }
 
   async function runBatch(status: "approved" | "removed" | "deleted") {
@@ -279,7 +285,7 @@ export function AdminChurchList({ churches, previewIds, variant }: { churches: A
         ? <button disabled={busy} className="restore" type="button" onClick={() => void runBatch("approved")}>노출</button>
         : <button disabled={busy} type="button" onClick={() => void runBatch("removed")}>보류</button>}
       <button disabled={busy} className="danger" type="button" onClick={() => void runBatch("deleted")}>삭제</button>
-      <button disabled={busy} type="button" onClick={selectAll}>전체 선택</button>
+      <button disabled={busy} type="button" onClick={selectAllVisible}>화면 전체 선택</button>
       <button disabled={busy} type="button" onClick={() => setSelected(new Set())}>선택 해제</button>
       {error && <span className="admin-error" role="alert">{error}</span>}
     </div>}
