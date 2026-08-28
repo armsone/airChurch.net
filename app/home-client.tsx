@@ -308,9 +308,11 @@ export default function Home() {
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(12);setShowAllChurches(false); }} placeholder="교회명, 목사님, 지역, 교단으로 찾아보세요" />
-          <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(12);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
-          <select className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(12);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
-          <a href="#sermons">찾기</a>
+          <div className="search-filters">
+            <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(12);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
+            <select className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(12);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
+            <a href="#sermons">찾기</a>
+          </div>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
       </section>
