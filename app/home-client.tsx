@@ -343,7 +343,7 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span aria-hidden="true">AI</span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 자동으로 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p>
+        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.png" alt="AI 자동 검증 서비스 아이콘" width={42} height={42} /></span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 자동으로 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p>
           <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
             <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
             <table className="church-radar-sources-table"><caption className="sr-only">자료 확인 기준과 출처</caption>
