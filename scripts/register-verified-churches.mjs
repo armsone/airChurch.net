@@ -16,6 +16,9 @@ const DEFAULT_SOURCES_BY_SCOPE = {
   kmc: "app/api/sermons/kmc-sources.ts",
   salvation: "app/api/sermons/salvation-sources.ts",
   anglican: "app/api/sermons/public-remaining-sources.ts",
+  yehc: "app/api/sermons/public-remaining-sources.ts",
+  nazarene: "app/api/sermons/public-remaining-sources.ts",
+  bokum: "app/api/sermons/public-remaining-sources.ts",
 };
 const DENOMINATION_BY_SCOPE = {
   hapdong: "대한예수교장로회 합동",
@@ -25,8 +28,16 @@ const DENOMINATION_BY_SCOPE = {
   kmc: "기독교대한감리회",
   salvation: "구세군대한본영",
   anglican: "대한성공회",
+  yehc: "예수교대한성결교회",
+  nazarene: "대한기독교나사렛성결회",
+  bokum: "기독교대한복음교회",
 };
-const SYNC_SCOPE_BY_SCOPE = { anglican: "public_remaining" };
+const SYNC_SCOPE_BY_SCOPE = {
+  anglican: "public_remaining",
+  yehc: "public_remaining",
+  nazarene: "public_remaining",
+  bokum: "public_remaining",
+};
 const DEFAULT_SCOPE = "hapdong";
 const DEFAULT_SITE = "https://airchurch.net";
 const CHANNEL_ID = /^UC[\w-]{20,}$/;
@@ -46,7 +57,7 @@ function help() {
    node scripts/register-verified-churches.mjs --scope prok --sync --start <기존 기장 수> --count <추가 수>
 
 옵션:
-  --scope <hapdong|kosin|prok|tonghap|kmc|salvation|anglican>  대상 교단 (기본: ${DEFAULT_SCOPE})
+  --scope <hapdong|kosin|prok|tonghap|kmc|salvation|anglican|yehc|nazarene|bokum>  대상 교단 (기본: ${DEFAULT_SCOPE})
   --input <file>     검증 결과 JSON
   --sources <file>   교단 소스 파일 (기본: scope별 기본 소스 파일)
   --prepare          승인 항목을 소스에 병합
@@ -96,7 +107,7 @@ function isApproved(record) {
 function detailedRegion(record) {
   const base=String(record.region||"").trim();
   const address=String(record.address||"").trim()
-    .replace(/^서울특별시\s+/,"서울 ").replace(/^부산광역시\s+/,"부산 ")
+    .replace(/^(?:서울특별시|서울시)\s+/,"서울 ").replace(/^(?:부산광역시|부산시)\s+/,"부산 ")
     .replace(/^대구광역시\s+/,"대구 ").replace(/^인천광역시\s+/,"인천 ")
     .replace(/^광주광역시\s+/,"광주 ").replace(/^대전광역시\s+/,"대전 ")
     .replace(/^울산광역시\s+/,"울산 ").replace(/^경기도\s+/,"경기 ")
