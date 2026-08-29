@@ -13,4 +13,7 @@ export const publicRemainingSources = [
   {name:"행복나누리교회",pastor:"윤기철 목사",region:"충남",denomination:"대한기독교나사렛성결회",channelId:"UC41Phti_5ZDua4iqHd5dd2Q"},
   {name:"광주감리교회",pastor:"최종호 감독",region:"경기 광주",denomination:"기독교대한감리회",channelId:"UC4gQIstDzDhQvbYK4I7cOEQ",homepage:"https://gjmc.kr/"},
   {name:"운정참존교회",pastor:"고병찬 목사",region:"경기 파주",denomination:"대한예수교장로회",channelId:"UCkOkgVhksDPR3vdCjflq2aQ",homepage:"http://www.czch.org/"},
+  {name:"서울주교좌성당(성모 마리아와 성 니콜라)",pastor:"김장환 주교",region:"서울 중구",denomination:"대한성공회",channelId:"UCN0jjLjtmHMQan6jHDEf1yw",homepage:"http://www.cathedral.or.kr/"},
+  {name:"동탄교회",pastor:"계성남 신부",region:"경기 화성",denomination:"대한성공회",channelId:"UCIG1HLRIQpbLkq8EPht-BNw"},
+  {name:"수원교회(성스테반)",pastor:"최용준 신부",region:"경기 수원",denomination:"대한성공회",channelId:"UCfBD3JnzLjQ8rffw00dPytw",homepage:"https://www.suwon1904.kr/"},
 ] as const;

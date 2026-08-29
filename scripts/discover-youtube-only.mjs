@@ -266,18 +266,51 @@ function stripTrailingChurchSuffix(normalized) {
   return normalized.endsWith("교회") ? normalized.slice(0, -2) : normalized;
 }
 
+// 성공회 등 일부 교단은 "대한성공회 ○○교회"처럼 조직 접두어를 붙여 채널/영상
+// 텍스트를 표기한다. 이 접두어는 소속을 나타낼 뿐 교회를 특정하지 않으므로
+// 이름 비교 시에만 제거한다(다른 텍스트 비교 용도의 normalizeForCompare에는
+// 영향 없음).
+const CHURCH_ORG_PREFIXES = ["대한성공회"];
+
+function stripChurchOrgPrefix(normalized) {
+  for (const prefix of CHURCH_ORG_PREFIXES) {
+    const normalizedPrefix = normalizeForCompare(prefix);
+    if (normalizedPrefix && normalized.startsWith(normalizedPrefix)) {
+      return normalized.slice(normalizedPrefix.length);
+    }
+  }
+  return normalized;
+}
+
+// 디렉터리 표기의 "동탄교회(성 프란치스코)"처럼 괄호 안 성인명/부제 표기는
+// 선택적 별칭일 뿐이다. 괄호 내용을 통째로 제거한 "기본 교회명"만으로 비교해,
+// 성인명이 우연히 겹친다는 이유만으로 무관한 교회가 매칭되지 않도록 한다.
+function stripParentheticalContent(text) {
+  if (!text) return "";
+  return text.replace(/[（(][^）)]*[）)]/g, "");
+}
+
+function normalizeChurchName(text) {
+  const withoutParens = stripParentheticalContent(text);
+  return stripChurchOrgPrefix(normalizeForCompare(withoutParens));
+}
+
 function namesMatch(a, b) {
-  const na = normalizeForCompare(a);
-  const nb = normalizeForCompare(b);
+  const na = normalizeChurchName(a);
+  const nb = normalizeChurchName(b);
   if (!na || !nb) return false;
   if (na === nb) return true;
   return stripTrailingChurchSuffix(na) === stripTrailingChurchSuffix(nb) &&
     stripTrailingChurchSuffix(na).length > 0;
 }
 
+// 디렉터리의 "김장환 주교"/"계성남 신부"에서 인명만 추출한다. 영상 제목은
+// "김장환 엘리야 주교"처럼 인명과 직함 사이에 세례명이 끼어들 수 있으므로,
+// 대상 인명 자체가 부분 문자열로 포함되는지만 확인하면 되도록 직함(목사/
+// 신부/사제/주교)만 잘라낸다.
 function stripPastorSuffix(pastor) {
   if (!pastor) return "";
-  return pastor.replace(/\s*목사\s*$/, "").trim();
+  return pastor.replace(/\s*(?:담임)?(?:목사|신부|사제|주교)\s*$/, "").trim();
 }
 
 // ---------------------------------------------------------------------------
@@ -466,8 +499,11 @@ function isSermonLikeTitle(title) {
 // 목사명/부서 채널/지역 충돌 판별 (보수적)
 // ---------------------------------------------------------------------------
 
-// "목사"/"담임목사" 앞의 2~4음절 한글 토큰을 이름 후보로 추출한다. 직함·부서를
-// 가리키는 일반 어휘는 이름이 아니므로 노이즈 목록으로 걸러낸다.
+// "목사"/"담임목사"/"신부"/"사제"/"주교" 앞의 2~4음절 한글 토큰을 이름
+// 후보로 추출한다. 직함·부서를 가리키는 일반 어휘는 이름이 아니므로 노이즈
+// 목록으로 걸러낸다. 성공회 등에서는 인명과 직함 사이에 "엘리야"/"바우로"
+// 같은 세례명이 끼어들 수 있어(예: "계성남 바우로 사제"), 직함 직전의
+// 2~6음절 토큰 하나를 세례명 노이즈로 선택적으로 허용한다.
 const PASTOR_ROLE_NOISE_WORDS = new Set([
   "담임", "위임", "원로", "협동", "전도", "심방", "행정", "선교", "교육",
   "수석", "부", "청년부", "교구", "당회장", "시무", "동사", "찬양", "미디어",
@@ -476,7 +512,7 @@ const PASTOR_ROLE_NOISE_WORDS = new Set([
 function extractPastorNameCandidates(text) {
   if (!text) return [];
   const names = new Set();
-  const regex = /([가-힣]{2,4})\s*(?:담임)?목사/g;
+  const regex = /([가-힣]{2,4})\s*(?:[가-힣]{2,6}\s+)?(?:담임)?(?:목사|신부|사제|주교)/g;
   let match;
   while ((match = regex.exec(text)) !== null) {
     const candidate = match[1].trim();
@@ -540,7 +576,8 @@ function detectDepartmentChannel(channelTitle, videos) {
 }
 
 // 대상 지역과 뚜렷이 구분되는 타 시/구/동 지명 토큰. 보수적으로 유지하기
-// 위해, 대상 region 문자열에 포함된 토큰과 겹치면 충돌로 취급하지 않는다.
+// 위해, 대상 region 또는 address 문자열에 포함된 토큰과 겹치면 충돌로
+// 취급하지 않는다.
 const REGION_CONFLICT_TOKENS = [
   "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
   "수원", "성남", "부천", "안양", "안산", "고양", "용인", "화성", "평택", "의정부",
@@ -553,14 +590,26 @@ const REGION_CONFLICT_TOKENS = [
   "창원", "진주", "포항", "경주", "안동", "구미", "김해", "거제", "제주",
 ];
 
+// 대상 지역 근거는 광역 region 문자열뿐 아니라 상세 address도 포함해야
+// 한다. region이 "경기"처럼 광역 단위만 표기된 레코드는 address(예: "화성시
+// ○○동")에 담긴 시/군/구 지명이 있어야만 "화성" 같은 토큰이 실제로는 같은
+// 레코드를 가리킨다는 사실을 판별할 수 있다. address를 누락하면 같은 지역
+// 교회를 지역 불일치로 오판(false positive)하게 된다.
 function detectRegionConflict(record, evidenceTexts) {
-  const regionTokens = (record.region || "")
+  const regionTokens = [record.region || "", record.address || ""]
+    .join(" ")
     .split(/\s+/)
     .map(normalizeForCompare)
     .filter(Boolean);
   if (regionTokens.length === 0) return null;
 
-  const combinedText = evidenceTexts.join(" \n ");
+  // 성직자 이름 안의 지명 문자열(예: "계성남"의 "성남")을 지역 충돌로
+  // 오인하지 않도록, 확인된 담당 성직자 이름은 지역 검사 텍스트에서 제외한다.
+  const targetPastor = stripPastorSuffix(record.pastor);
+  const rawEvidenceText = evidenceTexts.join(" \n ");
+  const combinedText = targetPastor
+    ? rawEvidenceText.replaceAll(targetPastor, "")
+    : rawEvidenceText;
   for (const token of REGION_CONFLICT_TOKENS) {
     if (!combinedText.includes(token)) continue;
     const normalizedToken = normalizeForCompare(token);
@@ -932,6 +981,7 @@ async function main() {
         name: record.name,
         pastor: record.pastor,
         region: record.region,
+        address: record.address ?? null,
         denomination: record.denomination,
         status: evaluation.status,
         channelId: evaluation.channel?.channelId ?? null,
@@ -963,6 +1013,7 @@ async function main() {
         name: record.name,
         pastor: record.pastor,
         region: record.region,
+        address: record.address ?? null,
         denomination: record.denomination,
         status: "error",
         channelId: null,

@@ -15,6 +15,7 @@ const DEFAULT_SOURCES_BY_SCOPE = {
   tonghap: "app/api/sermons/tonghap-sources.ts",
   kmc: "app/api/sermons/kmc-sources.ts",
   salvation: "app/api/sermons/salvation-sources.ts",
+  anglican: "app/api/sermons/public-remaining-sources.ts",
 };
 const DENOMINATION_BY_SCOPE = {
   hapdong: "대한예수교장로회 합동",
@@ -23,7 +24,9 @@ const DENOMINATION_BY_SCOPE = {
   tonghap: "대한예수교장로회 통합",
   kmc: "기독교대한감리회",
   salvation: "구세군대한본영",
+  anglican: "대한성공회",
 };
+const SYNC_SCOPE_BY_SCOPE = { anglican: "public_remaining" };
 const DEFAULT_SCOPE = "hapdong";
 const DEFAULT_SITE = "https://airchurch.net";
 const CHANNEL_ID = /^UC[\w-]{20,}$/;
@@ -43,7 +46,7 @@ function help() {
    node scripts/register-verified-churches.mjs --scope prok --sync --start <기존 기장 수> --count <추가 수>
 
 옵션:
-  --scope <hapdong|kosin|prok|tonghap|kmc|salvation>  대상 교단 (기본: ${DEFAULT_SCOPE})
+  --scope <hapdong|kosin|prok|tonghap|kmc|salvation|anglican>  대상 교단 (기본: ${DEFAULT_SCOPE})
   --input <file>     검증 결과 JSON
   --sources <file>   교단 소스 파일 (기본: scope별 기본 소스 파일)
   --prepare          승인 항목을 소스에 병합
@@ -90,10 +93,28 @@ function isApproved(record) {
   return record?.status==="verified"||record?.status==="approved"||record?.decision==="approved";
 }
 
+function detailedRegion(record) {
+  const base=String(record.region||"").trim();
+  const address=String(record.address||"").trim()
+    .replace(/^서울특별시\s+/,"서울 ").replace(/^부산광역시\s+/,"부산 ")
+    .replace(/^대구광역시\s+/,"대구 ").replace(/^인천광역시\s+/,"인천 ")
+    .replace(/^광주광역시\s+/,"광주 ").replace(/^대전광역시\s+/,"대전 ")
+    .replace(/^울산광역시\s+/,"울산 ").replace(/^경기도\s+/,"경기 ")
+    .replace(/^강원(?:특별자치도|도)\s+/,"강원 ").replace(/^충청북도\s+/,"충북 ")
+    .replace(/^충청남도\s+/,"충남 ").replace(/^전북특별자치도\s+/,"전북 ")
+    .replace(/^전라북도\s+/,"전북 ").replace(/^전라남도\s+/,"전남 ")
+    .replace(/^경상북도\s+/,"경북 ").replace(/^경상남도\s+/,"경남 ")
+    .replace(/^제주특별자치도\s+/,"제주 ");
+  const parts=address.split(/\s+/).filter(Boolean);
+  if(parts.length<2||parts[0]!==base) return base;
+  const locality=parts[1].endsWith("시")?parts[1].slice(0,-1):parts[1];
+  return locality?`${base} ${locality}`:base;
+}
+
 function clean(record) {
   const item={
     name:String(record.name||"").trim(), pastor:String(record.pastor||"").trim(),
-    region:String(record.region||"").trim(), denomination:String(record.denomination||"").trim(),
+    region:detailedRegion(record), denomination:String(record.denomination||"").trim(),
     channelId:String(record.channelId||"").trim(), homepage:String(record.homepage||record.sourceEvidence?.homepage||"").trim(),
   };
   if(!item.name||!item.pastor||!item.region||!item.denomination) throw new Error(`필수 정보 누락: ${record.name||"이름 없음"}`);
@@ -157,7 +178,7 @@ async function sync(args) {
   while(cursor<end){
     const limit=Math.min(args.batchSize,end-cursor);
     const url=new URL("/api/sermons/sync",args.site);
-    url.searchParams.set("scope",args.scope); url.searchParams.set("start",String(cursor)); url.searchParams.set("limit",String(limit));
+    url.searchParams.set("scope",SYNC_SCOPE_BY_SCOPE[args.scope]||args.scope); url.searchParams.set("start",String(cursor)); url.searchParams.set("limit",String(limit));
     const result=await fetchJsonWithRetry(url);
     batches.push({start:cursor,limit,...result});
     cursor+=limit;

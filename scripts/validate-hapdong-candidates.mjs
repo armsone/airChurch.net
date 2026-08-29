@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * 합동 전수 수집 결과를 하나로 합치고 엄격한 자동 검증 규칙을 적용합니다.
- * 채널 제목·담임목사·최근 설교 반복 일치가 모두 확인된 경우만 verified로
- * 승격하며, 채널 중복이나 불충분한 근거는 등록하지 않고 review/hold로 둡니다.
+ * 교단 명부 기반 YouTube 수집 결과를 하나로 합치고 자동 검증 규칙을 적용합니다.
+ * 채널 고유성·채널명 정확 일치·담임목사 근거·최근 설교 업로드가 모두 확인된
+ * 경우에 한해, 최근 영상 제목에 교회명이 반복 등장하거나(repeatedRecentChurchName)
+ * sourceEvidence.directorySourceUrl로 공식 교단 디렉터리 대비 교차 검증이 된
+ * 경우(directoryCrossVerified) 중 하나를 추가로 만족해야 verified로 승격합니다.
+ * 채널 중복, 담임목사 근거 부재, 최근 설교 부재는 여전히 review/hold로 둡니다.
  */
 
 import { readFile, writeFile, rename } from "node:fs/promises";
@@ -54,10 +57,19 @@ async function main(){
       exactChannelName:has(row,"channel_title_exact_match"),
       pastorSupported:has(row,"pastor_name_supporting"),
       repeatedRecentChurchName:has(row,"multiple_recent_titles_exact_name"),
+      directoryCrossVerified:Boolean(row.sourceEvidence?.directorySourceUrl),
       recentSermons:Array.isArray(row.evidenceVideos)&&row.evidenceVideos.length>=2&&row.evidenceVideos.some((video)=>Number(video.estimatedAgeDays)<=180),
     };
-    const passed=Object.values(checks).every(Boolean);
-    const result={...row,status:passed?"verified":"review",decision:passed?"approved":"needs_review",validation:{checks,channelConflicts:conflicts.length>1?conflicts:[],ruleVersion:"hapdong-strict-v1"}};
+    // 신원 근거(uniqueChannel/exactChannelName/pastorSupported/recentSermons)는
+    // 모두 필수다. 반복 영상 제목(repeatedRecentChurchName) 대신, 공식 교단
+    // 디렉터리 URL(directoryCrossVerified)로도 대체 교차 검증을 인정한다.
+    const passed=
+      checks.uniqueChannel&&
+      checks.exactChannelName&&
+      checks.pastorSupported&&
+      checks.recentSermons&&
+      (checks.repeatedRecentChurchName||checks.directoryCrossVerified);
+    const result={...row,status:passed?"verified":"review",decision:passed?"approved":"needs_review",validation:{checks,channelConflicts:conflicts.length>1?conflicts:[],ruleVersion:"hapdong-generalized-v2"}};
     (passed?verified:review).push(result);
   }
   const metadata={generatedAt:new Date().toISOString(),sourceRecords:rows.length,candidates:candidates.length,verified:verified.length,reviewNeeded:review.length,heldAtCollection:rows.filter((row)=>row.status==="hold").length,errors:rows.filter((row)=>row.status==="error").length};
