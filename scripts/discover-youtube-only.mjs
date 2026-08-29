@@ -258,7 +258,7 @@ function normalizeForCompare(text) {
   if (!text) return "";
   return text
     .replace(/\s+/g, "")
-    .replace(/[.,·・"'‘’“”()\[\]{}!?~\-_/\\]/g, "")
+    .replace(/[-.,·・"'‘’“”()\u005B\u005D{}!?~_/\\]/g, "")
     .trim();
 }
 
@@ -647,7 +647,7 @@ function buildSearchQuery(record) {
   return parts.join(" ");
 }
 
-function buildChurchScopedResults(searchResults, record) {
+function buildChurchScopedResults(searchResults) {
   const videosByChannel = new Map();
   for (const video of searchResults.videos) {
     if (!video.channelId) continue;
@@ -756,7 +756,7 @@ function toEvidenceVideoList(videos) {
 }
 
 function evaluateRecord(record, searchResults) {
-  const videosByChannel = buildChurchScopedResults(searchResults, record);
+  const videosByChannel = buildChurchScopedResults(searchResults);
 
   const candidates = [];
   for (const [channelId, videos] of videosByChannel.entries()) {
