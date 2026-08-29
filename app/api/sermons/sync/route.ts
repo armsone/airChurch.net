@@ -37,12 +37,17 @@ const regionalHeldSources:Array<SourceBase&{holdReason:"youtube_unavailable"|"in
   {name:"제천성광교회",pastor:"담임목사 확인 필요",region:"충북 제천",denomination:"교단 확인 필요",holdReason:"info_unverified",holdNote:"한글 도메인 연결이 불안정하고 청년부 정기 운영 및 공식 YouTube 채널의 최근 설교 업로드를 함께 확인하지 못해 보류했습니다."},
 ];
 
+// Rows are idempotent (INSERT ... WHERE NOT EXISTS), so once this has run successfully in an
+// isolate there is nothing left to insert; skip re-running the batch on every sync trigger.
+let heldSourcesSeeded:Promise<void>|null=null;
 async function seedHeldSources(db:D1Database) {
+  if(heldSourcesSeeded) return heldSourcesSeeded;
   const holdNote="지난 24곳 재검토에서 공식 YouTube 채널과 최근 180일 내 설교·예배 운영을 확인하지 못해 보류했습니다. 새 추천 시 이 기록과 먼저 비교합니다.";
-  await db.batch([
+  heldSourcesSeeded=db.batch([
     ...heldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=?)").bind(source.name,source.pastor,source.region,source.denomination,holdNote,source.name)),
     ...regionalHeldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed',?,?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=?)").bind(source.name,source.pastor,source.region,source.denomination,source.holdReason,source.holdNote,source.name)),
-  ]);
+  ]).then(()=>undefined).catch((error)=>{heldSourcesSeeded=null;throw error;});
+  return heldSourcesSeeded;
 }
 
 const sources:Source[]=[

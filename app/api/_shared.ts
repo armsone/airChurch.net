@@ -5,15 +5,24 @@ async function addColumnIfMissing(db:D1Database,columns:{name:string}[],name:str
   try { await db.prepare(sql).run(); }
   catch(error) { if(!String(error).toLowerCase().includes("duplicate column")) throw error; }
 }
-export async function ensureCommunityTables(db: D1Database) {
+// These ensure* functions are idempotent DDL only. They are memoized per isolate so that
+// hot request paths (homepage sermons/churches/etc.) don't re-run PRAGMA/CREATE TABLE round trips on every request.
+function memoizeEnsure(run:(db:D1Database)=>Promise<void>) {
+  let pending:Promise<void>|null=null;
+  return (db:D1Database)=>{
+    if(!pending) pending=run(db).catch((error)=>{pending=null;throw error;});
+    return pending;
+  };
+}
+export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS talent_offers (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, region TEXT NOT NULL, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_talent_offers_status_created ON talent_offers(status, created_at)"),
     db.prepare("CREATE TABLE IF NOT EXISTS community_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, nickname TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', report_count INTEGER NOT NULL DEFAULT 0, fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_community_posts_status_created ON community_posts(status, created_at)"),
   ]);
-}
-export async function ensureSermonTables(db:D1Database) {
+});
+export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS churches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_channel_id TEXT UNIQUE, review_status TEXT NOT NULL DEFAULT 'pending', hold_reason TEXT, hold_note TEXT, held_at TEXT, priority_weight INTEGER NOT NULL DEFAULT 1, reviewer_status TEXT NOT NULL DEFAULT 'unreviewed', reviewer_note TEXT, reviewed_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sermons (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -33,20 +42,20 @@ export async function ensureSermonTables(db:D1Database) {
   if (!churchColumns.results.some((column) => column.name === "homepage_url")) await db.prepare("ALTER TABLE churches ADD COLUMN homepage_url TEXT").run();
   await addColumnIfMissing(db,churchColumns.results,"review_resolution_token","ALTER TABLE churches ADD COLUMN review_resolution_token TEXT");
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
-}
-export async function ensurePraiseTables(db:D1Database) {
+});
+export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS praise_videos (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_status_published ON praise_videos(status, published_at DESC)"),
   ]);
-}
-export async function ensureChurchRecommendationTables(db:D1Database) {
+});
+export const ensureChurchRecommendationTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, church_name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_url TEXT, reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_recommendations_status_created ON church_recommendations(status, created_at DESC)"),
   ]);
-}
-export async function ensureReviewerTables(db:D1Database) {
+});
+export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, contact TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_accounts_status_created ON reviewer_accounts(status, created_at DESC)"),
@@ -61,8 +70,8 @@ export async function ensureReviewerTables(db:D1Database) {
   await addColumnIfMissing(db,reviewColumns.results,"admin_resolution","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_resolution TEXT");
   await addColumnIfMissing(db,reviewColumns.results,"admin_note","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_note TEXT");
   await addColumnIfMissing(db,reviewColumns.results,"resolved_by","ALTER TABLE reviewer_church_reviews ADD COLUMN resolved_by TEXT");
-}
-export async function ensureAnalyticsTables(db:D1Database) {
+});
+export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL, referrer_domain TEXT, visitor_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at DESC)"),
@@ -71,6 +80,6 @@ export async function ensureAnalyticsTables(db:D1Database) {
     db.prepare("CREATE TABLE IF NOT EXISTS visitor_activity (visitor_hash TEXT PRIMARY KEY NOT NULL, path TEXT NOT NULL, last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_visitor_activity_last_seen ON visitor_activity(last_seen DESC)"),
   ]);
-}
+});
 export async function fingerprint(request: Request) { const ip=request.headers.get("cf-connecting-ip")||"local", agent=request.headers.get("user-agent")||"unknown", day=new Date().toISOString().slice(0,10); const bytes=new TextEncoder().encode(`${ip}|${agent}|${day}`); return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map((b)=>b.toString(16).padStart(2,"0")).join(""); }
 export function clean(value:unknown,max:number) { return typeof value === "string" ? value.trim().replace(/<[^>]*>/g,"").slice(0,max) : ""; }
