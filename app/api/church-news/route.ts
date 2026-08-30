@@ -23,7 +23,7 @@ const sources:FeedSource[]=[
   {name:"기독교개혁신보",url:"https://www.repress.kr/rss/allArticle.xml",homepage:"https://www.repress.kr/",allowedHost:"www.repress.kr",tone:"repress",markUrl:"https://cdn.repress.kr/image/logo/toplogo_20260223011521.png"},
   {name:"복음기도신문",url:"https://gpnews.org/feed",homepage:"https://gpnews.org/",allowedHost:"gpnews.org",tone:"gpnews",markUrl:"https://gpnews.org/wp/wp-content/uploads/2024/08/AppIcon_gon_512.jpg"},
   {name:"GOODTV",url:"https://news.goodtv.co.kr/rss/allArticle.xml",homepage:"https://news.goodtv.co.kr/",allowedHost:"news.goodtv.co.kr",tone:"goodtv",markUrl:"https://cdn.news.goodtv.co.kr/image/logo/toplogo_20241007095843.png"},
-  {name:"베리타스",url:"https://veritas.kr/rss/articles/topnews/all.rss",homepage:"https://veritas.kr/",allowedHost:"veritas.kr",tone:"veritas",markUrl:"https://veritas.kr/views/images/logo.png"},
+  {name:"베리타스",url:"https://veritas.kr/rss/articles/topnews/all.rss",homepage:"https://veritas.kr/",allowedHost:"veritas.kr",tone:"veritas",markUrl:"/news/veritas-logo.png"},
   {name:"기독일보",url:"https://www.christiandaily.co.kr/rss/articles/topnews/all.rss",homepage:"https://www.christiandaily.co.kr/",allowedHost:"www.christiandaily.co.kr",tone:"christiandaily",markUrl:"https://www.christiandaily.co.kr/views/images/aboutus/logo.png"},
   {name:"크리스찬저널",url:"https://www.kcjlogos.org/rss/allArticle.xml",homepage:"https://www.kcjlogos.org/",allowedHost:"www.kcjlogos.org",tone:"kcjlogos",markUrl:"https://cdn.kcjlogos.org/image/logo/toplogo_20210726090555.png"},
   {name:"뉴스제이",url:"https://www.newsjesus.net/rss/allArticle.xml",homepage:"https://www.newsjesus.net/",allowedHost:"www.newsjesus.net",tone:"newsjesus",markUrl:"https://www.newsjesus.net/image/logo/toplogo_20240104032146.gif"},
