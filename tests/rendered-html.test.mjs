@@ -575,6 +575,7 @@ test("gives the shorts viewer a focused, keyboard-accessible experience without 
   assert.match(page,/loadItems\("\/api\/shorts"\)\.then/);
   assert.match(page,/shorts: \(\)=>loadItems\("\/api\/shorts"\)/);
   assert.match(page,/const filteredShorts = useMemo/);
+  assert.match(page,/조건에 맞는 \$\{filteredShorts\.length\}개 · 전체 \$\{shortItems\.length\}개/);
   assert.match(page,/short\.region\.startsWith\(region\)/);
   assert.match(page,/short\.denomination === denomination/);
   assert.match(page,/activeShortIndex,setActiveShortIndex\]=useState<number\|null>\(null\)/);
@@ -591,6 +592,8 @@ test("gives the shorts viewer a focused, keyboard-accessible experience without 
   assert.match(page,/current>0 \? current-1 : current/);
   assert.match(page,/role="dialog" aria-modal="true"/);
   assert.match(styles,/\.shorts-viewer-overlay\{/);
+  assert.match(styles,/\.shorts-viewer-prev\{left:-58px\}/);
+  assert.match(styles,/\.shorts-viewer-next\{right:-58px\}/);
   assert.match(styles,/\.shorts-viewer-nav:disabled\{opacity:\.3;cursor:default\}/);
 });
 

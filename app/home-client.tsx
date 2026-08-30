@@ -381,7 +381,7 @@ export default function Home() {
       </section>
 
       <section className="content-section shorts-section" id="shorts">
-        <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><span className="result-count">{shortLoading ? "쇼츠를 불러오는 중…" : `${filteredShorts.length}개의 쇼츠`}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><span className="result-count">{shortLoading ? "쇼츠를 불러오는 중…" : filteredShorts.length===shortItems.length ? `${shortItems.length}개의 쇼츠` : `조건에 맞는 ${filteredShorts.length}개 · 전체 ${shortItems.length}개`}</span></div>
         <div className="shorts-grid">
           {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={()=>setActiveShortIndex(index)} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
             <img className="shorts-thumb" src={short.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />
