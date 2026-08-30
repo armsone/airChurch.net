@@ -584,10 +584,12 @@ test("gives the shorts viewer keyboard controls and continuous automatic looping
   assert.match(page,/short\.region\.startsWith\(region\)/);
   assert.match(page,/short\.denomination === denomination/);
   assert.match(page,/activeShortIndex,setActiveShortIndex\]=useState<number\|null>\(null\)/);
-  assert.match(page,/youtube-nocookie\.com\/embed\/\$\{activeShort\.youtubeId\}\?autoplay=1&rel=0&playsinline=1&enablejsapi=1/);
-  assert.match(page,/playerEvent\.event!=="onStateChange"\|\|playerEvent\.info!==0/);
+  assert.match(page,/https:\/\/www\.youtube\.com\/iframe_api/);
+  assert.match(page,/new youtube\.Player\(playerHost/);
+  assert.match(page,/events:\{onStateChange:\(event\)=>\{/);
+  assert.match(page,/if\(event\.data!==0\) return/);
   assert.match(page,/current===null\?current:current<filteredShorts\.length-1\?current\+1:0/);
-  assert.match(page,/event\.origin!=="https:\/\/www\.youtube-nocookie\.com"/);
+  assert.match(page,/playerVars:\{autoplay:1,rel:0,playsinline:1,origin:window\.location\.origin\}/);
   assert.match(page,/aria-label="쇼츠 재생 닫기"/);
   assert.match(page,/className="shorts-viewer-count" aria-live="polite">\{\(activeShortIndex\?\?0\)\+1\} \/ \{filteredShorts\.length\}/);
   assert.match(page,/aria-label="이전 쇼츠 보기"/);
