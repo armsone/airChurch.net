@@ -607,6 +607,7 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(page,/function searchYouTubePraise/);
   assert.match(page,/youtube\.com\/results\?search_query=/);
   assert.match(page,/window\.open\(url,"_blank","noopener,noreferrer"\)/);
+  assert.doesNotMatch(page,/window\.location\.assign\(url\)/);
   assert.match(page,/YouTube에서 찾기/);
   assert.match(newsRoute,/https:\/\/www\.newsnjoy\.or\.kr\/rss\/allArticle\.xml/);
   assert.match(newsRoute,/https:\/\/www\.igoodnews\.net\/rss\/allArticle\.xml/);

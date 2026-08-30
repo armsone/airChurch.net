@@ -271,8 +271,7 @@ export default function Home() {
     const term=String(new FormData(event.currentTarget).get("praiseQuery")||"").trim();
     if(!term) return;
     const url=`https://www.youtube.com/results?search_query=${encodeURIComponent(`${term} 찬양`)}`;
-    const opened=window.open(url,"_blank","noopener,noreferrer");
-    if(!opened) window.location.assign(url);
+    window.open(url,"_blank","noopener,noreferrer");
   }
 
   async function submitChurchRecommendation(event:FormEvent<HTMLFormElement>) {
