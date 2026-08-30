@@ -49,6 +49,12 @@ export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_status_published ON praise_videos(status, published_at DESC)"),
   ]);
 });
+export const ensureShortsTables = memoizeEnsure(async (db:D1Database) => {
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS church_shorts (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_shorts_status_published ON church_shorts(status, published_at DESC)"),
+  ]);
+});
 export const ensureChurchRecommendationTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, church_name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_url TEXT, reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),

@@ -102,12 +102,15 @@ test("loads a larger sermon catalog in batches", async () => {
     readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
   ]);
   assert.match(sermonRoute,/selectWeightedRecent\([^;]+,120\)/);
-  assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(12\)/);
+  assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(6\)/);
   assert.match(page,/visibleSermons = filtered\.slice\(0,visibleSermonCount\)/);
   assert.match(page,/previewSermons = filtered\.slice\(visibleSermonCount,visibleSermonCount\+3\)/);
   assert.match(page,/눌러서 말씀 더 보기/);
-  assert.match(page,/말씀 21개 더 보기/);
-  assert.match(page,/setVisibleSermonCount\(\(count\)=>count\+21\)/);
+  assert.match(page,/말씀 18개 더 보기/);
+  assert.match(page,/setVisibleSermonCount\(\(count\)=>count\+18\)/);
+  assert.doesNotMatch(page,/말씀 21개 더 보기/);
+  assert.doesNotMatch(page,/setVisibleSermonCount\(\(count\)=>count\+21\)/);
+  assert.match(page,/<LoadingCards count=\{6\} \/>/);
   assert.match(page,/className="thumbnail-image"/);
   assert.match(page,/loading="lazy" decoding="async"/);
   assert.match(page,/fetchPriority="low"/);
@@ -276,21 +279,23 @@ test("gives pastors a searchable request desk and administrators a focused decis
 });
 
 test("applies every migration to a fresh database including reviewer workflow tables", async () => {
-  const migrationFiles=["0000_public_joseph.sql","0001_condemned_toxin.sql","0002_thankful_storm.sql","0003_chilly_chamber.sql","0004_fuzzy_slayback.sql","0005_medical_shadowcat.sql","0006_legal_stranger.sql","0007_pinup_priority.sql","0008_fat_silverclaw.sql","0009_church_change_requests.sql"];
+  const migrationFiles=["0000_public_joseph.sql","0001_condemned_toxin.sql","0002_thankful_storm.sql","0003_chilly_chamber.sql","0004_fuzzy_slayback.sql","0005_medical_shadowcat.sql","0006_legal_stranger.sql","0007_pinup_priority.sql","0008_fat_silverclaw.sql","0009_church_change_requests.sql","0010_church_shorts.sql"];
   const sql=(await Promise.all(migrationFiles.map((file)=>readFile(new URL(`../drizzle/${file}`,import.meta.url),"utf8")))).join("\n");
   const directory=await mkdtemp(join(tmpdir(),"airchurch-migrations-"));
   const databasePath=join(directory,"fresh.sqlite");
   try {
     const migrated=spawnSync("sqlite3",[databasePath],{input:sql,encoding:"utf8"});
     assert.equal(migrated.status,0,migrated.stderr);
-    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches);"],{encoding:"utf8"});
+    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests','church_shorts') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches); PRAGMA table_info(church_shorts);"],{encoding:"utf8"});
     assert.equal(checked.status,0,checked.stderr);
     assert.match(checked.stdout,/reviewer_accounts/);
     assert.match(checked.stdout,/reviewer_church_reviews/);
     assert.match(checked.stdout,/church_change_requests/);
+    assert.match(checked.stdout,/church_shorts/);
     assert.match(checked.stdout,/request_type/);
     assert.match(checked.stdout,/admin_resolution/);
     assert.match(checked.stdout,/review_resolution_token/);
+    assert.match(checked.stdout,/youtube_id/);
   } finally {
     await rm(directory,{recursive:true,force:true});
   }
@@ -534,6 +539,82 @@ test("discloses AI registration source criteria in a collapsed, accessible panel
   assert.match(styles,/table-layout:fixed/);
   assert.match(styles,/word-break:keep-all/);
   assert.match(styles,/@media \(max-width:600px\) \{ \.church-radar-sources-table th,\.church-radar-sources-table td/);
+});
+
+test("ingests church shorts from the sermon sync without leaking them into sermons", async () => {
+  const [selection,syncRoute,shortsRoute,shared,schema,styles]=await Promise.all([
+    readFile(new URL("../app/api/sermons/_selection.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/sync/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/shorts/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/_shared.ts",import.meta.url),"utf8"),
+    readFile(new URL("../db/schema.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  assert.match(selection,/export function isShortTitle\(title:string\)/);
+  assert.match(selection,/shortKeywords=\/\(#shorts\|#쇼츠\|\\bshorts\\b\|쇼츠\)\/i/);
+  assert.match(syncRoute,/import \{ isSermonTitle, isShortTitle \} from "\.\.\/_selection";/);
+  assert.match(syncRoute,/ensureShortsTables/);
+  assert.match(syncRoute,/const recentShorts=\(playlist\.items\|\|\[\]\)\.filter\(\(item\)=>Date\.parse\(item\.snippet\.publishedAt\)>=activeSince&&isShortTitle\(item\.snippet\.title\)\)/);
+  assert.match(syncRoute,/INSERT INTO church_shorts/);
+  assert.doesNotMatch(shortsRoute,/ensureShortsTables/);
+  assert.match(shortsRoute,/church_shorts s JOIN churches c ON c\.id=s\.church_id WHERE c\.review_status='approved' AND s\.status='published'/);
+  assert.match(shortsRoute,/getRequestExecutionContext/);
+  assert.match(shortsRoute,/context\.waitUntil\(pendingSync\)/);
+  assert.match(shortsRoute,/stale-while-revalidate=3600/);
+  assert.match(shared,/CREATE TABLE IF NOT EXISTS church_shorts/);
+  assert.match(schema,/churchShorts = sqliteTable\("church_shorts"/);
+  assert.match(styles,/\.shorts-grid\{/);
+});
+
+test("gives the shorts viewer a focused, keyboard-accessible experience without fake looping", async () => {
+  const [page,styles]=await Promise.all([
+    readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  assert.match(page,/id="shorts"/);
+  assert.match(page,/loadItems\("\/api\/shorts"\)\.then/);
+  assert.match(page,/shorts: \(\)=>loadItems\("\/api\/shorts"\)/);
+  assert.match(page,/const filteredShorts = useMemo/);
+  assert.match(page,/short\.region\.startsWith\(region\)/);
+  assert.match(page,/short\.denomination === denomination/);
+  assert.match(page,/activeShortIndex,setActiveShortIndex\]=useState<number\|null>\(null\)/);
+  assert.match(page,/youtube-nocookie\.com\/embed\/\$\{activeShort\.youtubeId\}\?autoplay=1&rel=0&playsinline=1/);
+  assert.match(page,/aria-label="쇼츠 재생 닫기"/);
+  assert.match(page,/aria-label="이전 쇼츠 보기"/);
+  assert.match(page,/aria-label="다음 쇼츠 보기"/);
+  assert.match(page,/disabled=\{activeShortIndex===0\}/);
+  assert.match(page,/disabled=\{activeShortIndex===filteredShorts\.length-1\}/);
+  assert.match(page,/if\(event\.key==="Escape"\) \{ setActiveShortIndex\(null\); return; \}/);
+  assert.match(page,/if\(event\.key==="ArrowUp"\)/);
+  assert.match(page,/if\(event\.key==="ArrowDown"\)/);
+  assert.match(page,/current<filteredShorts\.length-1 \? current\+1 : current/);
+  assert.match(page,/current>0 \? current-1 : current/);
+  assert.match(page,/role="dialog" aria-modal="true"/);
+  assert.match(styles,/\.shorts-viewer-overlay\{/);
+  assert.match(styles,/\.shorts-viewer-nav:disabled\{opacity:\.3;cursor:default\}/);
+});
+
+test("adds a safe RSS church-news reader and a direct YouTube praise search", async () => {
+  const [page,newsRoute,styles]=await Promise.all([
+    readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/church-news/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
+  ]);
+  assert.match(page,/id="church-news"/);
+  assert.match(page,/"church-news": \(\)=>loadItems\("\/api\/church-news"\)/);
+  assert.match(page,/공식 RSS로 공개된 제목과 짧은 내용만 소개/);
+  assert.match(page,/target="_blank" rel="noopener noreferrer"/);
+  assert.match(page,/function searchYouTubePraise/);
+  assert.match(page,/youtube\.com\/results\?search_query=/);
+  assert.match(page,/window\.open\(url,"_blank","noopener,noreferrer"\)/);
+  assert.match(page,/YouTube에서 찾기/);
+  assert.match(newsRoute,/https:\/\/www\.newsnjoy\.or\.kr\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/https:\/\/www\.igoodnews\.net\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/url\.hostname!==source\.allowedHost/);
+  assert.match(newsRoute,/\.slice\(0,140\)/);
+  assert.match(newsRoute,/stale-while-revalidate=21600/);
+  assert.match(styles,/\.church-news-grid\{/);
+  assert.match(styles,/\.praise-youtube-search\{/);
 });
 
 test("keeps admin and pastor links visible in the top header on desktop and mobile", async () => {

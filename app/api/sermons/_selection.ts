@@ -4,3 +4,11 @@ const excludedKeywords=/(찬양|성가|특송|광고|공지|교회소식|성경�
 export function isSermonTitle(title:string) {
   return sermonKeywords.test(title) && !excludedKeywords.test(title);
 }
+
+// Conservative title/hashtag classifier: the playlistItems API does not expose aspect ratio,
+// so we only treat explicit #shorts/쇼츠 signals as Shorts rather than all short-duration videos.
+const shortKeywords=/(#shorts|#쇼츠|\bshorts\b|쇼츠)/i;
+
+export function isShortTitle(title:string) {
+  return shortKeywords.test(title);
+}
