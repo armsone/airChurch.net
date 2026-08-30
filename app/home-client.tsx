@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
@@ -103,6 +103,7 @@ export default function Home() {
   const [shortItems,setShortItems]=useState<Short[]>([]);
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
+  const shortFrameRef=useRef<HTMLIFrameElement>(null);
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
   const [churchNewsLoading,setChurchNewsLoading]=useState(true);
@@ -230,6 +231,25 @@ export default function Home() {
     window.addEventListener("keydown",onKeyDown);
     return ()=>window.removeEventListener("keydown",onKeyDown);
   },[activeShortIndex,filteredShorts.length]);
+  useEffect(()=>{
+    if(!activeShort) return;
+    const frame=shortFrameRef.current;
+    function listenToPlayer() {
+      frame?.contentWindow?.postMessage(JSON.stringify({event:"listening",id:"airchurch-shorts"}),"*");
+    }
+    function onPlayerMessage(event:MessageEvent) {
+      if(event.origin!=="https://www.youtube-nocookie.com"&&event.origin!=="https://www.youtube.com") return;
+      let message:unknown=event.data;
+      if(typeof message==="string") { try { message=JSON.parse(message); } catch { return; } }
+      const playerEvent=message as {event?:string;info?:number};
+      if(playerEvent.event!=="onStateChange"||playerEvent.info!==0) return;
+      setActiveShortIndex((current)=>current===null?current:current<filteredShorts.length-1?current+1:0);
+    }
+    window.addEventListener("message",onPlayerMessage);
+    const listener=window.setInterval(listenToPlayer,700);
+    listenToPlayer();
+    return ()=>{window.clearInterval(listener);window.removeEventListener("message",onPlayerMessage);};
+  },[activeShort?.youtubeId,filteredShorts.length]);
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
   const filteredChurches = useMemo(() => {
@@ -395,9 +415,10 @@ export default function Home() {
       {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`}>
         <div className="shorts-viewer">
           <iframe
+            ref={shortFrameRef}
             key={activeShort.youtubeId}
             className="shorts-viewer-frame"
-            src={`https://www.youtube-nocookie.com/embed/${activeShort.youtubeId}?autoplay=1&rel=0&playsinline=1`}
+            src={`https://www.youtube-nocookie.com/embed/${activeShort.youtubeId}?autoplay=1&rel=0&playsinline=1&enablejsapi=1`}
             title={activeShort.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

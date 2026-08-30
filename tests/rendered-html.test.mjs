@@ -558,6 +558,8 @@ test("ingests church shorts from the sermon sync without leaking them into sermo
   assert.match(syncRoute,/INSERT INTO church_shorts/);
   assert.doesNotMatch(shortsRoute,/ensureShortsTables/);
   assert.match(shortsRoute,/church_shorts s JOIN churches c ON c\.id=s\.church_id WHERE c\.review_status='approved' AND s\.status='published'/);
+  assert.match(shortsRoute,/DESC LIMIT 480/);
+  assert.match(shortsRoute,/selectWeightedRecent\(result\.results as ShortRow\[\],120\)/);
   assert.match(shortsRoute,/getRequestExecutionContext/);
   assert.match(shortsRoute,/context\.waitUntil\(pendingSync\)/);
   assert.match(shortsRoute,/stale-while-revalidate=3600/);
@@ -566,7 +568,7 @@ test("ingests church shorts from the sermon sync without leaking them into sermo
   assert.match(styles,/\.shorts-grid\{/);
 });
 
-test("gives the shorts viewer a focused, keyboard-accessible experience without fake looping", async () => {
+test("gives the shorts viewer keyboard controls and continuous automatic looping", async () => {
   const [page,styles]=await Promise.all([
     readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/globals.css",import.meta.url),"utf8"),
@@ -579,7 +581,10 @@ test("gives the shorts viewer a focused, keyboard-accessible experience without 
   assert.match(page,/short\.region\.startsWith\(region\)/);
   assert.match(page,/short\.denomination === denomination/);
   assert.match(page,/activeShortIndex,setActiveShortIndex\]=useState<number\|null>\(null\)/);
-  assert.match(page,/youtube-nocookie\.com\/embed\/\$\{activeShort\.youtubeId\}\?autoplay=1&rel=0&playsinline=1/);
+  assert.match(page,/youtube-nocookie\.com\/embed\/\$\{activeShort\.youtubeId\}\?autoplay=1&rel=0&playsinline=1&enablejsapi=1/);
+  assert.match(page,/playerEvent\.event!=="onStateChange"\|\|playerEvent\.info!==0/);
+  assert.match(page,/current===null\?current:current<filteredShorts\.length-1\?current\+1:0/);
+  assert.match(page,/event\.origin!=="https:\/\/www\.youtube-nocookie\.com"/);
   assert.match(page,/aria-label="쇼츠 재생 닫기"/);
   assert.match(page,/aria-label="이전 쇼츠 보기"/);
   assert.match(page,/aria-label="다음 쇼츠 보기"/);
