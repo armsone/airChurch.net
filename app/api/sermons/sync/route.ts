@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { database, ensurePraiseTables, ensureSermonTables, ensureShortsTables } from "../../_shared";
 import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
+import { isShortDuration, youtubeDurationSeconds } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
 import { kosinSources } from "../kosin-sources";
 import { prokSources } from "../prok-sources";
@@ -437,6 +438,7 @@ const sources:Source[]=[
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
+type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
 type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string};
 
 export async function POST(request:Request) {
@@ -479,13 +481,31 @@ export async function POST(request:Request) {
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
     const channelImageUrl=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
-    const playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=24&key=${encodeURIComponent(key)}`);
+    const playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50&key=${encodeURIComponent(key)}`);
     if(!playlistResponse.ok) return Response.json({error:"YouTube upload verification failed",removed},{status:502});
     const playlist=await playlistResponse.json() as PlaylistResponse;
     const activeSince=Date.now()-180*24*60*60*1000;
-    const recentSermons=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
+    const playlistItems=playlist.items||[];
+    const videoIds=playlistItems.map((item)=>item.contentDetails.videoId).filter(Boolean);
+    const durations=new Map<string,number>();
+    if(videoIds.length) {
+      const videosResponse=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(videoIds.join(","))}&key=${encodeURIComponent(key)}`);
+      if(videosResponse.ok) {
+        const videos=await videosResponse.json() as VideosResponse;
+        for(const video of videos.items||[]) durations.set(video.id,youtubeDurationSeconds(video.contentDetails?.duration||""));
+      }
+    }
+    const recentSermons=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
     const recentShorts=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
-    const recentPraises=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
+    const shortIds=new Set(recentShorts.map((item)=>item.contentDetails.videoId));
+    for(const item of playlistItems) {
+      const videoId=item.contentDetails.videoId;
+      if(Date.parse(item.snippet.publishedAt)>=activeSince&&!shortIds.has(videoId)&&isShortDuration(durations.get(videoId)||0)) {
+        recentShorts.push(item);
+        shortIds.add(videoId);
+      }
+    }
+    const recentPraises=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
       await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=? AND review_status!='deleted'").bind(source.name,source.region).run();
       continue;
