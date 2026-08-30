@@ -13,12 +13,14 @@ export function isShortTitle(title:string) {
   return shortKeywords.test(title);
 }
 
-// YouTube Shorts can be up to three minutes long. Duration is intentionally a
-// permissive fallback because many churches upload real Shorts without adding
-// #shorts to the title. Content such as sermons, notices, ads, and praise is
-// valid here; this classifier is about the short-form format, not the topic.
-export function isShortDuration(durationSeconds:number) {
-  return Number.isFinite(durationSeconds) && durationSeconds >= 5 && durationSeconds <= 180;
+const shortFormKeywords=/(?:^|\s|[[(#])(1분|2분|3분|60초|90초|한줄|짧은\s*말씀|짧은\s*설교|미니\s*설교|설교\s*클립|말씀\s*클립)/i;
+const longFormKeywords=/(주일\s*(오전|오후|낮|저녁)?\s*예배|수요\s*(예배|기도회)|금요\s*(예배|기도회)|새벽\s*(예배|기도회)|찬양대|성가대|독주회|정기\s*연주회|전체\s*예배|full\s*(service|worship))/i;
+
+// Middle-ground fallback: topic is unrestricted, but unlabelled videos must be
+// very short and must not look like a complete service or choir performance.
+export function isShortCandidate(title:string,durationSeconds:number) {
+  if(isShortTitle(title)||shortFormKeywords.test(title))return true;
+  return durationSeconds >= 5 && durationSeconds <= 90 && !longFormKeywords.test(title);
 }
 
 export function youtubeDurationSeconds(value:string) {

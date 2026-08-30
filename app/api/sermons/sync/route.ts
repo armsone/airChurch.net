@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { database, ensurePraiseTables, ensureSermonTables, ensureShortsTables } from "../../_shared";
 import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
-import { isShortDuration, youtubeDurationSeconds } from "../_selection";
+import { isShortCandidate, youtubeDurationSeconds } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
 import { kosinSources } from "../kosin-sources";
 import { prokSources } from "../prok-sources";
@@ -459,6 +459,8 @@ export async function POST(request:Request) {
   const requestedLimit=Number(new URL(request.url).searchParams.get("limit")??"20");
   const limit=Number.isInteger(requestedLimit)&&requestedLimit>0?Math.min(requestedLimit,20):20;
   const batch=sourcePool.slice(start,start+limit);
+  const resetShorts=new URL(request.url).searchParams.get("resetShorts")==="medium"&&scope==="database"&&start===0;
+  const resetShortsResult=resetShorts?await db.prepare("DELETE FROM church_shorts WHERE lower(title) NOT LIKE '%shorts%' AND title NOT LIKE '%쇼츠%'").run():null;
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
@@ -500,7 +502,7 @@ export async function POST(request:Request) {
     const shortIds=new Set(recentShorts.map((item)=>item.contentDetails.videoId));
     for(const item of playlistItems) {
       const videoId=item.contentDetails.videoId;
-      if(Date.parse(item.snippet.publishedAt)>=activeSince&&!shortIds.has(videoId)&&isShortDuration(durations.get(videoId)||0)) {
+      if(Date.parse(item.snippet.publishedAt)>=activeSince&&!shortIds.has(videoId)&&isShortCandidate(item.snippet.title,durations.get(videoId)||0)) {
         recentShorts.push(item);
         shortIds.add(videoId);
       }
@@ -530,5 +532,5 @@ export async function POST(request:Request) {
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
   if(nextCursor===0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
-  return Response.json({ok:true,scope,verified,approved:approved?.count??0,removed,imported,nextStart:nextCursor||null});
+  return Response.json({ok:true,scope,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});
 }
