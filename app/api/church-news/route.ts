@@ -4,7 +4,7 @@ type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:
 const sources:FeedSource[]=[
   {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"newsnjoy",markUrl:"https://cdn.newsnjoy.or.kr/image/logo/toplogo_20250820092205.png"},
   {name:"아이굿뉴스",url:"https://www.igoodnews.net/rss/allArticle.xml",homepage:"https://www.igoodnews.net/",allowedHost:"www.igoodnews.net",tone:"igoodnews",markUrl:"https://www.igoodnews.net/image/logo/toplogo_20190425034423.png"},
-  {name:"기독신문",url:"https://www.kidok.com/rss/allArticle.xml",homepage:"https://www.kidok.com/",allowedHost:"www.kidok.com",tone:"kidok",markUrl:"https://cdn.kidok.com/image/logo/translogo_20251128032659.png"},
+  {name:"기독신문",url:"https://www.kidok.com/rss/allArticle.xml",homepage:"https://www.kidok.com/",allowedHost:"www.kidok.com",tone:"kidok",markUrl:"/news/kidok-logo.png"},
   {name:"기독공보",url:"https://www.pckworld.com/rss/allArticle.xml",homepage:"https://www.pckworld.com/",allowedHost:"www.pckworld.com",tone:"pckworld",markUrl:"https://www.pckworld.com/upimages/logo3.png"},
   {name:"데일리굿뉴스",url:"https://www.goodnews1.com/rss/allArticle.xml",homepage:"https://www.goodnews1.com/",allowedHost:"www.goodnews1.com",tone:"goodnews",markUrl:"https://cdn.goodnews1.com/image/logo/toplogo_20250721110801.png"},
   {name:"주간기독교",url:"https://www.cnews.or.kr/rss/allArticle.xml",homepage:"https://www.cnews.or.kr/",allowedHost:"www.cnews.or.kr",tone:"cnews",markUrl:"https://www.cnews.or.kr/image/logo/toplogo_20211228113810.png"},
