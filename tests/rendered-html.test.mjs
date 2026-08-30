@@ -603,6 +603,10 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(page,/id="church-news"/);
   assert.match(page,/"church-news": \(\)=>loadItems\("\/api\/church-news"\)/);
   assert.match(page,/공식 RSS로 공개된 제목과 짧은 내용만 소개/);
+  assert.match(page,/현재 소식을 가져오는 곳/);
+  assert.match(page,/churchNews\.slice\(0,visibleChurchNewsCount\)/);
+  assert.match(page,/setVisibleChurchNewsCount\(\(count\)=>count\+8\)/);
+  assert.match(page,/교계소식 8개 더 보기/);
   assert.match(page,/target="_blank" rel="noopener noreferrer"/);
   assert.match(page,/function searchYouTubePraise/);
   assert.match(page,/youtube\.com\/results\?search_query=/);
@@ -611,10 +615,14 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(page,/YouTube에서 찾기/);
   assert.match(newsRoute,/https:\/\/www\.newsnjoy\.or\.kr\/rss\/allArticle\.xml/);
   assert.match(newsRoute,/https:\/\/www\.igoodnews\.net\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/\.slice\(0,40\)/);
+  assert.match(newsRoute,/rssUrl:url,homepage/);
   assert.match(newsRoute,/url\.hostname!==source\.allowedHost/);
   assert.match(newsRoute,/\.slice\(0,140\)/);
   assert.match(newsRoute,/stale-while-revalidate=21600/);
   assert.match(styles,/\.church-news-grid\{/);
+  assert.match(styles,/\.church-news-sources\{/);
+  assert.match(styles,/\.church-news-more\{/);
   assert.match(styles,/\.praise-youtube-search\{/);
 });
 

@@ -1,9 +1,9 @@
-type FeedSource={name:string;url:string;allowedHost:string;tone:string};
+type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string};
 type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string};
 
 const sources:FeedSource[]=[
-  {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",allowedHost:"www.newsnjoy.or.kr",tone:"forest"},
-  {name:"아이굿뉴스",url:"https://www.igoodnews.net/rss/allArticle.xml",allowedHost:"www.igoodnews.net",tone:"clay"},
+  {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"forest"},
+  {name:"아이굿뉴스",url:"https://www.igoodnews.net/rss/allArticle.xml",homepage:"https://www.igoodnews.net/",allowedHost:"www.igoodnews.net",tone:"clay"},
 ];
 
 function decodeXml(value:string) {
@@ -50,6 +50,6 @@ export async function GET() {
   const settled=await Promise.allSettled(sources.map(loadSource));
   const items=settled.flatMap((result)=>result.status==="fulfilled"?result.value:[])
     .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt))
-    .slice(0,8);
-  return Response.json({items},{headers:{"cache-control":"public, max-age=300, s-maxage=900, stale-while-revalidate=21600"}});
+    .slice(0,40);
+  return Response.json({items,sources:sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}))},{headers:{"cache-control":"public, max-age=300, s-maxage=900, stale-while-revalidate=21600"}});
 }
