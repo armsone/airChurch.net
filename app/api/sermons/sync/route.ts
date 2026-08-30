@@ -463,7 +463,7 @@ export async function POST(request:Request) {
   const removed=cleanup.meta.changes;
   if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
-  if(start===0&&state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
+  if(explicitStart===null&&start===0&&state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
     const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
     return Response.json({ok:true,approved:approved?.count??0,removed,imported:0,skipped:"fresh"});
   }
