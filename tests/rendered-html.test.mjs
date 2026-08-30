@@ -589,6 +589,7 @@ test("gives the shorts viewer keyboard controls and continuous automatic looping
   assert.match(page,/current===null\?current:current<filteredShorts\.length-1\?current\+1:0/);
   assert.match(page,/event\.origin!=="https:\/\/www\.youtube-nocookie\.com"/);
   assert.match(page,/aria-label="쇼츠 재생 닫기"/);
+  assert.match(page,/className="shorts-viewer-count" aria-live="polite">\{\(activeShortIndex\?\?0\)\+1\} \/ \{filteredShorts\.length\}/);
   assert.match(page,/aria-label="이전 쇼츠 보기"/);
   assert.match(page,/aria-label="다음 쇼츠 보기"/);
   assert.match(page,/disabled=\{activeShortIndex===0\}/);
@@ -602,6 +603,7 @@ test("gives the shorts viewer keyboard controls and continuous automatic looping
   assert.match(page,/onClick=\{\(\)=>setActiveShortIndex\(null\)\}/);
   assert.match(page,/className="shorts-viewer" onClick=\{\(event\)=>event\.stopPropagation\(\)\}/);
   assert.match(styles,/\.shorts-viewer-overlay\{/);
+  assert.match(styles,/\.shorts-viewer-count\{/);
   assert.match(styles,/\.shorts-viewer-prev\{left:12px\}/);
   assert.match(styles,/\.shorts-viewer-next\{right:12px\}/);
   assert.match(styles,/\.shorts-refresh-button\{/);
