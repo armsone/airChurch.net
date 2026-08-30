@@ -700,8 +700,9 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(styles,/\.church-news-thumb\.newsnjoy\{/);
   assert.match(styles,/\.church-news-thumb\.churchr\{/);
   assert.match(styles,/\.church-news-thumb\.newsjesus\{/);
-  assert.match(styles,/\.church-news-mark\{width:82px;height:48px;display:grid;place-items:center\}/);
-  assert.match(styles,/\.church-news-mark img\{display:block;max-width:82px;max-height:48px/);
+  assert.match(styles,/\.church-news-mark\{width:48px;height:48px;display:grid;place-items:center;border:1px solid/);
+  assert.match(styles,/\.church-news-mark img\{display:block;max-width:34px;max-height:34px/);
+  assert.doesNotMatch(page,/<b>\{item\.source\.slice\(0,2\)\}<\/b>/);
   assert.match(styles,/@media \(max-width:999px\)\{\.church-news-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
   assert.match(styles,/@media \(max-width:760px\)\{.*\.church-news-grid\{grid-template-columns:1fr\}/);
   assert.match(styles,/\.church-news-sources\{/);
