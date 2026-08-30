@@ -90,7 +90,7 @@ test("does not block initial content on YouTube synchronization", async () => {
   assert.match(praiseRoute,/getRequestExecutionContext/);
   assert.match(praiseRoute,/context\.waitUntil\(pendingSync\)/);
   assert.match(weighted,/for \(const item of pinPriorityChurch\(items\)\)/);
-  assert.match(praiseRoute,/selectWeightedRecent\(rows\.results as PraiseRow\[\], 12\)/);
+  assert.match(praiseRoute,/selectWeightedRecent\(rows\.results as PraiseRow\[\], 300\)/);
   assert.match(page,/items\.filter\(\(item\)=>item\.pinned\).*shuffled\(items\.filter\(\(item\)=>!item\.pinned\)\)/s);
   assert.match(sermonRoute,/stale-while-revalidate=3600/);
   assert.match(praiseRoute,/stale-while-revalidate=3600/);
@@ -101,7 +101,7 @@ test("loads a larger sermon catalog in batches", async () => {
     readFile(new URL("../app/home-client.tsx",import.meta.url),"utf8"),
     readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
   ]);
-  assert.match(sermonRoute,/selectWeightedRecent\([^;]+,120\)/);
+  assert.match(sermonRoute,/selectWeightedRecent\([^;]+,300\)/);
   assert.match(page,/visibleSermonCount,setVisibleSermonCount\]=useState\(6\)/);
   assert.match(page,/visibleSermons = filtered\.slice\(0,visibleSermonCount\)/);
   assert.match(page,/previewSermons = filtered\.slice\(visibleSermonCount,visibleSermonCount\+3\)/);
@@ -382,8 +382,8 @@ test("syncs every registered denomination without breaking existing scopes", asy
   assert.match(route,/import \{ prokSources \} from "\.\.\/prok-sources";/);
   assert.match(route,/\.\.\.publicRemainingSources,\n\];/);
   assert.match(route,/const scopedSources=\{hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources\}/);
-  assert.match(route,/scope=requestedScope&&requestedScope in scopedSources\?requestedScope as keyof typeof scopedSources:"all"/);
-  assert.match(route,/sourcePool:readonly Source\[\]=scope==="all"\?sources:scopedSources\[scope\]/);
+  assert.match(route,/scope=requestedScope==="database"\?"database":requestedScope&&requestedScope in scopedSources\?requestedScope as keyof typeof scopedSources:"all"/);
+  assert.match(route,/sourcePool:readonly Source\[\]=scope==="database"\?databaseSources:scope==="all"\?sources:scopedSources\[scope\]/);
   assert.match(route,/syncKey=scope==="all"\?"youtube-v9-regional-130":`youtube-v9-\$\{scope\}`/);
   assert.match(kosinSources,/export const kosinSources=\[/);
   assert.match(kosinSources,/\] as const;/);
@@ -552,20 +552,44 @@ test("ingests church shorts from the sermon sync without leaking them into sermo
   ]);
   assert.match(selection,/export function isShortTitle\(title:string\)/);
   assert.match(selection,/shortKeywords=\/\(#shorts\|#쇼츠\|\\bshorts\\b\|쇼츠\)\/i/);
-  assert.match(syncRoute,/import \{ isSermonTitle, isShortTitle \} from "\.\.\/_selection";/);
+  assert.match(syncRoute,/import \{ isPraiseTitle, isSermonTitle, isShortTitle \} from "\.\.\/_selection";/);
   assert.match(syncRoute,/ensureShortsTables/);
   assert.match(syncRoute,/const recentShorts=\(playlist\.items\|\|\[\]\)\.filter\(\(item\)=>Date\.parse\(item\.snippet\.publishedAt\)>=activeSince&&isShortTitle\(item\.snippet\.title\)\)/);
   assert.match(syncRoute,/INSERT INTO church_shorts/);
   assert.doesNotMatch(shortsRoute,/ensureShortsTables/);
   assert.match(shortsRoute,/church_shorts s JOIN churches c ON c\.id=s\.church_id WHERE c\.review_status='approved' AND s\.status='published'/);
-  assert.match(shortsRoute,/DESC LIMIT 480/);
-  assert.match(shortsRoute,/selectWeightedRecent\(result\.results as ShortRow\[\],120\)/);
+  assert.match(shortsRoute,/DESC LIMIT 1200/);
+  assert.match(shortsRoute,/selectWeightedRecent\(result\.results as ShortRow\[\],300\)/);
   assert.match(shortsRoute,/getRequestExecutionContext/);
   assert.match(shortsRoute,/context\.waitUntil\(pendingSync\)/);
   assert.match(shortsRoute,/stale-while-revalidate=3600/);
   assert.match(shared,/CREATE TABLE IF NOT EXISTS church_shorts/);
   assert.match(schema,/churchShorts = sqliteTable\("church_shorts"/);
   assert.match(styles,/\.shorts-grid\{/);
+});
+
+test("backfills sermons, shorts, and praise from every approved database channel with bounded concurrency", async () => {
+  const [syncRoute,selection,backfill,packageJson,praisesRoute,sermonsRoute]=await Promise.all([
+    readFile(new URL("../app/api/sermons/sync/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/_selection.ts",import.meta.url),"utf8"),
+    readFile(new URL("../scripts/backfill-church-media.mjs",import.meta.url),"utf8"),
+    readFile(new URL("../package.json",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/praises/route.ts",import.meta.url),"utf8"),
+    readFile(new URL("../app/api/sermons/route.ts",import.meta.url),"utf8"),
+  ]);
+  assert.match(syncRoute,/requestedScope==="database"/);
+  assert.match(syncRoute,/FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY id/);
+  assert.match(backfill,/Math\.min\(3/);
+  assert.match(backfill,/scope=database&start=\$\{start\}&limit=\$\{batchSize\}/);
+  assert.match(backfill,/await Promise\.all\(Array\.from\(\{length:concurrency\},worker\)\)/);
+  assert.match(selection,/export function isPraiseTitle/);
+  assert.match(syncRoute,/INSERT INTO praise_videos/);
+  assert.match(backfill,/말씀 \$\{sermons\.items\?\.length\|\|0\}개 · 쇼츠 \$\{shorts\.items\?\.length\|\|0\}개 · 찬양/);
+  assert.match(packageJson,/"media:backfill": "node scripts\/backfill-church-media\.mjs"/);
+  assert.match(praisesRoute,/LIMIT 1200/);
+  assert.match(praisesRoute,/selectWeightedRecent\(rows\.results as PraiseRow\[\], 300\)/);
+  assert.match(sermonsRoute,/LIMIT 1200/);
+  assert.match(sermonsRoute,/selectWeightedRecent\([^;]+,300\)/);
 });
 
 test("gives the shorts viewer keyboard controls and continuous automatic looping", async () => {

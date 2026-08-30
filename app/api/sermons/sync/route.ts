@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
-import { database, ensureSermonTables, ensureShortsTables } from "../../_shared";
-import { isSermonTitle, isShortTitle } from "../_selection";
+import { database, ensurePraiseTables, ensureSermonTables, ensureShortsTables } from "../../_shared";
+import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
 import { kosinSources } from "../kosin-sources";
 import { prokSources } from "../prok-sources";
@@ -437,14 +437,17 @@ const sources:Source[]=[
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
+type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string};
 
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
-  const db=database(); await ensureSermonTables(db); await ensureShortsTables(db); await seedHeldSources(db);
+  const db=database(); await ensureSermonTables(db); await ensureShortsTables(db); await ensurePraiseTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
   const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
-  const scope=requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
-  const sourcePool:readonly Source[]=scope==="all"?sources:scopedSources[scope];
+  const databaseResult=requestedScope==="database"?await db.prepare("SELECT name,pastor,region,denomination,homepage_url AS homepage,youtube_channel_id AS channelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY id").all<DatabaseSourceRow>():null;
+  const databaseSources:Source[]=(databaseResult?.results||[]).map((source)=>({name:source.name,pastor:source.pastor,region:source.region,denomination:source.denomination,homepage:source.homepage||undefined,channelId:source.channelId}));
+  const scope=requestedScope==="database"?"database":requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
+  const sourcePool:readonly Source[]=scope==="database"?databaseSources:scope==="all"?sources:scopedSources[scope];
   const syncKey=scope==="all"?"youtube-v9-regional-130":`youtube-v9-${scope}`;
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
@@ -482,6 +485,7 @@ export async function POST(request:Request) {
     const activeSince=Date.now()-180*24*60*60*1000;
     const recentSermons=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
     const recentShorts=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
+    const recentPraises=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
       await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=? AND review_status!='deleted'").bind(source.name,source.region).run();
       continue;
@@ -499,6 +503,7 @@ export async function POST(request:Request) {
     verified++;
     for(const item of recentSermons.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); imported++; }
     for(const item of recentShorts.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO church_shorts (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); }
+    for(const item of recentPraises.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); }
   }
   const nextStart=start+batch.length;
   const nextCursor=nextStart<sourcePool.length?nextStart:0;

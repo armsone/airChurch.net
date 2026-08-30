@@ -12,3 +12,7 @@ const shortKeywords=/(#shorts|#쇼츠|\bshorts\b|쇼츠)/i;
 export function isShortTitle(title:string) {
   return shortKeywords.test(title);
 }
+
+export function isPraiseTitle(title:string) {
+  return /(찬양|찬송|성가|워십|worship|praise|choir|특송|송축)/i.test(title) && !/(설교|말씀|간증|성경공부|세미나)/i.test(title);
+}

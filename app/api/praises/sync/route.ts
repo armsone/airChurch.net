@@ -1,14 +1,11 @@
 import { database, ensurePraiseTables, ensureSermonTables } from "../../_shared";
+import { isPraiseTitle } from "../../sermons/_selection";
 
 type Church = { id: number; name: string; youtubeChannelId: string };
 type Praise = { churchId: number; youtubeId: string; title: string; thumbnailUrl: string; publishedAt: string };
 
 function decodeXml(value: string) {
   return value.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
-}
-
-function isPraiseTitle(title: string) {
-  return /(찬양|찬송|성가|워십|worship|praise|choir|특송|송축)/i.test(title) && !/(설교|말씀|간증|성경공부|세미나)/i.test(title);
 }
 
 function parseFeed(xml: string, churchId: number): Praise[] {
