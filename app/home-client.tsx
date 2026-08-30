@@ -299,6 +299,22 @@ export default function Home() {
     window.open(url,"_blank","noopener,noreferrer");
   }
 
+  async function loadDifferentShorts() {
+    setShortLoading(true);
+    try {
+      const response=await fetch("/api/shorts");
+      const items=response.ok?((await response.json()) as {items?:Short[]}).items||[]:shortItems;
+      const next=shuffled(items);
+      if(next.length>1&&next[0]?.youtubeId===shortItems[0]?.youtubeId) next.push(next.shift() as Short);
+      setShortItems(next);
+      setActiveShortIndex(null);
+    } catch {
+      setShortItems((items)=>shuffled(items));
+    } finally {
+      setShortLoading(false);
+    }
+  }
+
   async function submitChurchRecommendation(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form=event.currentTarget;
@@ -401,7 +417,7 @@ export default function Home() {
       </section>
 
       <section className="content-section shorts-section" id="shorts">
-        <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><span className="result-count">{shortLoading ? "쇼츠를 불러오는 중…" : filteredShorts.length===shortItems.length ? `${shortItems.length}개의 쇼츠` : `조건에 맞는 ${filteredShorts.length}개 · 전체 ${shortItems.length}개`}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "↻ 다른 쇼츠 보기"}</button></div>
         <div className="shorts-grid">
           {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={()=>setActiveShortIndex(index)} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
             <img className="shorts-thumb" src={short.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />
@@ -412,8 +428,8 @@ export default function Home() {
         </div>
       </section>
 
-      {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`}>
-        <div className="shorts-viewer">
+      {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`} onClick={()=>setActiveShortIndex(null)}>
+        <div className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
           <iframe
             ref={shortFrameRef}
             key={activeShort.youtubeId}

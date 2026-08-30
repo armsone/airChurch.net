@@ -577,7 +577,10 @@ test("gives the shorts viewer keyboard controls and continuous automatic looping
   assert.match(page,/loadItems\("\/api\/shorts"\)\.then/);
   assert.match(page,/shorts: \(\)=>loadItems\("\/api\/shorts"\)/);
   assert.match(page,/const filteredShorts = useMemo/);
-  assert.match(page,/조건에 맞는 \$\{filteredShorts\.length\}개 · 전체 \$\{shortItems\.length\}개/);
+  assert.match(page,/function loadDifferentShorts\(\)/);
+  assert.match(page,/fetch\("\/api\/shorts"\)/);
+  assert.match(page,/↻ 다른 쇼츠 보기/);
+  assert.doesNotMatch(page,/조건에 맞는 \$\{filteredShorts\.length\}개 · 전체 \$\{shortItems\.length\}개/);
   assert.match(page,/short\.region\.startsWith\(region\)/);
   assert.match(page,/short\.denomination === denomination/);
   assert.match(page,/activeShortIndex,setActiveShortIndex\]=useState<number\|null>\(null\)/);
@@ -596,9 +599,15 @@ test("gives the shorts viewer keyboard controls and continuous automatic looping
   assert.match(page,/current<filteredShorts\.length-1 \? current\+1 : current/);
   assert.match(page,/current>0 \? current-1 : current/);
   assert.match(page,/role="dialog" aria-modal="true"/);
+  assert.match(page,/onClick=\{\(\)=>setActiveShortIndex\(null\)\}/);
+  assert.match(page,/className="shorts-viewer" onClick=\{\(event\)=>event\.stopPropagation\(\)\}/);
   assert.match(styles,/\.shorts-viewer-overlay\{/);
-  assert.match(styles,/\.shorts-viewer-prev\{left:-58px\}/);
-  assert.match(styles,/\.shorts-viewer-next\{right:-58px\}/);
+  assert.match(styles,/\.shorts-viewer-prev\{left:12px\}/);
+  assert.match(styles,/\.shorts-viewer-next\{right:12px\}/);
+  assert.match(styles,/\.shorts-refresh-button\{/);
+  assert.match(styles,/@media \(max-width:1100px\)\{\.shorts-grid\{grid-template-columns:repeat\(4,1fr\)\}\.shorts-grid>\.shorts-card:nth-of-type\(n\+9\)\{display:none\}\}/);
+  assert.match(styles,/\.shorts-grid>\.shorts-card:nth-of-type\(n\+7\)\{display:none\}/);
+  assert.match(styles,/\.shorts-grid>\.shorts-card:nth-of-type\(n\+5\)\{display:none\}/);
   assert.match(styles,/\.shorts-viewer-nav:disabled\{opacity:\.3;cursor:default\}/);
 });
 
