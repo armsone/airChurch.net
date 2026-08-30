@@ -10,8 +10,8 @@ type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
-type YouTubePlayer = { destroy:()=>void };
-type YouTubeApi = { Player:new(element:HTMLElement,options:{videoId:string;playerVars:Record<string,string|number>;events:{onStateChange:(event:{data:number})=>void}})=>YouTubePlayer };
+type YouTubePlayer = object;
+type YouTubeApi = { Player:new(element:HTMLIFrameElement,options:{events:{onStateChange:(event:{data:number})=>void}})=>YouTubePlayer };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
@@ -125,7 +125,7 @@ export default function Home() {
   const [shortItems,setShortItems]=useState<Short[]>([]);
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
-  const shortPlayerRef=useRef<HTMLDivElement>(null);
+  const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
   const [churchNewsLoading,setChurchNewsLoading]=useState(true);
@@ -256,20 +256,17 @@ export default function Home() {
   useEffect(()=>{
     if(!activeShort||!shortPlayerRef.current) return;
     let cancelled=false;
-    let player:YouTubePlayer|undefined;
-    const playerHost=shortPlayerRef.current;
+    const playerFrame=shortPlayerRef.current;
     void loadYouTubeApi().then((youtube)=>{
       if(cancelled) return;
-      player=new youtube.Player(playerHost,{
-        videoId:activeShort.youtubeId,
-        playerVars:{autoplay:1,rel:0,playsinline:1,origin:window.location.origin},
+      new youtube.Player(playerFrame,{
         events:{onStateChange:(event)=>{
           if(event.data!==0) return;
           setActiveShortIndex((current)=>current===null?current:current<filteredShorts.length-1?current+1:0);
         }},
       });
     });
-    return ()=>{cancelled=true;player?.destroy();};
+    return ()=>{cancelled=true;};
   },[activeShort?.youtubeId,filteredShorts.length]);
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
@@ -451,11 +448,14 @@ export default function Home() {
 
       {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`} onClick={()=>setActiveShortIndex(null)}>
         <div className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
-          <div
+          <iframe
             ref={shortPlayerRef}
             key={activeShort.youtubeId}
             className="shorts-viewer-frame"
-            aria-label={`${activeShort.title} YouTube 쇼츠 플레이어`}
+            src={`https://www.youtube-nocookie.com/embed/${activeShort.youtubeId}?autoplay=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`}
+            title={activeShort.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
           />
           <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
           <button type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
