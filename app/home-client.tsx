@@ -8,7 +8,7 @@ const ChurchControls = lazy(() => import("./admin/admin-controls").then((module)
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
 type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string; pinned?:boolean };
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
-type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
+type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
 type YouTubePlayer = object;
 type YouTubeApi = { Player:new(element:HTMLIFrameElement,options:{events:{onStateChange:(event:{data:number})=>void}})=>YouTubePlayer };
@@ -127,9 +127,9 @@ export default function Home() {
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
+  const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
   const [churchNewsLoading,setChurchNewsLoading]=useState(true);
-  const [visibleChurchNewsCount,setVisibleChurchNewsCount]=useState(8);
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
@@ -168,7 +168,9 @@ export default function Home() {
       "church-news": ()=>loadItems("/api/church-news").then((data)=>{
         if(!alive) return;
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
-        setChurchNews(result.items||[]);
+        const items=result.items||[];
+        setChurchNews(items);
+        setVisibleChurchNews(shuffled(items).slice(0,9));
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
@@ -242,6 +244,14 @@ export default function Home() {
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
   }), [shortItems, query, region, denomination]);
   const visibleShorts = filteredShorts.slice(0, 12);
+  function showDifferentChurchNews() {
+    setVisibleChurchNews((current)=>{
+      const currentUrls=new Set(current.map((item)=>item.url));
+      const unseen=churchNews.filter((item)=>!currentUrls.has(item.url));
+      const pool=unseen.length>=9?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
+      return shuffled(pool).slice(0,9);
+    });
+  }
   const activeShort = activeShortIndex !== null ? filteredShorts[activeShortIndex] : undefined;
   useEffect(()=>{
     if(activeShortIndex===null) return;
@@ -477,16 +487,15 @@ export default function Home() {
       </section>
 
       <section className="content-section church-news-section" id="church-news">
-        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS로 공개된 제목과 짧은 내용만 소개하며, 자세한 내용은 원문에서 읽습니다.</p></div><span className="result-count">{churchNewsLoading ? "소식을 불러오는 중…" : `${churchNews.length}개의 새 소식`}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS로 공개된 제목과 짧은 내용만 소개하며, 자세한 내용은 원문에서 읽습니다.</p></div><button className="church-news-shuffle" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=9}>다른 뉴스 보기 ↻</button></div>
         {!churchNewsLoading&&churchNewsSources.length>0&&<details className="church-news-sources"><summary>현재 소식을 가져오는 곳 · {churchNewsSources.length}곳</summary><div>{churchNewsSources.map((source)=><span key={source.rssUrl}><strong>{source.name}</strong><a href={source.homepage} target="_blank" rel="noopener noreferrer">홈페이지 ↗</a><a href={source.rssUrl} target="_blank" rel="noopener noreferrer">RSS ↗</a></span>)}</div></details>}
         <div className="church-news-grid">
-          {churchNewsLoading ? Array.from({length:6},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : churchNews.slice(0,visibleChurchNewsCount).map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
-            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><b>{item.source.slice(0,2)}</b><small>교계<br/>NEWS</small></span>
+          {churchNewsLoading ? Array.from({length:9},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
+            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark"><b>{item.source.slice(0,2)}</b><img src={item.markUrl} alt="" /></span><small>{item.source}</small></span>
             <span className="church-news-copy"><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR")}</small><strong>{item.title}</strong><span>{item.summary}</span><em>원문에서 읽기 ↗</em></span>
           </a>)}
           {!churchNewsLoading&&!churchNews.length&&<div className="empty">새 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}
         </div>
-        {!churchNewsLoading&&visibleChurchNewsCount<churchNews.length&&<button className="church-news-more" type="button" onClick={()=>setVisibleChurchNewsCount((count)=>count+8)}>교계소식 8개 더 보기 <small>{Math.min(visibleChurchNewsCount,churchNews.length)} / {churchNews.length}</small></button>}
       </section>
 
       <section className="church-directory-section" id="church-directory">

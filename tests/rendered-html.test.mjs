@@ -650,9 +650,11 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(page,/"church-news": \(\)=>loadItems\("\/api\/church-news"\)/);
   assert.match(page,/공식 RSS로 공개된 제목과 짧은 내용만 소개/);
   assert.match(page,/현재 소식을 가져오는 곳/);
-  assert.match(page,/churchNews\.slice\(0,visibleChurchNewsCount\)/);
-  assert.match(page,/setVisibleChurchNewsCount\(\(count\)=>count\+8\)/);
-  assert.match(page,/교계소식 8개 더 보기/);
+  assert.match(page,/setVisibleChurchNews\(shuffled\(items\)\.slice\(0,9\)\)/);
+  assert.match(page,/function showDifferentChurchNews\(\)/);
+  assert.match(page,/const unseen=churchNews\.filter/);
+  assert.match(page,/다른 뉴스 보기 ↻/);
+  assert.doesNotMatch(page,/개의 새 소식/);
   assert.match(page,/target="_blank" rel="noopener noreferrer"/);
   assert.match(page,/function searchYouTubePraise/);
   assert.match(page,/youtube\.com\/results\?search_query=/);
@@ -682,11 +684,19 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(newsRoute,/url\.hostname!==source\.allowedHost/);
   assert.match(newsRoute,/\.slice\(0,140\)/);
   assert.match(newsRoute,/stale-while-revalidate=21600/);
+  assert.match(newsRoute,/markUrl:"https:\/\/www\.google\.com\/s2\/favicons\?domain=/);
+  assert.equal((newsRoute.match(/tone:"(?:newsnjoy|igoodnews|kidok|pckworld|goodnews|cnews|kehcnews|dangdang|amennews|newsm|churchr)"/g)||[]).length,11);
+  assert.match(page,/Array\.from\(\{length:9\}/);
+  assert.match(page,/visibleChurchNews\.map/);
+  assert.match(page,/className="church-news-mark"/);
   assert.match(styles,/\.church-news-grid\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:14px\}/);
+  assert.match(styles,/\.church-news-thumb\.newsnjoy\{/);
+  assert.match(styles,/\.church-news-thumb\.churchr\{/);
+  assert.match(styles,/\.church-news-mark img\{/);
   assert.match(styles,/@media \(max-width:999px\)\{\.church-news-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
   assert.match(styles,/@media \(max-width:760px\)\{.*\.church-news-grid\{grid-template-columns:1fr\}/);
   assert.match(styles,/\.church-news-sources\{/);
-  assert.match(styles,/\.church-news-more\{/);
+  assert.match(styles,/\.church-news-shuffle\{/);
   assert.match(styles,/\.praise-youtube-search\{/);
 });
 
