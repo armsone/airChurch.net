@@ -637,6 +637,9 @@ test("adds a safe RSS church-news reader and a direct YouTube praise search", as
   assert.match(page,/YouTube에서 찾기/);
   assert.match(newsRoute,/https:\/\/www\.newsnjoy\.or\.kr\/rss\/allArticle\.xml/);
   assert.match(newsRoute,/https:\/\/www\.igoodnews\.net\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/https:\/\/www\.kidok\.com\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/https:\/\/www\.pckworld\.com\/rss\/allArticle\.xml/);
+  assert.match(newsRoute,/tag\(item,"pubDate"\)\|\|tag\(item,"dc:date"\)/);
   assert.match(newsRoute,/\.slice\(0,40\)/);
   assert.match(newsRoute,/rssUrl:url,homepage/);
   assert.match(newsRoute,/url\.hostname!==source\.allowedHost/);

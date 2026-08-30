@@ -4,6 +4,8 @@ type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:
 const sources:FeedSource[]=[
   {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"forest"},
   {name:"아이굿뉴스",url:"https://www.igoodnews.net/rss/allArticle.xml",homepage:"https://www.igoodnews.net/",allowedHost:"www.igoodnews.net",tone:"clay"},
+  {name:"기독신문",url:"https://www.kidok.com/rss/allArticle.xml",homepage:"https://www.kidok.com/",allowedHost:"www.kidok.com",tone:"sky"},
+  {name:"기독공보",url:"https://www.pckworld.com/rss/allArticle.xml",homepage:"https://www.pckworld.com/",allowedHost:"www.pckworld.com",tone:"lavender"},
 ];
 
 function decodeXml(value:string) {
@@ -28,7 +30,7 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
     const item=match[1];
     const title=plainText(tag(item,"title"));
     const rawUrl=plainText(tag(item,"link"));
-    const publishedAt=plainText(tag(item,"pubDate"));
+    const publishedAt=plainText(tag(item,"pubDate")||tag(item,"dc:date"));
     const summary=plainText(tag(item,"description")).slice(0,140);
     try {
       const url=new URL(rawUrl);
@@ -41,7 +43,7 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
 }
 
 async function loadSource(source:FeedSource) {
-  const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8"}});
+  const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1"}});
   if(!response.ok) return [];
   return parseFeed(await response.text(),source);
 }
