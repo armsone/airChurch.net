@@ -60,6 +60,6 @@ export default function RootLayout({
     },
   ];
   return (
-    <html lang="ko"><head><link rel="preconnect" href="https://i.ytimg.com" crossOrigin=""/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body>{children}<VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
+    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body>{children}<VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
   );
 }
