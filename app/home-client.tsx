@@ -200,6 +200,7 @@ export default function Home() {
   const [dailyNote,setDailyNote]=useState("");
   const [journeyWeek,setJourneyWeek]=useState<JourneyDay[]>([]);
   const [personalStateReady,setPersonalStateReady]=useState(false);
+  const [recentSearches,setRecentSearches]=useState<string[]>([]);
   useEffect(()=>{
     try {
       const saved=JSON.parse(localStorage.getItem("airchurch:saved")||"[]") as SavedItem[];
@@ -207,6 +208,8 @@ export default function Home() {
       setSavedItems(Array.isArray(saved)?saved.slice(0,30):[]);
       setDailyCompleted(Array.isArray(completed)?completed:[]);
       setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");
+      const recent=JSON.parse(localStorage.getItem("airchurch:recent-searches")||"[]") as unknown;
+      setRecentSearches(Array.isArray(recent)?recent.filter((item):item is string=>typeof item==="string").slice(0,5):[]);
     } catch { /* 손상된 브라우저 저장값은 빈 상태로 시작합니다. */ }
     setPersonalStateReady(true);
   },[todayKey]);
@@ -599,7 +602,7 @@ export default function Home() {
         <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
         <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
-        <form className="search" role="search" action="/search" method="get">
+        <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim();if(!term)return;const next=[term,...recentSearches.filter((item)=>item!==term)].slice(0,5);setRecentSearches(next);localStorage.setItem("airchurch:recent-searches",JSON.stringify(next));}}>
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" name="q" list="church-search-suggestions" autoComplete="off" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회, 목사, 지역, 교단으로 찾아보세요."} />
           <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
@@ -609,6 +612,7 @@ export default function Home() {
             <button type="submit">통합 검색</button>
           </div>
         </form>
+        {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);localStorage.removeItem("airchurch:recent-searches");}}>지우기</button></div>}
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
         <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
