@@ -63,10 +63,20 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
   return items;
 }
 
+async function limitedText(response:Response,maxBytes=1_000_000) {
+  const declared=Number(response.headers.get("content-length"));
+  if(Number.isFinite(declared)&&declared>maxBytes)return null;
+  if(!response.body)return "";
+  const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
+  while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){void reader.cancel().catch(()=>{});return null;}chunks.push(value);}
+  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  return new TextDecoder().decode(bytes);
+}
+
 async function loadSource(source:FeedSource) {
   const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1"},signal:AbortSignal.timeout(8_000)}).catch(()=>null);
   if(!response?.ok) return [];
-  return parseFeed(await response.text(),source);
+  const xml=await limitedText(response);return xml===null?[]:parseFeed(xml,source);
 }
 
 const MAX_PER_SOURCE=2;
