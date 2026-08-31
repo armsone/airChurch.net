@@ -343,7 +343,7 @@ export function SermonControls({ id, status }: { id: number; status: string }) {
     setBusy(true); setError("");
     try { await updateAdmin({ kind: "sermon", id, status: hiding ? "hidden" : "published" }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  return <div className="admin-inline-control"><button disabled={busy} className={status === "published" ? "danger" : "restore"} onClick={() => void toggle()}>{status === "published" ? "즉시 내리기" : "다시 공개"}</button>{error && <span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-inline-control"><button type="button" disabled={busy} className={status === "published" ? "danger" : "restore"} onClick={() => void toggle()}>{status === "published" ? "즉시 내리기" : "다시 공개"}</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
 export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" | "recommendation" | "contact"; id: number; status: string }) {
@@ -359,7 +359,7 @@ export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" |
   }
   const approveLabel=kind === "recommendation" ? "교회 등록 승인" : kind === "contact" ? "처리 완료" : "공개 승인";
   const rejectLabel=kind === "recommendation" ? "등록하지 않음" : kind === "contact" ? "처리하지 않음" : "비공개";
-  return <div className="admin-action-row"><button disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{approveLabel}</button><button disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{rejectLabel}</button>{status !== "pending" && <button disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}<button disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button type="button" disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{approveLabel}</button><button type="button" disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{rejectLabel}</button>{status !== "pending" && <button type="button" disabled={busy} onClick={() => void setStatus("pending")}>재검토</button>}<button type="button" disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
@@ -370,7 +370,7 @@ export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
     setBusy(true);setError("");
     try { await updateAdmin({kind:"reviewer-account",id,status:next}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
-  return <div className="admin-action-row"><button disabled={busy||status==="approved"} className="restore" onClick={()=>void setStatus("approved")}>검토 권한 승인</button><button disabled={busy||status==="rejected"} className="danger" onClick={()=>void setStatus("rejected")}>가입 거절</button>{status!=="pending"&&<button disabled={busy} onClick={()=>void setStatus("pending")}>재검토</button>}<button disabled={busy} className="danger" onClick={()=>void setStatus("deleted")}>삭제</button>{error&&<span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button type="button" disabled={busy||status==="approved"} className="restore" onClick={()=>void setStatus("approved")}>검토 권한 승인</button><button type="button" disabled={busy||status==="rejected"} className="danger" onClick={()=>void setStatus("rejected")}>가입 거절</button>{status!=="pending"&&<button type="button" disabled={busy} onClick={()=>void setStatus("pending")}>재검토</button>}<button type="button" disabled={busy} className="danger" onClick={()=>void setStatus("deleted")}>삭제</button>{error&&<span className="admin-error">{error}</span>}</div>;
 }
 
 export function ReviewerOpinionControls({id,handled=false}:{id:number;handled?:boolean}) {
@@ -379,7 +379,7 @@ export function ReviewerOpinionControls({id,handled=false}:{id:number;handled?:b
     setBusy(true);setError("");
     try { await updateAdmin({kind:"church-review-handled",id,handled:!handled}); } catch(reason) { setError((reason as Error).message);setBusy(false); }
   }
-  return <div className="admin-action-row opinion-action"><button disabled={busy} className={handled?"":"restore"} onClick={()=>void toggle()}>{handled?"다시 처리하기":"처리 완료"}</button>{error&&<span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row opinion-action"><button type="button" disabled={busy} className={handled?"":"restore"} onClick={()=>void toggle()}>{handled?"다시 처리하기":"처리 완료"}</button>{error&&<span className="admin-error">{error}</span>}</div>;
 }
 
 export function ChurchReviewControls({id,status,note,reviewedAt}:{id:number;status:string;note:string|null;reviewedAt:string|null}) {
