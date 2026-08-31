@@ -349,7 +349,7 @@ export default function Home() {
   },[activeShortIndex,filteredShorts.length]);
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
-    const startMutedPlayback=(player:YouTubePlayer)=>{
+  const startMutedPlayback=(player:YouTubePlayer)=>{
       player.mute();
       player.playVideo();
     };
@@ -377,6 +377,8 @@ export default function Home() {
         events:{
           onReady: (event: YouTubeEvent) => {
             shortPlayerInstanceRef.current = event.target;
+            event.target.mute();
+            event.target.playVideo();
             requestPlay();
           },
           onStateChange:(event)=>{
@@ -589,7 +591,7 @@ export default function Home() {
           <div className="search-filters">
             <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
             <select className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
-            <a href="#sermons">결과 보기</a>
+            <a href={`/search?${new URLSearchParams({...(query.trim()?{q:query.trim()}:{}),...(region!=="전체"?{region}:{}),...(denomination!=="전체 교단"?{denomination}:{})}).toString()}`}>통합 검색</a>
           </div>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
