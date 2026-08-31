@@ -18,10 +18,10 @@ export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS talent_offers (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, region TEXT NOT NULL, description TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_talent_offers_status_created ON talent_offers(status, created_at)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_talent_offers_fingerprint_created ON talent_offers(fingerprint, created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_talent_offers_fingerprint_created"),
     db.prepare("CREATE TABLE IF NOT EXISTS community_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, nickname TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', report_count INTEGER NOT NULL DEFAULT 0, fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_community_posts_status_created ON community_posts(status, created_at)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_community_posts_fingerprint_created ON community_posts(fingerprint, created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_community_posts_fingerprint_created"),
   ]);
 });
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
@@ -66,21 +66,21 @@ export const ensureChurchRecommendationTables = memoizeEnsure(async (db:D1Databa
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_recommendations (id INTEGER PRIMARY KEY AUTOINCREMENT, church_name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_url TEXT, reason TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_recommendations_status_created ON church_recommendations(status, created_at DESC)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_recommendations_fingerprint_created ON church_recommendations(fingerprint, created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_church_recommendations_fingerprint_created"),
   ]);
 });
 export const ensureContactTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS contact_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, category TEXT NOT NULL, name TEXT NOT NULL, contact TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_contact_requests_status_created ON contact_requests(status, created_at DESC)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_contact_requests_fingerprint_created ON contact_requests(fingerprint, created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_contact_requests_fingerprint_created"),
   ]);
 });
 export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, contact TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_accounts_status_created ON reviewer_accounts(status, created_at DESC)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_accounts_fingerprint_created ON reviewer_accounts(fingerprint, created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_reviewer_accounts_fingerprint_created"),
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_church_reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'unreviewed', note TEXT, reviewed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, handled_at TEXT, admin_resolution TEXT, admin_note TEXT, resolved_by TEXT, UNIQUE(reviewer_id,church_id))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_reviewer_church_reviews_church ON reviewer_church_reviews(church_id, reviewed_at DESC)"),
     db.prepare("CREATE TABLE IF NOT EXISTS church_change_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, reviewer_id INTEGER NOT NULL, church_id INTEGER NOT NULL, request_type TEXT NOT NULL, reason TEXT NOT NULL, proposed_name TEXT, proposed_pastor TEXT, proposed_region TEXT, proposed_denomination TEXT, status TEXT NOT NULL DEFAULT 'pending', admin_note TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
