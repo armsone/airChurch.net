@@ -465,7 +465,7 @@ export default function Home() {
     setDailyCompleted((current)=>{
       if(current.includes(step)) return current;
       const next=[...current,step];
-      localStorage.setItem(`airchurch:daily:${todayKey}`,JSON.stringify(next));
+      try{localStorage.setItem(`airchurch:daily:${todayKey}`,JSON.stringify(next));}catch{/* 저장 제한 환경에서도 진행 표시는 유지합니다. */}
       return next;
     });
   }
@@ -485,8 +485,7 @@ export default function Home() {
   function saveDailyNote(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const note=dailyNote.trim().slice(0,240);
-    if(note) localStorage.setItem(`airchurch:note:${todayKey}`,note);
-    else localStorage.removeItem(`airchurch:note:${todayKey}`);
+    try{if(note)localStorage.setItem(`airchurch:note:${todayKey}`,note);else localStorage.removeItem(`airchurch:note:${todayKey}`);}catch{/* 저장 제한 환경에서도 입력 화면은 유지합니다. */}
     setDailyNote(note);
     setNotice(note?"오늘의 한 줄을 이 브라우저에 저장했습니다.":"오늘의 한 줄을 비웠습니다.");
   }
@@ -631,7 +630,7 @@ export default function Home() {
             <button type="submit">통합 검색</button>
           </div>
         </form>
-        {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);localStorage.removeItem("airchurch:recent-searches");}}>지우기</button></div>}
+        {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{localStorage.removeItem("airchurch:recent-searches");}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
         <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
