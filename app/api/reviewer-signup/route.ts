@@ -1,10 +1,9 @@
 import { hashReviewerPassword } from "../../admin-access";
-import { clean, database, ensureReviewerTables, fingerprint, requestBodyTooLarge, requestOriginIsInvalid } from "../_shared";
+import { clean, database, ensureReviewerTables, fingerprint, readLimitedJson, requestOriginIsInvalid } from "../_shared";
 
 export async function POST(request:Request) {
-  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
-  const data=await request.json().catch(()=>({})) as Record<string,unknown>;
+  const body=await readLimitedJson(request);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});const data=body.data;
   if(clean(data.company,20))return Response.json({ok:true},{headers:{"cache-control":"no-store"}});
   const name=clean(data.name,80),contact=clean(data.contact,120),username=clean(data.username,40).toLowerCase();
   const password=typeof data.password==="string"?data.password:"";

@@ -1,11 +1,10 @@
-import { clean, database, ensureContactTables, fingerprint, requestBodyTooLarge, requestOriginIsInvalid } from "../_shared";
+import { clean, database, ensureContactTables, fingerprint, readLimitedJson, requestOriginIsInvalid } from "../_shared";
 
 const categories = new Set(["정보 수정 요청", "저작권·비공개 요청", "개인정보 요청", "운영 문의"]);
 
 export async function POST(request:Request) {
-  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
-  const data=await request.json().catch(()=>({})) as Record<string,unknown>;
+  const body=await readLimitedJson(request);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});const data=body.data;
   if(clean(data.company,20)) return Response.json({ok:true});
   const category=clean(data.category,40),name=clean(data.name,80),contact=clean(data.contact,160),message=clean(data.message,1500);
   if(!categories.has(category)||name.length<2||contact.length<5||message.length<20) return Response.json({error:"문의 내용을 다시 확인해 주세요."},{status:400});

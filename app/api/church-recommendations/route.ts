@@ -1,4 +1,4 @@
-import { clean, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint, requestBodyTooLarge, requestOriginIsInvalid } from "../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint, readLimitedJson, requestOriginIsInvalid } from "../_shared";
 
 function validYoutubeUrl(value:string) {
   if(!value) return true;
@@ -9,9 +9,8 @@ function validYoutubeUrl(value:string) {
 }
 
 export async function POST(request:Request) {
-  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
-  const data=await request.json().catch(()=>({})) as Record<string,unknown>;
+  const body=await readLimitedJson(request);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});const data=body.data;
   if(clean(data.company,20)) return Response.json({ok:true});
   const churchName=clean(data.churchName,100),pastor=clean(data.pastor,80),region=clean(data.region,80),denomination=clean(data.denomination,120),youtubeUrl=clean(data.youtubeUrl,300),reason=clean(data.reason,800);
   if(churchName.length<2||pastor.length<2||region.length<2||denomination.length<2||reason.length<10||!validYoutubeUrl(youtubeUrl)) return Response.json({error:"교회 정보와 추천 이유를 확인해 주세요."},{status:400});

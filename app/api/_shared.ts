@@ -102,3 +102,14 @@ export async function fingerprint(request: Request) { const ip=request.headers.g
 export function clean(value:unknown,max:number) { return typeof value === "string" ? value.trim().replace(/<[^>]*>/g,"").slice(0,max) : ""; }
 export function requestBodyTooLarge(request:Request,maxBytes=16_384){const length=Number(request.headers.get("content-length"));return Number.isFinite(length)&&length>maxBytes;}
 export function requestOriginIsInvalid(request:Request){const origin=request.headers.get("origin");return Boolean(origin&&origin!==new URL(request.url).origin);}
+export async function readLimitedJson(request:Request,maxBytes=16_384):Promise<{data:Record<string,unknown>;tooLarge:boolean}>{
+  if(requestBodyTooLarge(request,maxBytes))return {data:{},tooLarge:true};
+  if(!request.body)return {data:{},tooLarge:false};
+  const reader=request.body.getReader(),chunks:Uint8Array[]=[];let size=0;
+  try{
+    while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){await reader.cancel();return {data:{},tooLarge:true};}chunks.push(value);}
+    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+    const parsed=JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return {data:parsed&&typeof parsed==="object"&&!Array.isArray(parsed)?parsed as Record<string,unknown>:{},tooLarge:false};
+  }catch{return {data:{},tooLarge:false};}
+}
