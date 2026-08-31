@@ -130,6 +130,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
           <small>{church.denomination}</small>
         </div>
         <div className="church-directory-links">
+          {!isHeld && <button type="button" className="admin-card-edit-trigger" onClick={()=>{if(detailsRef.current)detailsRef.current.open=!detailsRef.current.open;}} aria-label={`${church.name} 관리 열기`}>관리</button>}
           {homepageUrl && <a className="homepage-link" href={homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{channelImageUrl && <img src={channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.hidden = true; }} />}</span></a>}
           {youtubeChannelId && <a className="youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}
         </div>
@@ -216,7 +217,6 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   return (
     <article className="managed-church-card admin-directory-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
       {publicCardContent}
-      <button type="button" className="admin-card-edit-trigger" onClick={()=>{if(detailsRef.current)detailsRef.current.open=!detailsRef.current.open;}} aria-label={`${church.name} 관리 열기`}>관리</button>
       {editForm}
     </article>
   );
