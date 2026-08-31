@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import HomeReloadLink from "../../home-reload-link";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
@@ -13,10 +14,10 @@ type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:s
 type VideoRow={youtube_id:string;title:string;published_at:string};
 type RelatedChurch={id:number;name:string;pastor:string;region:string;denomination:string};
 
-async function publicChurch(id:number){
+const publicChurch=cache(async(id:number)=>{
   if(!Number.isInteger(id)||id<1)return null;
   return database().prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id,homepage_url,channel_image_url FROM churches WHERE id=? AND review_status='approved' LIMIT 1").bind(id).first<ChurchRow>();
-}
+});
 
 export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
   const {id:rawId}=await params;const church=await publicChurch(Number(rawId));
