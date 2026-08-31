@@ -228,7 +228,6 @@ export default function Home() {
     });
     setJourneyWeek(days);
   },[dailyCompleted,personalStateReady,todayKey]);
-  useEffect(()=>{let active=true;fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((result)=>{if(active)setIsAdmin(result?.role==="admin");}).catch(()=>{});return()=>{active=false};},[]);
   useEffect(()=>{let active=true;fetch("/api/churches?countOnly=1").then((response)=>response.ok?response.json():null).then((result)=>{if(active&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>{active=false};},[]);
   useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetch(`/api/search-suggestions?q=${encodeURIComponent(term)}`,{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>setSearchSuggestions(Array.isArray(result?.items)?result.items:[])).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
   useEffect(()=>{
@@ -285,6 +284,7 @@ export default function Home() {
         setChurchItems(result.items||[]);
         setChurchTotal(result.total??result.items?.length??0);
         setChurchLoading(false);
+        fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((session)=>{if(alive)setIsAdmin(session?.role==="admin");}).catch(()=>{});
       }),
     };
     const loaded=new Set<string>();
