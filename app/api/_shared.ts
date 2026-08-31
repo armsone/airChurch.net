@@ -28,6 +28,8 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE TABLE IF NOT EXISTS sermons (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_published_at ON sermons(published_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_search ON churches(region, name, pastor)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_review_region ON churches(review_status, region)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_review_denomination ON churches(review_status, denomination)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, last_synced_at TEXT NOT NULL)"),
   ]);
   const columns = await db.prepare("PRAGMA table_info(sermons)").all<{ name: string }>();
@@ -42,17 +44,20 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   if (!churchColumns.results.some((column) => column.name === "homepage_url")) await db.prepare("ALTER TABLE churches ADD COLUMN homepage_url TEXT").run();
   await addColumnIfMissing(db,churchColumns.results,"review_resolution_token","ALTER TABLE churches ADD COLUMN review_resolution_token TEXT");
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_church_status_published ON sermons(church_id, status, published_at DESC)").run();
 });
 export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS praise_videos (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_status_published ON praise_videos(status, published_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_church_status_published ON praise_videos(church_id, status, published_at DESC)"),
   ]);
 });
 export const ensureShortsTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_shorts (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_shorts_status_published ON church_shorts(status, published_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_shorts_church_status_published ON church_shorts(church_id, status, published_at DESC)"),
   ]);
 });
 export const ensureChurchRecommendationTables = memoizeEnsure(async (db:D1Database) => {
