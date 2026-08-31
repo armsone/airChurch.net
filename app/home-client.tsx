@@ -706,7 +706,7 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.png" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 확인합니다. 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인된 교회를 운영 검토 후 공개합니다.</p>
+        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.webp" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} loading="lazy" decoding="async" /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 확인합니다. 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인된 교회를 운영 검토 후 공개합니다.</p>
           <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
             <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
             <table className="church-radar-sources-table"><caption className="sr-only">자료 확인 기준과 출처</caption>
