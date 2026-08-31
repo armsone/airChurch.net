@@ -13,7 +13,7 @@ type ChurchResult={id:number;name:string;pastor:string;region:string;denominatio
 type VideoResult={youtube_id:string;title:string;published_at:string;church_id:number;church:string;pastor:string;region:string;denomination:string};
 
 const regions=["전체","서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
-const denominations=["전체 교단","대한예수교장로회 통합","대한예수교장로회 합동","기독교대한감리회","대한예수교장로회 고신","기독교한국침례회","기독교대한성결교회","대한예수교장로회 합신","대한예수교장로회 백석","기독교대한하나님의성회","한국기독교장로회","독립교회","한국독립교회선교단체연합회"];
+const denominations=["전체 교단","대한예수교장로회 통합","대한예수교장로회 합동","기독교대한감리회","대한예수교장로회 고신","기독교한국침례회","기독교대한성결교회","대한예수교장로회 합신","대한예수교장로회 백석","기독교대한하나님의성회","기독교대한하나님의성회 광화문총회","한국기독교장로회","독립교회","한국독립교회선교단체연합회"];
 const fieldScore=(field:string,candidates:string[],weight:number)=>{const value=normalize(field);return Math.max(0,...candidates.map((candidate)=>value===candidate?weight+70:value.startsWith(candidate)?weight+28:value.includes(candidate)?weight:0));};
 const relevance=(church:ChurchResult,terms:string[])=>{const fields=[[church.name,40],[church.pastor,25],[church.region,15],[church.denomination,12]] as const;return terms.reduce((score,term)=>score+Math.max(0,...fields.map(([field,weight])=>fieldScore(field,expand(term),weight))),0);};
 const videoRelevance=(video:VideoResult,terms:string[])=>{const fields=[[video.title,45],[video.church,35],[video.pastor,24],[video.region,14],[video.denomination,12]] as const;return terms.reduce((score,term)=>score+Math.max(0,...fields.map(([field,weight])=>fieldScore(field,expand(term),weight))),0);};
