@@ -276,7 +276,7 @@ export default function Home() {
       talent: ()=>loadItems("/api/talents").then((data)=>{
         if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
       }),
-      "church-directory": ()=>loadItems("/api/churches?catalog=1000&count=full").then((data)=>{
+      "church-directory": ()=>loadItems("/api/churches").then((data)=>{
         if(!alive) return;
         const result=data as {items?:ChurchItem[];total?:number};
         setChurchItems(result.items||[]);
@@ -297,25 +297,26 @@ export default function Home() {
     return()=>{alive=false;observer.disconnect()};
   },[]);
   useEffect(()=>{
-    const trimmed=churchQuery.trim();
-    if(!trimmed) {
+    const trimmed=churchQuery.trim(),global=query.trim(),active=Boolean(trimmed||global||region!=="전체"||denomination!=="전체 교단"),searchKey=[trimmed,global,region,denomination].join("|");
+    if(!active) {
       const resetTimer=window.setTimeout(()=>{setChurchSearch(null);setChurchSearchLoading(false);},0);
       return()=>window.clearTimeout(resetTimer);
     }
     const controller=new AbortController();
     const timer=window.setTimeout(async()=>{
       setChurchSearchLoading(true);
-      const params=new URLSearchParams({q:trimmed});
-      if(query.trim()) params.set("global",query.trim());
+      const params=new URLSearchParams();
+      if(trimmed) params.set("q",trimmed);
+      if(global) params.set("global",global);
       if(region!=="전체") params.set("region",region);
       if(denomination!=="전체 교단") params.set("denomination",denomination);
       try {
         const response=await fetch(`/api/churches?${params}`,{signal:controller.signal});
         if(!response.ok) throw new Error();
         const data=await response.json() as {items?:ChurchItem[];total?:number};
-        setChurchSearch({query:trimmed,items:data.items??[],total:data.total??data.items?.length??0});
+        setChurchSearch({query:searchKey,items:data.items??[],total:data.total??data.items?.length??0});
       } catch(error) {
-        if((error as {name?:string}).name!=="AbortError") setChurchSearch({query:trimmed,items:[],total:0});
+        if((error as {name?:string}).name!=="AbortError") setChurchSearch({query:searchKey,items:[],total:0});
       } finally {
         if(!controller.signal.aborted) setChurchSearchLoading(false);
       }
@@ -414,18 +415,19 @@ export default function Home() {
     setShortMuted(false);
   }
   const trimmedChurchQuery=churchQuery.trim();
-  const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
+  const hasActiveChurchFilter = Boolean(query.trim() || trimmedChurchQuery || region !== "전체" || denomination !== "전체 교단");
+  const churchSearchKey=[trimmedChurchQuery,query.trim(),region,denomination].join("|");
+  const currentChurchSearch=churchSearch?.query===churchSearchKey?churchSearch:null;
   const filteredChurches = useMemo(() => {
     const trimmedGlobal = query.trim();
-    const source=trimmedChurchQuery?(currentChurchSearch?.items??[]):churchItems;
+    const source=hasActiveChurchFilter?(currentChurchSearch?.items??[]):churchItems;
     return source.filter((church) => {
       const haystack = normalizeSearchText(`${church.name}${church.pastor}${church.region}${church.denomination}`);
       const matchesGlobal = !trimmedGlobal || matchesSearchTerms(haystack,trimmedGlobal);
       return matchesGlobal && (region === "전체" || church.region.startsWith(region)) && (denomination === "전체 교단" || church.denomination === denomination);
     });
-  }, [churchItems, currentChurchSearch, trimmedChurchQuery, query, region, denomination]);
+  }, [churchItems, currentChurchSearch, hasActiveChurchFilter, query, region, denomination]);
   const denominationOptions=useMemo(()=>["전체 교단",...Array.from(new Set([...knownDenominations,...churchItems.map((church)=>church.denomination),...sermonItems.map((sermon)=>sermon.denomination),...praiseItems.map((praise)=>praise.denomination)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,"ko"))],[churchItems,sermonItems,praiseItems]);
-  const hasActiveChurchFilter = Boolean(query.trim() || churchQuery.trim() || region !== "전체" || denomination !== "전체 교단");
   const radarChurches=useMemo(()=>{
     if(hasActiveChurchFilter) return filteredChurches;
     const prioritized=filteredChurches.filter((church)=>(church.priorityWeight??1)>1).sort((a,b)=>(b.priorityWeight??1)-(a.priorityWeight??1));
@@ -435,8 +437,8 @@ export default function Home() {
   },[filteredChurches,hasActiveChurchFilter,churchRadarRefresh]);
   const visibleChurches=hasActiveChurchFilter?(showAllChurches?filteredChurches:filteredChurches.slice(0,12)):radarChurches;
   const isUnfilteredChurchDirectory=!query.trim()&&region==="전체"&&denomination==="전체 교단";
-  const churchSearchTotal=trimmedChurchQuery?(currentChurchSearch?.total??0):isUnfilteredChurchDirectory?churchTotal:filteredChurches.length;
-  const churchSearchPending=Boolean(trimmedChurchQuery&&!currentChurchSearch)||churchSearchLoading;
+  const churchSearchTotal=hasActiveChurchFilter?(currentChurchSearch?.total??0):churchTotal;
+  const churchSearchPending=Boolean(hasActiveChurchFilter&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":isUnfilteredChurchDirectory?`전국 ${churchTotal.toLocaleString("ko-KR")}개 교회`:`${churchSearchTotal.toLocaleString("ko-KR")}개 검색 결과`;
   const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${filteredChurches.length}곳)`;
   const dailyProgress=Math.round(dailyCompleted.filter((step)=>["bible","sermon","praise"].includes(step)).length/3*100);

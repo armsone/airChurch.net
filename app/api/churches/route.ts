@@ -27,9 +27,10 @@ export async function GET(request:Request) {
     const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
     return Response.json({total:count?.total??0},{headers:{"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"}});
   }
-  const isSearch=Boolean(query);
-  const limit=isSearch?200:1000;
-  const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY priority_weight DESC,name LIMIT ${limit}`;
+  const isSearch=Boolean(query||globalQuery||region&&region!=="전체"||denomination&&denomination!=="전체 교단");
+  const limit=isSearch?200:36;
+  const order=isSearch?"priority_weight DESC,name":`CASE WHEN priority_weight>1 THEN 0 ELSE 1 END,CASE WHEN priority_weight>1 THEN priority_weight END DESC,RANDOM()`;
+  const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY ${order} LIMIT ${limit}`;
   const result=await db.prepare(selectSql).bind(...bindings).all<ChurchRow>();
   const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
