@@ -318,13 +318,13 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-batch-bar button{min-height:36px;padding:7px 11px;border:1px solid #cdd8d2;border-radius:8px;background:white;color:var(--ink);font-size:10px;font-weight:850;cursor:pointer}
 .admin-batch-bar button:disabled{opacity:.45;cursor:default}.admin-batch-bar button.danger{border-color:#e7c2b7;color:#a65038;background:#fff8f5}.admin-batch-bar button.restore{border-color:#bdd6c8;color:#47765f;background:#f3faf6}
 .admin-batch-bar .admin-error{flex-basis:100%}
-.admin-management-grid .admin-manage-list>article.admin-directory-card{min-width:0;height:114px;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
-.admin-management-grid .admin-manage-list>article.admin-directory-card[data-admin-selected="true"]{border-color:#719a86;box-shadow:0 0 0 2px rgba(83,116,100,.13)}
+.admin-management-grid .admin-manage-list>.admin-directory-card{min-width:0;height:114px;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
+.admin-management-grid .admin-manage-list>.admin-directory-card[data-admin-selected="true"]{border-color:#719a86;box-shadow:0 0 0 2px rgba(83,116,100,.13)}
 .admin-church-region-select{min-width:0;display:flex;align-items:center;gap:5px;color:var(--orange);font-size:10px;font-weight:850}
 .admin-card-select{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;margin:-4px 0 -4px -4px;cursor:pointer}
 .admin-card-select input{width:16px;height:16px;margin:0;accent-color:#527565;cursor:pointer}
-.admin-management-grid .admin-manage-list>article.admin-directory-card:hover{border-color:#bfd0c7;box-shadow:0 4px 16px rgba(24,54,47,.06)}
-.admin-management-grid .admin-manage-list>article.admin-directory-card:has(.admin-church-details[open]){height:auto;min-height:114px}
+.admin-management-grid .admin-manage-list>.admin-directory-card:hover{border-color:#bfd0c7;box-shadow:0 4px 16px rgba(24,54,47,.06)}
+.admin-management-grid .admin-manage-list>.admin-directory-card:has(.admin-church-details[open]){height:auto;min-height:114px}
 .admin-management-grid .admin-directory-card h3{margin:7px 0 5px;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-management-grid .admin-directory-card .church-directory-meta-copy p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-management-grid .admin-directory-card .church-directory-meta-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -336,10 +336,6 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-preference-fields>label{min-width:0}
 .admin-management-grid .admin-directory-card .admin-action-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 .admin-management-grid .admin-directory-card .admin-action-row button{width:100%;justify-content:center;text-align:center;white-space:nowrap}
-.church-directory-links .admin-card-edit-trigger{width:44px;height:34px;padding:0;border:1px solid #cbd8d1;border-radius:9px;background:#f7faf8;color:var(--ink);font-size:10px;font-weight:800;cursor:pointer}
-.church-directory-links .admin-card-edit-trigger:hover{background:#eef4f0}
-.church-directory-links .admin-card-edit-trigger:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-
 #church-hold .admin-manage-list{grid-template-columns:1fr}
 .admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}
 .is-held-card .admin-held-card-body{height:92px;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:stretch}
@@ -355,7 +351,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-directory-hold-actions button:not(:disabled):hover{background:#f4f8f5;border-color:#b0c6bb}
 .admin-directory-hold-actions button.danger:not(:disabled):hover{background:#ffede6;border-color:#d89e8b}
 @media (max-width:1180px){.admin-management-grid{grid-template-columns:1fr}.admin-management-grid .admin-manage-list{grid-template-columns:1fr}}
-@media (max-width:760px){.admin-management-grid .admin-manage-list>article.admin-directory-card{height:auto;min-height:114px}.admin-management-grid .admin-directory-card .admin-edit-fields,.admin-management-grid .admin-directory-card .admin-preference-fields{grid-template-columns:1fr}.is-held-card .admin-held-card-body{height:auto;grid-template-columns:1fr;gap:12px}.admin-directory-hold-panel{height:auto;margin:8px -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
+@media (max-width:760px){.admin-management-grid .admin-manage-list>.admin-directory-card{height:auto;min-height:114px}.admin-management-grid .admin-directory-card .admin-edit-fields,.admin-management-grid .admin-directory-card .admin-preference-fields{grid-template-columns:1fr}.is-held-card .admin-held-card-body{height:auto;grid-template-columns:1fr;gap:12px}.admin-directory-hold-panel{height:auto;margin:8px -10px -10px -10px;border-radius:0 0 13px 13px;padding:10px 12px}}
 .shorts-section{padding-top:42px;border-top:1px solid var(--line)}
 .shorts-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
 .shorts-refresh-button{flex:none;padding:10px 14px;border:1px solid #bdd0c6;border-radius:999px;background:white;color:var(--ink);font-size:12px;font-weight:850;cursor:pointer}.shorts-refresh-button:hover:not(:disabled){border-color:#76998a;background:#f5faf7}.shorts-refresh-button:disabled{opacity:.65;cursor:wait}
