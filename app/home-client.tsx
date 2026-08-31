@@ -3,6 +3,7 @@
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
 import { matchesSearchTerms, normalizeSearchValue } from "./search-domain";
+import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
 
@@ -20,7 +21,6 @@ type YouTubeApi = { Player:new(
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
-type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; subtitle:string; url:string };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 type SearchSuggestion = { value:string; label:string };
 
@@ -203,9 +203,8 @@ export default function Home() {
   const [recentSearches,setRecentSearches]=useState<string[]>([]);
   useEffect(()=>{
     try {
-      const saved=JSON.parse(localStorage.getItem("airchurch:saved")||"[]") as SavedItem[];
       const completed=JSON.parse(localStorage.getItem(`airchurch:daily:${todayKey}`)||"[]") as string[];
-      setSavedItems(Array.isArray(saved)?saved.slice(0,30):[]);
+      setSavedItems(readSavedItems());
       setDailyCompleted(Array.isArray(completed)?completed:[]);
       setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");
       const recent=JSON.parse(localStorage.getItem("airchurch:recent-searches")||"[]") as unknown;
@@ -455,7 +454,7 @@ export default function Home() {
     setSavedItems((current)=>{
       const exists=current.some((saved)=>saved.id===item.id);
       const next=exists?current.filter((saved)=>saved.id!==item.id):[item,...current].slice(0,30);
-      localStorage.setItem("airchurch:saved",JSON.stringify(next));
+      writeSavedItems(next);
       setNotice(exists?"찜에서 뺐습니다.":"내 이어보기에 저장했습니다. 이 브라우저에만 보관됩니다.");
       return next;
     });
