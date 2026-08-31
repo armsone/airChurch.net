@@ -23,12 +23,14 @@ export async function POST(request:Request) {
   for(const raw of records) {
     const source={name:clean(raw.name,100),pastor:clean(raw.pastor,80),region:clean(raw.region,80),denomination:clean(raw.denomination,120),channelId:clean(raw.channelId,80),homepage:safeHttpUrl(clean(raw.homepage,500))};
     if(!source.name||!source.pastor||!source.region||!source.denomination||!CHANNEL_ID.test(source.channelId)){skipped.push({name:source.name||"이름 없음",reason:"invalid_record"});continue;}
-    const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${encodeURIComponent(source.channelId)}&key=${encodeURIComponent(key)}`);
+    let channelResponse:Response;
+    try{channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${encodeURIComponent(source.channelId)}&key=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(10_000)});}catch{skipped.push({name:source.name,reason:"channel_verification_unavailable"});continue;}
     if(!channelResponse.ok){skipped.push({name:source.name,reason:"channel_verification_failed"});continue;}
     const found=((await channelResponse.json()) as ChannelResponse).items?.[0];
     if(!found){skipped.push({name:source.name,reason:"channel_not_found"});continue;}
     const uploads=found.contentDetails.relatedPlaylists.uploads;
-    const playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=24&key=${encodeURIComponent(key)}`);
+    let playlistResponse:Response;
+    try{playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=24&key=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(10_000)});}catch{skipped.push({name:source.name,reason:"uploads_unavailable"});continue;}
     if(!playlistResponse.ok){skipped.push({name:source.name,reason:"uploads_unavailable"});continue;}
     const activeSince=Date.now()-180*24*60*60*1000;
     const recent=((await playlistResponse.json()) as PlaylistResponse).items?.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isSermonTitle(item.snippet.title))??[];
