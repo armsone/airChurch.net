@@ -10,8 +10,12 @@ type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
-type YouTubePlayer = object;
-type YouTubeApi = { Player:new(element:HTMLIFrameElement,options:{events:{onStateChange:(event:{data:number})=>void}})=>YouTubePlayer };
+type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; getVideoData:()=>{video_id?:string} };
+type YouTubeEvent = { data:number; target:YouTubePlayer };
+type YouTubeApi = { Player:new(
+  element:HTMLIFrameElement,
+  options:{events:{onReady:(event:YouTubeEvent)=>void; onStateChange:(event:YouTubeEvent)=>void}}
+)=>YouTubePlayer };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
@@ -126,6 +130,11 @@ export default function Home() {
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
+  const shortPlayerInstanceRef=useRef<YouTubePlayer|null>(null);
+  const shortViewerInitialIdRef=useRef<string|undefined>(undefined);
+  const activeShortIdRef=useRef<string|undefined>(undefined);
+  const shortPlayerPlayPendingRef=useRef(false);
+  const filteredShortsLengthRef=useRef(0);
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
@@ -244,6 +253,7 @@ export default function Home() {
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
   }), [shortItems, query, region, denomination]);
   const visibleShorts = filteredShorts.slice(0, 12);
+  filteredShortsLengthRef.current = filteredShorts.length;
   function showDifferentChurchNews() {
     setVisibleChurchNews((current)=>{
       const currentUrls=new Set(current.map((item)=>item.url));
@@ -253,6 +263,9 @@ export default function Home() {
     });
   }
   const activeShort = activeShortIndex !== null ? filteredShorts[activeShortIndex] : undefined;
+  activeShortIdRef.current=activeShort?.youtubeId;
+  if(activeShort && shortViewerInitialIdRef.current===undefined) shortViewerInitialIdRef.current=activeShort.youtubeId;
+  if(!activeShort) shortViewerInitialIdRef.current=undefined;
   useEffect(()=>{
     if(activeShortIndex===null) return;
     function onKeyDown(event:KeyboardEvent) {
@@ -264,20 +277,43 @@ export default function Home() {
     return ()=>window.removeEventListener("keydown",onKeyDown);
   },[activeShortIndex,filteredShorts.length]);
   useEffect(()=>{
-    if(!activeShort||!shortPlayerRef.current) return;
+    if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
+    const requestPlay = () => {
+      const player = shortPlayerInstanceRef.current;
+      if(!player) return;
+      if(!shortPlayerPlayPendingRef.current) return;
+      shortPlayerPlayPendingRef.current = false;
+      player.mute();
+      player.playVideo();
+    };
+
+    if(shortPlayerInstanceRef.current) {
+      shortPlayerInstanceRef.current.loadVideoById(activeShort.youtubeId);
+      shortPlayerPlayPendingRef.current = true;
+      requestPlay();
+      return;
+    }
+    if(!shortPlayerRef.current) return;
     let cancelled=false;
     const playerFrame=shortPlayerRef.current;
     void loadYouTubeApi().then((youtube)=>{
       if(cancelled) return;
-      new youtube.Player(playerFrame,{
-        events:{onStateChange:(event)=>{
-          if(event.data!==0) return;
-          setActiveShortIndex((current)=>current===null?current:current<filteredShorts.length-1?current+1:0);
-        }},
+      shortPlayerInstanceRef.current=new youtube.Player(playerFrame,{
+        events:{
+          onReady: () => { requestPlay(); },
+          onStateChange:(event)=>{
+            if(event.data===5) { requestPlay(); return; }
+            if(event.data!==0) return;
+            const endedVideoId=event.target.getVideoData().video_id;
+            if(endedVideoId&&endedVideoId!==activeShortIdRef.current) return;
+            setActiveShortIndex((current)=>current===null?current:current<filteredShortsLengthRef.current-1?current+1:0);
+          },
+        },
       });
     });
+    shortPlayerPlayPendingRef.current = true;
     return ()=>{cancelled=true;};
-  },[activeShort?.youtubeId,filteredShorts.length]);
+  },[activeShort?.youtubeId]);
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
   const filteredChurches = useMemo(() => {
@@ -460,9 +496,8 @@ export default function Home() {
         <div className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
           <iframe
             ref={shortPlayerRef}
-            key={activeShort.youtubeId}
             className="shorts-viewer-frame"
-            src={`https://www.youtube-nocookie.com/embed/${activeShort.youtubeId}?autoplay=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`}
+            src={`https://www.youtube-nocookie.com/embed/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`}
             title={activeShort.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
