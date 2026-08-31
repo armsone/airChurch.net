@@ -440,6 +440,7 @@ type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{u
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
 type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string};
+const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
 
 export async function POST(request:Request) {
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
@@ -471,10 +472,12 @@ export async function POST(request:Request) {
   }
   let imported=0;
   let verified=0;
+  let checked=0;
+  let failed=0;
   for(const source of batch) {
     const filter=source.channelId?`id=${encodeURIComponent(source.channelId)}`:source.handle?`forHandle=${encodeURIComponent(source.handle)}`:`forUsername=${encodeURIComponent(source.username||"")}`;
-    const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&${filter}&key=${encodeURIComponent(key)}`);
-    if(!channelResponse.ok) return Response.json({error:"YouTube channel verification failed",removed},{status:502});
+    const channelResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&${filter}&key=${encodeURIComponent(key)}`);
+    if(!channelResponse?.ok) { failed++;continue; }
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
     if(!found) {
@@ -483,16 +486,17 @@ export async function POST(request:Request) {
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
     const channelImageUrl=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
-    const playlistResponse=await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50&key=${encodeURIComponent(key)}`);
-    if(!playlistResponse.ok) return Response.json({error:"YouTube upload verification failed",removed},{status:502});
+    const playlistResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50&key=${encodeURIComponent(key)}`);
+    if(!playlistResponse?.ok) { failed++;continue; }
     const playlist=await playlistResponse.json() as PlaylistResponse;
+    checked++;
     const activeSince=Date.now()-180*24*60*60*1000;
     const playlistItems=playlist.items||[];
     const videoIds=playlistItems.map((item)=>item.contentDetails.videoId).filter(Boolean);
     const durations=new Map<string,number>();
     if(videoIds.length) {
-      const videosResponse=await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(videoIds.join(","))}&key=${encodeURIComponent(key)}`);
-      if(videosResponse.ok) {
+      const videosResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(videoIds.join(","))}&key=${encodeURIComponent(key)}`);
+      if(videosResponse?.ok) {
         const videos=await videosResponse.json() as VideosResponse;
         for(const video of videos.items||[]) durations.set(video.id,youtubeDurationSeconds(video.contentDetails?.duration||""));
       }
@@ -530,7 +534,7 @@ export async function POST(request:Request) {
   const nextStart=start+batch.length;
   const nextCursor=nextStart<sourcePool.length?nextStart:0;
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
-  if(nextCursor===0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
+  if(nextCursor===0&&checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
-  return Response.json({ok:true,scope,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});
+  return Response.json({ok:true,scope,checked,failed,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});
 }

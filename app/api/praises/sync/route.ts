@@ -31,8 +31,8 @@ export async function POST() {
 
   const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
   const feeds = await Promise.allSettled(churches.results.map(async (church) => {
-    const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`);
-    if (!response.ok) return null;
+    const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
+    if (!response?.ok) return null;
     return parseFeed(await response.text(), church.id);
   }));
   const successfulFeeds=feeds.filter((result):result is PromiseFulfilledResult<Praise[]>=>result.status==="fulfilled"&&result.value!==null);
