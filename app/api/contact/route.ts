@@ -10,7 +10,7 @@ export async function POST(request:Request) {
   if(!categories.has(category)||name.length<2||contact.length<5||message.length<20) return Response.json({error:"문의 내용을 다시 확인해 주세요."},{status:400});
   const db=database();await ensureContactTables(db);const fp=await fingerprint(request);
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM contact_requests WHERE fingerprint=? AND created_at>datetime('now','-1 day')").bind(fp).first<{count:number}>();
-  if((recent?.count??0)>=3) return Response.json({error:"오늘 보낼 수 있는 문의 수를 초과했습니다. 내일 다시 시도해 주세요."},{status:429});
+  if((recent?.count??0)>=3) return Response.json({error:"오늘 보낼 수 있는 문의 수를 초과했습니다. 내일 다시 시도해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"86400"}});
   await db.prepare("INSERT INTO contact_requests (category,name,contact,message,fingerprint) VALUES (?,?,?,?,?)").bind(category,name,contact,message,fp).run();
   return Response.json({ok:true,status:"pending"},{status:201,headers:{"cache-control":"no-store"}});
 }

@@ -11,7 +11,7 @@ export async function POST(request:Request) {
   const db=database();await ensureReviewerTables(db);
   const requestFingerprint=await fingerprint(request);
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM reviewer_accounts WHERE fingerprint=? AND created_at>=datetime('now','-1 day')").bind(requestFingerprint).first<{count:number}>();
-  if((recent?.count??0)>=3) return Response.json({error:"가입 신청 횟수를 초과했습니다. 내일 다시 시도해 주세요."},{status:429});
+  if((recent?.count??0)>=3) return Response.json({error:"가입 신청 횟수를 초과했습니다. 내일 다시 시도해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"86400"}});
   const existing=await db.prepare("SELECT id FROM reviewer_accounts WHERE username=? LIMIT 1").bind(username).first();
   if(existing) return Response.json({error:"이미 사용 중이거나 신청된 아이디입니다."},{status:409});
   const {hash,salt}=await hashReviewerPassword(password);

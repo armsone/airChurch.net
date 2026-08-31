@@ -20,9 +20,9 @@ export async function POST(request:Request) {
   if(held) return Response.json({ok:true,status:"already_held"});
   const fp=await fingerprint(request);
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM church_recommendations WHERE fingerprint=? AND created_at>datetime('now','-10 minutes')").bind(fp).first<{count:number}>();
-  if((recent?.count||0)>=2) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429});
+  if((recent?.count||0)>=2) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"600"}});
   const duplicate=await db.prepare("SELECT id FROM church_recommendations WHERE church_name=? AND region=? AND status IN ('pending','approved') LIMIT 1").bind(churchName,region).first();
   if(duplicate) return Response.json({ok:true,status:"already_received"});
   await db.prepare("INSERT INTO church_recommendations (church_name,pastor,region,denomination,youtube_url,reason,fingerprint) VALUES (?,?,?,?,?,?,?)").bind(churchName,pastor,region,denomination,youtubeUrl||null,reason,fp).run();
-  return Response.json({ok:true,status:"pending"},{status:201});
+  return Response.json({ok:true,status:"pending"},{status:201,headers:{"cache-control":"no-store"}});
 }
