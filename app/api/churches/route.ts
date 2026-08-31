@@ -10,11 +10,12 @@ export async function GET(request:Request) {
   await ensureSermonTables(db);
   const url=new URL(request.url);
   const query=url.searchParams.get("q")?.trim().slice(0,100)??"";
-  const globalQuery=url.searchParams.get("global")?.trim().toLowerCase().replace(/\s/g,"").slice(0,100)??"";
+  const globalQuery=url.searchParams.get("global")?.trim().toLowerCase().slice(0,100)??"";
   const region=url.searchParams.get("region")?.trim().slice(0,40)??"";
   const denomination=url.searchParams.get("denomination")?.trim().slice(0,80)??"";
   const terms=query.toLowerCase().split(/\s+/).map((term)=>term.replace(/\s/g,"")).filter(Boolean).slice(0,5);
-  const searchParts=[...terms,...(globalQuery?[globalQuery]:[])];
+  const globalTerms=globalQuery.split(/\s+/).map((term)=>term.replace(/\s/g,"")).filter(Boolean).slice(0,5);
+  const searchParts=[...terms,...globalTerms];
   const haystack="replace(lower(name || pastor || region || denomination), ' ', '')";
   const conditions=["review_status='approved'",...searchParts.map(()=>`instr(${haystack}, ?) > 0`)];
   const bindings:Array<string>=[...searchParts];

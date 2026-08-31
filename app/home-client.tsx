@@ -23,6 +23,7 @@ type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; sub
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/\s/g,"");
+const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchText).filter(Boolean).every((term)=>haystack.includes(term));
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
@@ -318,19 +319,19 @@ export default function Home() {
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
     const haystack = normalizeSearchText(`${s.church}${s.pastor}${s.region}${s.denomination}${s.title}${s.verse}`);
-    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
+    return matchesSearchTerms(haystack,query) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
   }), [query, region, denomination, sermonItems]);
   const visibleSermons = filtered.slice(0,visibleSermonCount);
   const previewSermons = filtered.slice(visibleSermonCount,visibleSermonCount+3);
   const sermonChurchCount = useMemo(() => new Set(filtered.map((sermon) => sermon.church)).size, [filtered]);
   const filteredPraises = useMemo(() => praiseItems.filter((praise) => {
     const haystack = normalizeSearchText(`${praise.church}${praise.pastor}${praise.region}${praise.denomination}${praise.title}`);
-    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
+    return matchesSearchTerms(haystack,query) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
   }), [praiseItems, query, region, denomination]);
   const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 6)).slice(0, 12);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
     const haystack = normalizeSearchText(`${short.church}${short.pastor}${short.region}${short.denomination}${short.title}`);
-    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
+    return matchesSearchTerms(haystack,query) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
   }), [shortItems, query, region, denomination]);
   const visibleShorts = filteredShorts.slice(0, 12);
   filteredShortsLengthRef.current = filteredShorts.length;
@@ -410,11 +411,11 @@ export default function Home() {
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
   const filteredChurches = useMemo(() => {
-    const trimmedGlobal = normalizeSearchText(query);
+    const trimmedGlobal = query.trim();
     const source=trimmedChurchQuery?(currentChurchSearch?.items??[]):churchItems;
     return source.filter((church) => {
       const haystack = normalizeSearchText(`${church.name}${church.pastor}${church.region}${church.denomination}`);
-      const matchesGlobal = !trimmedGlobal || haystack.includes(trimmedGlobal);
+      const matchesGlobal = !trimmedGlobal || matchesSearchTerms(haystack,trimmedGlobal);
       return matchesGlobal && (region === "전체" || church.region.startsWith(region)) && (denomination === "전체 교단" || church.denomination === denomination);
     });
   }, [churchItems, currentChurchSearch, trimmedChurchQuery, query, region, denomination]);
