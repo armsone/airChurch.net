@@ -11,8 +11,10 @@ export async function GET(request:Request){
   if(!terms.length||normalize(query).length<2)return Response.json({items:[]},{headers});
   const groups=terms.map(expand),haystack=sqlNormalized("name||pastor||region||denomination");
   const conditions=groups.map((group)=>`(${group.map(()=>`instr(${haystack},?)>0`).join(" OR ")})`).join(" AND ");
+  const scoreBindings:string[]=[],fields=[["name",40],["pastor",25],["region",15],["denomination",12]] as const;
+  const scoreSql=groups.map((group)=>`max(${group.flatMap((candidate)=>fields.map(([field,weight])=>{const normalized=sqlNormalized(field);scoreBindings.push(candidate,candidate,candidate);return `CASE WHEN ${normalized}=? THEN ${weight+70} WHEN instr(${normalized},?)=1 THEN ${weight+28} WHEN instr(${normalized},?)>0 THEN ${weight} ELSE 0 END`;})).join(",")})`).join("+");
   const db=database();await ensureSermonTables(db);
-  const result=await db.prepare(`SELECT name,pastor,region,denomination,priority_weight AS priorityWeight FROM churches WHERE review_status='approved' AND ${conditions} LIMIT 60`).bind(...groups.flat()).all<SuggestionRow>();
+  const result=await db.prepare(`SELECT name,pastor,region,denomination,priority_weight AS priorityWeight FROM churches WHERE review_status='approved' AND ${conditions} ORDER BY (${scoreSql}) DESC,priority_weight DESC,name LIMIT 60`).bind(...groups.flat(),...scoreBindings).all<SuggestionRow>();
   const items=result.results.sort((a,b)=>score(b,terms)-score(a,terms)||b.priorityWeight-a.priorityWeight||a.name.localeCompare(b.name,"ko")).slice(0,6).map(({name,pastor,region,denomination})=>({value:name,label:`${pastor} · ${region} · ${denomination}`}));
   return Response.json({items},{headers});
 }
