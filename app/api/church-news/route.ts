@@ -58,7 +58,7 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
       if(url.hostname!==source.allowedHost||!title) continue;
       if(url.protocol==="http:") url.protocol="https:";
       items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone,markUrl:source.markUrl});
-    } catch {}
+    } catch { /* 형식이 잘못된 외부 링크는 뉴스 목록에서 제외합니다. */ }
   }
   return items;
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { hasAdminAccess } from "../admin-access";
-import { AdminChurchList, ChurchControls, ChurchInfoEditControls, ReviewControls, ReviewerAccountControls } from "./admin-controls";
+import { AdminChurchList, ChurchInfoEditControls, ReviewControls, ReviewerAccountControls } from "./admin-controls";
 import AdminLogin from "./admin-login";
 import AdminListSearch from "./admin-list-search";
 import AdminLiveRefresh from "./admin-live-refresh";
@@ -34,8 +34,6 @@ function contactStatusLabel(status:string){return status==="approved"?"처리 �
 function pastorLabel(name:string){return name.trim().endsWith("목사")?name:`${name} 목사`;}
 function ChurchReferenceLinks({name,homepageUrl,youtubeChannelId,channelImageUrl}:{name:string;homepageUrl:string|null;youtubeChannelId:string|null;channelImageUrl?:string|null}){const homepage=safeHttpUrl(homepageUrl),image=safeHttpUrl(channelImageUrl);return <div className="admin-church-reference-links" aria-label={`${name} 확인 링크`}>{homepage&&<a className="admin-homepage-link" href={homepage} target="_blank" rel="noreferrer" aria-label={`${name} 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{image&&<img src={image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"/>}</span><b>홈페이지</b></a>}{youtubeChannelId&&<a className="admin-youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" aria-label={`${name} YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true"/><b>YouTube</b></a>}{!homepage&&!youtubeChannelId&&<span className="admin-reference-empty"><i aria-hidden="true">—</i><b>확인 링크 없음</b></span>}</div>}
 function randomChurchIds(rows:ChurchRow[],count:number){const ids=rows.map((row)=>row.id);for(let index=ids.length-1;index>0;index--){const swap=Math.floor(Math.random()*(index+1));[ids[index],ids[swap]]=[ids[swap],ids[index]];}return new Set(ids.slice(0,count));}
-function exposureLabel(weight:number){return weight===4?"상단 고정":weight===3?"매우 높은 노출":weight===2?"높은 노출":"";}
-function holdReasonLabel(reason:string|null){return reason==="pastor_request"?"목사님 요청":reason==="youtube_unavailable"?"공식 YouTube 확인 불가":reason==="inactive"?"최근 영상 없음":reason==="info_unverified"?"교회 정보 재확인 필요":reason==="review_needed"?"운영상 재검토":reason?"기타":"사유 미기록";}
 function TrafficChart({ rows, label, empty }: { rows: TimeRow[]; label: (period: string) => string; empty: string }) {
   const maxViews = Math.max(1, ...rows.map((row) => Number(row.views)));
   return <div className={`traffic-chart${rows.length > 16 ? " is-dense" : ""}`}>{rows.length ? rows.map((row) => <div className="traffic-day" key={row.period} title={`${row.visitors}명 · ${row.views}회`}><div className="traffic-bar-wrap"><span className="traffic-value">{row.views}</span><div className="traffic-bar" style={{height:`${Math.max(8,Number(row.views)/maxViews*100)}%`}} /></div><small>{label(row.period)}</small></div>) : <p className="admin-empty">{empty}</p>}</div>;

@@ -336,6 +336,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-preference-fields>label{min-width:0}
 .admin-management-grid .admin-directory-card .admin-action-row{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
 .admin-management-grid .admin-directory-card .admin-action-row button{width:100%;justify-content:center;text-align:center;white-space:nowrap}
+.admin-card-edit-trigger{position:absolute;right:9px;bottom:9px;padding:6px 9px;border:1px solid #cbd8d1;border-radius:8px;background:#f7faf8;color:var(--ink);font-size:10px;font-weight:800;cursor:pointer}
 
 #church-hold .admin-manage-list{grid-template-columns:1fr}
 .admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}

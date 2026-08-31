@@ -112,6 +112,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
     if (target.closest("a, button, input, select, textarea, label, form")) return;
     if (detailsRef.current) detailsRef.current.open = !detailsRef.current.open;
   }
+  function handleCardKeyDown(event:React.KeyboardEvent<HTMLElement>){if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();if(detailsRef.current)detailsRef.current.open=!detailsRef.current.open;}
 
   const publicCardContent = (
     <>
@@ -192,7 +193,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
     return (
       <article className="managed-church-card admin-directory-card is-held-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
         <div className="admin-held-card-body">
-          <div className="admin-held-card-public" onClick={handleCardClick}>
+          <div className="admin-held-card-public" role="button" tabIndex={0} onClick={handleCardClick} onKeyDown={handleCardKeyDown} aria-label={`${church.name} 관리 열기`}>
             {publicCardContent}
           </div>
           <div className="admin-directory-hold-panel">
@@ -213,8 +214,9 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   }
 
   return (
-    <article className="managed-church-card admin-directory-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview} onClick={handleCardClick}>
+    <article className="managed-church-card admin-directory-card" key={church.id} data-admin-id={church.id} data-admin-selected={selected ? "true" : "false"} data-admin-search={`${church.name} ${church.pastor} ${church.region} ${church.denomination} ${holdReasonValue ?? ""} ${holdNoteValue ?? ""}`} data-admin-preview={preview ? "true" : "false"} hidden={!preview}>
       {publicCardContent}
+      <button type="button" className="admin-card-edit-trigger" onClick={()=>{if(detailsRef.current)detailsRef.current.open=!detailsRef.current.open;}} aria-label={`${church.name} 관리 열기`}>관리</button>
       {editForm}
     </article>
   );

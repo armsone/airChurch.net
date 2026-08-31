@@ -1,7 +1,7 @@
 import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
+import { expandSearchTerm as expand, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
 
 type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
