@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables } from "../../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables } from "../../_shared";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
@@ -19,7 +19,7 @@ export async function PATCH(request: Request) {
   if (kind !== "church-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
-  await Promise.all([ensureCommunityTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await Promise.all([ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 
   if(kind==="church-batch") {
     if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});
@@ -181,13 +181,14 @@ export async function PATCH(request: Request) {
     const status = clean(data.status, 20);
     if (!["published", "hidden"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     await db.prepare("UPDATE sermons SET status=? WHERE id=?").bind(status, id).run();
-  } else if (kind === "post" || kind === "talent") {
+  } else if (kind === "post" || kind === "talent" || kind === "contact") {
     const status = clean(data.status, 20);
-    const table = kind === "post" ? "community_posts" : "talent_offers";
+    const table = kind === "post" ? "community_posts" : kind === "contact" ? "contact_requests" : "talent_offers";
     if (status === "deleted") await db.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
     else {
       if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
-      await db.prepare(`UPDATE ${table} SET status=? WHERE id=?`).bind(status, id).run();
+      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : "";
+      await db.prepare(`UPDATE ${table} SET status=?${reviewed} WHERE id=?`).bind(status, id).run();
     }
   } else if (kind === "recommendation") {
     const status=clean(data.status,20);

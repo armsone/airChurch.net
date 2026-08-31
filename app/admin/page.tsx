@@ -6,7 +6,7 @@ import AdminLiveRefresh from "./admin-live-refresh";
 import ChurchRequestResolution from "./church-request-resolution";
 import ReviewerResolutionControls from "./reviewer-resolution-controls";
 import HomeReloadLink from "../home-reload-link";
-import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
+import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ type ChurchRow = { id: number; name: string; pastor: string; region: string; den
 type PostRow = { id: number; category: string; nickname: string; content: string; status: string; created_at: string };
 type TalentRow = { id: number; title: string; region: string; description: string; status: string; created_at: string };
 type RecommendationRow = { id:number; church_name:string; pastor:string; region:string; denomination:string; youtube_url:string|null; reason:string; status:string; created_at:string };
+type ContactRow = { id:number; category:string; name:string; contact:string; message:string; status:string; created_at:string };
 type ReviewerAccountRow = { id:number; name:string; contact:string; username:string; status:string; created_at:string };
 type ChangeRequestRow={id:number;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;reviewer_name:string;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 type ConcernOpinionRow={id:number;church_id:number;reviewer_name:string;note:string|null;reviewed_at:string;admin_resolution:string|null;admin_note:string|null;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;church_status:string;hold_reason:string|null;hold_note:string|null};
@@ -26,6 +27,7 @@ async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
 
 function koreanTime(value: string) { return new Date(`${value}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }); }
 function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : status === "removed" ? "보류" : "비공개"; }
+function contactStatusLabel(status:string){return status==="approved"?"처리 완료":status==="pending"?"미처리":"처리하지 않음";}
 function pastorLabel(name:string){return name.trim().endsWith("목사")?name:`${name} 목사`;}
 function ChurchReferenceLinks({name,homepageUrl,youtubeChannelId,channelImageUrl}:{name:string;homepageUrl:string|null;youtubeChannelId:string|null;channelImageUrl?:string|null}){return <div className="admin-church-reference-links" aria-label={`${name} 확인 링크`}>{homepageUrl&&<a className="admin-homepage-link" href={homepageUrl} target="_blank" rel="noreferrer" aria-label={`${name} 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{channelImageUrl&&<img src={channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"/>}</span><b>홈페이지</b></a>}{youtubeChannelId&&<a className="admin-youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" aria-label={`${name} YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true"/><b>YouTube</b></a>}{!homepageUrl&&!youtubeChannelId&&<span className="admin-reference-empty"><i aria-hidden="true">—</i><b>확인 링크 없음</b></span>}</div>}
 function randomChurchIds(rows:ChurchRow[],count:number){const ids=rows.map((row)=>row.id);for(let index=ids.length-1;index>0;index--){const swap=Math.floor(Math.random()*(index+1));[ids[index],ids[swap]]=[ids[swap],ids[index]];}return new Set(ids.slice(0,count));}
@@ -40,8 +42,8 @@ export default async function AdminPage() {
   if (!(await hasAdminAccess())) return <AdminLogin />;
 
   const db = database();
-  await Promise.all([ensureAnalyticsTables(db), ensureCommunityTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
-  const [today, week, month, active, hourly, daily, monthly, churches, recommendations, churchRows, postRows, talentRows, recommendationRows] = await Promise.all([
+  await Promise.all([ensureAnalyticsTables(db), ensureCommunityTables(db), ensureContactTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  const [today, week, month, active, hourly, daily, monthly, churches, recommendations, churchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),
     db.prepare("SELECT COUNT(*) AS visitors FROM visitor_activity WHERE last_seen >= datetime('now','-5 minutes')").first<{ visitors: number }>(),
@@ -54,6 +56,7 @@ export default async function AdminPage() {
     db.prepare("SELECT id,category,nickname,content,status,created_at FROM community_posts ORDER BY created_at DESC LIMIT 50").all<PostRow>(),
     db.prepare("SELECT id,title,region,description,status,created_at FROM talent_offers ORDER BY created_at DESC LIMIT 50").all<TalentRow>(),
     db.prepare("SELECT id,church_name,pastor,region,denomination,youtube_url,reason,status,created_at FROM church_recommendations ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,created_at DESC LIMIT 80").all<RecommendationRow>(),
+    db.prepare("SELECT id,category,name,contact,message,status,created_at FROM contact_requests ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END,created_at DESC LIMIT 100").all<ContactRow>(),
   ]);
   const publicChurchRows = churchRows.results.filter((church) => church.review_status === "approved");
   const heldChurchRows = churchRows.results.filter((church) => church.review_status === "removed");
@@ -69,6 +72,7 @@ export default async function AdminPage() {
   const pendingConcernGroups=[...concernGroups.values()];
   const pendingRequestCount=changeRequestRows.results.filter((request)=>request.status==="pending").length;
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
+  const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
 
   return <main className="admin-shell">
     <AdminLiveRefresh />
@@ -78,7 +82,7 @@ export default async function AdminPage() {
     <section className="admin-title"><div><span>ADMIN ACTION CENTER</span><h1>오늘 처리할 운영 업무</h1><p>목사님이 확인을 요청한 교회부터 결정하고, 나머지 운영 현황은 아래에서 확인하세요.</p></div>
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>
     </section>
-    <section className="admin-operations action-center-cards"><a className="admin-operation-card opinion" href="#reviewer-queue"><small>목사님 요청</small><strong>{changeRequestRows.results.length+pendingConcernGroups.length}</strong><span>{pendingRequestCount||pendingConcernGroups.length?`처리할 요청 ${pendingRequestCount+pendingConcernGroups.length}건 ↓`:"새 요청 없음"}</span></a><a className="admin-operation-card" href="#reviewer-accounts"><small>가입 승인 대기</small><strong>{pendingReviewerCount}</strong><span>목회자 계정 확인 ↓</span></a><a className="admin-operation-card" href="#church-recommendations"><small>교회 추천 검토</small><strong>{recommendations?.count ?? 0}</strong><span>등록 결정 ↓</span></a><a className="admin-operation-card" href="#church-management"><small>전체 교회</small><strong>{churches?.count ?? 0}</strong><span>검색·수정·보류·삭제 ↓</span></a></section>
+    <section className="admin-operations action-center-cards"><a className="admin-operation-card opinion" href="#reviewer-queue"><small>목사님 요청</small><strong>{changeRequestRows.results.length+pendingConcernGroups.length}</strong><span>{pendingRequestCount||pendingConcernGroups.length?`처리할 요청 ${pendingRequestCount+pendingConcernGroups.length}건 ↓`:"새 요청 없음"}</span></a><a className="admin-operation-card" href="#contact-requests"><small>운영 문의</small><strong>{pendingContactCount}</strong><span>권리자·정보 수정 요청 확인 ↓</span></a><a className="admin-operation-card" href="#reviewer-accounts"><small>가입 승인 대기</small><strong>{pendingReviewerCount}</strong><span>목회자 계정 확인 ↓</span></a><a className="admin-operation-card" href="#church-recommendations"><small>교회 추천 검토</small><strong>{recommendations?.count ?? 0}</strong><span>등록 결정 ↓</span></a><a className="admin-operation-card" href="#church-management"><small>전체 교회</small><strong>{churches?.count ?? 0}</strong><span>검색·수정·보류·삭제 ↓</span></a></section>
 
     <section className="admin-panel reviewer-queue" id="reviewer-queue"><div className="admin-panel-title"><div><small>PASTOR REQUESTS</small><h2>목사님 요청 결정</h2><p>요청 내용을 그대로 승인하거나, 반려해 목사님이 다시 보게 하거나, 일단 보류만 결정합니다.</p></div><span>{changeRequestRows.results.length}건</span></div><div className="reviewer-queue-list">{changeRequestRows.results.length?changeRequestRows.results.map((request)=><article className="is-concern" key={request.id}><div className="admin-record-heading"><div><strong>{request.church_name}</strong><small><b>{pastorLabel(request.church_pastor)}</b> · {request.church_region} · {request.church_denomination}</small></div><div className="admin-record-status"><span className="reviewer-concern">{request.request_type==="edit"?"수정 요청":request.request_type==="hold"?"보류 요청":"삭제 요청"}</span><span>{request.reviewer_name}</span></div></div><ChurchReferenceLinks name={request.church_name} homepageUrl={request.church_homepage_url} youtubeChannelId={request.church_youtube_channel_id}/><div className="reviewer-opinion-copy"><time>{koreanTime(request.created_at)}</time><p>{request.reason}</p>{request.request_type==="edit"&&<p><strong>변경안</strong> · {request.proposed_name} · {request.proposed_pastor} · {request.proposed_region} · {request.proposed_denomination}</p>}{request.status==="deferred"&&request.admin_note&&<p className="admin-follow-up-note">일단 보류 · {request.admin_note}</p>}</div><ChurchRequestResolution id={request.id}/></article>):<div className="reviewer-queue-empty"><strong>지금 처리할 목사님 요청이 없습니다</strong><p>새 요청이 접수되면 이곳에 표시됩니다.</p></div>}</div></section>
 
@@ -103,6 +107,7 @@ export default async function AdminPage() {
     </section>
 
     <section className="admin-review-grid">
+      <article className="admin-panel" id="contact-requests"><div className="admin-panel-title"><div><small>CONTACT REQUESTS</small><h2>운영 문의</h2><p>권리자 비공개 요청과 정보 수정 요청을 먼저 확인합니다.</p></div><span>{contactRows.results.length}건</span></div><div className="review-list">{contactRows.results.length?contactRows.results.map((item)=><article key={item.id}><div><span>{item.category} · {contactStatusLabel(item.status)}</span><time>{koreanTime(item.created_at)}</time></div><strong>{item.name}</strong><p>{item.contact}</p><p>{item.message}</p><ReviewControls kind="contact" id={item.id} status={item.status}/></article>):<p className="admin-empty">접수된 운영 문의가 없습니다.</p>}</div></article>
       <article className="admin-panel" id="reviewer-accounts"><div className="admin-panel-title"><div><small>REVIEWER ACCOUNTS</small><h2>목회자 검토 참여 신청</h2><p>성함과 연락처를 확인한 뒤 교회 검토 참여를 승인해 주세요.</p></div><span>{reviewerRows.results.length}명</span></div><div className="review-list">{reviewerRows.results.length?reviewerRows.results.map((item)=><article key={item.id}><div><span>{statusLabel(item.status)}</span><time>{koreanTime(item.created_at)}</time></div><strong>{item.name} · {item.username}</strong><p>{item.contact}</p><ReviewerAccountControls id={item.id} status={item.status}/></article>):<p className="admin-empty">목회자 참여 신청이 없습니다.</p>}</div></article>
       <article className="admin-panel" id="church-recommendations"><div className="admin-panel-title"><div><small>CHURCH RECOMMENDATIONS</small><h2>교회 추천 검토</h2><p>교단 소속과 공식 채널을 직접 확인한 뒤 등록을 승인해 주세요.</p></div><span>{recommendationRows.results.length}건</span></div><div className="review-list">{recommendationRows.results.length?recommendationRows.results.map((item)=><article key={item.id}><div><span>{item.region} · {statusLabel(item.status)}</span><time>{koreanTime(item.created_at)}</time></div><strong>{item.church_name} · {item.pastor}</strong><p>{item.denomination}</p><p>{item.reason}</p>{item.youtube_url?<a className="admin-review-link" href={item.youtube_url} target="_blank" rel="noreferrer">공식 YouTube 확인 ↗</a>:<span className="admin-reference-missing">등록된 확인 링크 없음</span>}<ReviewControls kind="recommendation" id={item.id} status={item.status}/></article>):<p className="admin-empty">접수된 교회 추천이 없습니다.</p>}</div></article>
       <article className="admin-panel" id="pending-posts"><div className="admin-panel-title"><div><small>COMMUNITY REVIEW</small><h2>익명 글 관리</h2></div><span>{postRows.results.length}건</span></div><div className="review-list">{postRows.results.length ? postRows.results.map((post) => <article key={post.id}><div><span>{post.category} · {statusLabel(post.status)}</span><time>{koreanTime(post.created_at)}</time></div><strong>{post.nickname}</strong><p>{post.content}</p><ReviewControls kind="post" id={post.id} status={post.status} /></article>) : <p className="admin-empty">접수된 익명 글이 없습니다.</p>}</div></article>

@@ -11,7 +11,7 @@ type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
 type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; unMute:()=>void; getVideoData:()=>{video_id?:string} };
-type YouTubeEvent = { data:number; target:YouTubePlayer };
+type YouTubeEvent = { data?:number; target:YouTubePlayer };
 type YouTubeApi = { Player:new(
   element:HTMLIFrameElement,
   options:{events:{onReady:(event:YouTubeEvent)=>void; onStateChange:(event:YouTubeEvent)=>void}}
@@ -50,6 +50,15 @@ const goals = [
   ["사람을 세우는 공동체", "평신도 지도자와 미래 사회·교회의 인재를 세웁니다."],
   ["상식이 통하는 공동체", "하나님만 영광받고 예수님이 주인 되며 평신도가 함께 운영합니다."],
 ];
+const dailyGuides = [
+  { day:"주일", theme:"예배와 공동체", reference:"시편 122:1", question:"오늘 예배에서 마음에 오래 남은 한 문장은 무엇인가요?" },
+  { day:"월요일", theme:"새로운 한 주", reference:"잠언 3:5-6", question:"이번 주 하나님께 맡기고 한 걸음 내디딜 일은 무엇인가요?" },
+  { day:"화요일", theme:"일과 섬김", reference:"골로새서 3:23", question:"오늘 내가 맡은 일을 사랑으로 바꿀 수 있는 작은 행동은 무엇인가요?" },
+  { day:"수요일", theme:"기도와 평안", reference:"빌립보서 4:6-7", question:"지금 염려 대신 기도로 올려드릴 한 가지는 무엇인가요?" },
+  { day:"목요일", theme:"관계와 사랑", reference:"요한복음 13:34-35", question:"오늘 먼저 이해하고 품어야 할 사람은 누구인가요?" },
+  { day:"금요일", theme:"쉼과 회복", reference:"마태복음 11:28", question:"한 주의 무게 가운데 내려놓아야 할 것은 무엇인가요?" },
+  { day:"토요일", theme:"감사와 준비", reference:"데살로니가전서 5:16-18", question:"이번 주에 발견한 감사 세 가지를 떠올려 보세요." },
+] as const;
 
 const regions = [
   "전체", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
@@ -66,8 +75,8 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   access: "공개(로그인 없이 열람 가능)",
   lastChecked: "공개 자료 확인 시 갱신",
 }));
-const menuItems = [["말씀","#sermons"],["쇼츠","#shorts"],["찬양","#praises"],["교계소식","#church-news"],["등록교회","#church-directory"],["랭킹","#rankings"],["착한나눔","#goodshare"],["광장","#community"],["비전","#vision"]] as const;
-const headerAdminLinks = [["관리자","/admin"],["목사님","/pastor"]] as const;
+const menuItems = [["말씀","#sermons"],["교회 찾기","#church-directory"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
+const headerAdminLinks = [["운영 안내","/about"],["문의","/contact"]] as const;
 
 function shuffled<T>(items: T[]) {
   const result = [...items];
@@ -113,10 +122,10 @@ function LoadingCards({ count = 3 }: { count?: number }) {
 }
 
 export default function Home() {
+  const todayGuide=dailyGuides[new Date(Date.now()+9*60*60*1000).getUTCDay()];
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("전체");
   const [denomination, setDenomination] = useState("전체 교단");
-  const [ranking, setRanking] = useState("말씀");
   const [notice, setNotice] = useState("");
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
@@ -312,11 +321,17 @@ export default function Home() {
     if(!shortPlayerRef.current) return;
     let cancelled=false;
     const playerFrame=shortPlayerRef.current;
+    shortPlayerPlayPendingRef.current = true;
     void loadYouTubeApi().then((youtube)=>{
       if(cancelled) return;
       shortPlayerInstanceRef.current=new youtube.Player(playerFrame,{
         events:{
-          onReady: () => { requestPlay(); },
+          onReady: (event: YouTubeEvent) => {
+            if(!shortPlayerPlayPendingRef.current) return;
+            shortPlayerPlayPendingRef.current = false;
+            if(shortMutedRef.current) event.target.mute();
+            event.target.playVideo();
+          },
           onStateChange:(event)=>{
             if(event.data===5) { requestPlay(); return; }
             if(event.data!==0) return;
@@ -327,7 +342,6 @@ export default function Home() {
         },
       });
     });
-    shortPlayerPlayPendingRef.current = true;
     return ()=>{cancelled=true;};
   },[activeShort?.youtubeId]);
   function unmuteShort() {
@@ -469,19 +483,25 @@ export default function Home() {
       </header>
 
       <section className="hero" id="top">
-        <div className="eyebrow"><span /> 오늘의 말씀을 가장 가까이</div>
-        <h1>좋은 말씀과<br />선한 마음이 만나는 곳</h1>
-        <p>여러 교회의 설교를 한곳에서 만나고, 우리 교회를 응원하며,<br className="desktop" /> 내가 가진 달란트로 누군가의 내일을 돕는 크리스천 포털입니다.</p>
+        <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
+        <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
+        <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
         <div className="search" role="search">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder="교회명, 목사님, 지역, 교단으로 찾아보세요" />
           <div className="search-filters">
             <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
             <select className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
-            <a href="#sermons">찾기</a>
+            <a href="#sermons">결과 보기</a>
           </div>
         </div>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
+        <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
+      </section>
+
+      <section className="daily-journey" aria-labelledby="daily-journey-title">
+        <div className="daily-journey-main"><span className="section-kicker">{todayGuide.day} · 오늘의 신앙 여정</span><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className="daily-reference" href={`https://www.bible.com/search/bible?q=${encodeURIComponent(todayGuide.reference)}`} target="_blank" rel="noopener noreferrer"><strong>{todayGuide.reference}</strong><span>성경에서 읽기 ↗</span></a><blockquote>{todayGuide.question}</blockquote></div>
+        <div className="daily-paths"><a href="#sermons"><span>01</span><strong>말씀 한 편</strong><small>오늘 올라온 설교에서 시작합니다</small></a><a href="#praises"><span>02</span><strong>찬양 한 곡</strong><small>공식 교회 채널의 찬양으로 이어갑니다</small></a><a href="#church-directory"><span>03</span><strong>교회 한 곳</strong><small>매일 새롭게 지역교회를 발견합니다</small></a></div>
       </section>
 
       <section className="content-section" id="sermons">
@@ -489,7 +509,7 @@ export default function Home() {
         <div className="sermon-grid">
           {sermonLoading ? <LoadingCards count={6} /> : visibleSermons.map((sermon, index) => <article className="sermon-card" id={index === visibleSermons.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
               {videoThumbnail({youtubeId:sermon.youtubeId,thumbnailUrl:sermon.thumbnailUrl,tone:sermon.tone,marker:sermon.rank,date:sermon.date,title:sermon.title,church:sermon.church,kind:"설교"})}
-            <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.church} · {sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => setNotice(`${sermon.church}를 응원했습니다. 건강한 응원만 집계됩니다.`)}>♡ 응원</button><button type="button" onClick={() => void shareVideo(sermon)}>↗ 공유</button></div></div>
+            <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.church} · {sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => void shareVideo(sermon)}>↗ 말씀 공유</button></div></div>
           </article>)}
           {!sermonLoading && !filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
@@ -536,14 +556,14 @@ export default function Home() {
         <form className="praise-youtube-search" role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         <div className={`praise-preview${!praiseLoading && !showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{praiseLoading ? <LoadingCards count={3} /> : visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           {videoThumbnail({youtubeId:praise.youtubeId,thumbnailUrl:praise.thumbnailUrl,marker:"♪",date:new Date(praise.publishedAt).toLocaleDateString("ko-KR"),title:praise.title,church:praise.church,kind:"찬양"})}
-          <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>setNotice(`${praise.church} 찬양을 응원했습니다.`)}>♡ 응원</button><button type="button" onClick={()=>void shareVideo(praise)}>↗ 공유</button></div></div>
+          <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>void shareVideo(praise)}>↗ 찬양 공유</button></div></div>
         </article>)}</div>{!praiseLoading && !showAllPraise && filteredPraises.length > 3 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
         {!praiseLoading && !visiblePraises.length && <div className="empty">아직 연결된 찬양이 없습니다.</div>}
         {!praiseLoading && filteredPraises.length > 3 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "3개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
       </section>
 
       <section className="content-section church-news-section" id="church-news">
-        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS로 공개된 제목과 짧은 내용만 소개하며, 자세한 내용은 원문에서 읽습니다.</p></div><button className="church-news-shuffle" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=9}>다른 뉴스 보기 ↻</button></div>
+        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><button className="church-news-shuffle" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=9}>다른 뉴스 보기 ↻</button></div>
         {!churchNewsLoading&&churchNewsSources.length>0&&<details className="church-news-sources"><summary>현재 소식을 가져오는 곳 · {churchNewsSources.length}곳</summary><div>{churchNewsSources.map((source)=><span key={source.rssUrl}><strong>{source.name}</strong><a href={source.homepage} target="_blank" rel="noopener noreferrer">홈페이지 ↗</a><a href={source.rssUrl} target="_blank" rel="noopener noreferrer">RSS ↗</a></span>)}</div></details>}
         <div className="church-news-grid">
           {churchNewsLoading ? Array.from({length:9},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
@@ -556,7 +576,7 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.png" alt="AI 자동 검증 서비스 아이콘" width={42} height={42} /></span><div><strong>AI가 찾고, 기준을 통과한 교회만 등록합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 자동으로 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 검증합니다. 홈페이지가 없어도 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동으로 등록·공개됩니다.</p>
+        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.png" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 확인합니다. 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인된 교회를 운영 검토 후 공개합니다.</p>
           <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
             <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
             <table className="church-radar-sources-table"><caption className="sr-only">자료 확인 기준과 출처</caption>
@@ -599,15 +619,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="ranking-section" id="rankings">
-        <div className="ranking-intro"><span className="section-kicker light">건강한 발견을 위한 랭킹</span><h2>경쟁보다 발견,<br />인기보다 꾸준함</h2><p>목회자의 서열을 만들지 않습니다. 중복·비정상 반응을 제외하고, 작은 교회에도 발견 기회가 돌아가도록 지표별로 보여드립니다.</p><a href="#principles">집계 원칙 보기 →</a></div>
-        <div className="ranking-board">
-          <div className="ranking-tabs">{["말씀","작은교회","지역응원"].map((tab) => <button className={ranking === tab ? "active" : ""} onClick={() => setRanking(tab)} key={tab}>{tab}</button>)}</div>
-          <p className="ranking-label">{ranking === "말씀" ? "이번 주 많이 들은 말씀" : ranking === "작은교회" ? "이번 주 새롭게 발견된 작은 교회" : "우리 지역에서 받은 따뜻한 응원"}</p>
-          {sermonItems.slice(0,4).map((s, i) => <div className="ranking-row" key={s.id}><b>{i+1}</b><span className={`mini-avatar ${s.tone}`}>{s.church[0]}</span><div><strong>{ranking === "작은교회" && i === 0 ? "새빛마을교회" : s.church}</strong><small>{ranking === "지역응원" ? s.region : s.pastor}</small></div><em>{["1,284","986","743","512"][i]} <small>{ranking === "말씀" ? "청취" : "응원"}</small></em></div>)}
-        </div>
-      </section>
-
       <section className="goodshare-section" id="goodshare">
         <div className="section-heading centered"><div><span className="section-kicker">goodshare · 착한나눔</span><h2>마음이 필요한 곳에 닿도록</h2><p>돈만이 아니라 시간, 경험, 공간, 기술, 기도로 서로의 빈틈을 채웁니다.</p></div></div>
         <div className="impact-grid">
@@ -623,7 +634,7 @@ export default function Home() {
       </section>
 
       <section className="community-section" id="community">
-        <div className="community-copy"><span className="section-kicker">서로를 지키는 익명 광장</span><h2>이름을 숨겨도,<br />말의 책임은 남도록</h2><p>신앙의 생각과 고민을 솔직하게 나누되, 교리 논쟁·비방·선동이 공동체를 해치지 않도록 모든 첫 글은 운영 원칙에 따라 검토합니다.</p><ul><li>개인정보를 요구하지 않는 별칭</li><li>신고 누적 시 자동 숨김과 운영자 확인</li><li>특정 교회·개인을 향한 확인되지 않은 비방 금지</li></ul></div>
+        <div className="community-copy"><span className="section-kicker">서로를 지키는 익명 광장</span><h2>이름을 숨겨도,<br />말의 책임은 남도록</h2><p>신앙의 생각과 고민을 솔직하게 나누되, 교리 논쟁·비방·선동이 공동체를 해치지 않도록 모든 첫 글은 운영 원칙에 따라 검토합니다.</p><ul><li>개인정보를 요구하지 않는 별칭</li><li>신고 누적 시 자동 숨김과 운영자 확인</li><li>특정 교회·개인을 향한 확인되지 않은 비방 금지</li></ul><div className="community-safety"><strong>긴급한 도움이 필요한가요?</strong><p>이 광장은 상담기관이 아닙니다. 생명이나 안전이 위험하면 112·119, 자살예방상담전화 109에 바로 연락해 주세요.</p><a href="/community-guidelines">공동체 안전 원칙 보기 →</a></div></div>
         <form className="community-form" onSubmit={(e) => submitInterest(e,"community")}><div className="form-top"><select name="category" aria-label="글 분류"><option>신앙과 삶</option><option>말씀 나눔</option><option>우리 교회 이야기</option><option>기도 부탁</option></select><input name="nickname" maxLength={16} required placeholder="별칭" /></div><textarea name="content" required minLength={20} maxLength={1000} rows={6} placeholder="서로에게 도움이 되는 생각을 나눠주세요. (20자 이상)" /><input className="honeypot" name="company" tabIndex={-1} autoComplete="off" /><label className="agreement"><input type="checkbox" required /> 공동체 원칙과 검토 후 공개에 동의합니다.</label><button type="submit">익명으로 나누기</button></form>
       </section>
 
@@ -633,16 +644,16 @@ export default function Home() {
       </section>}
 
       <section className="vision-section" id="vision">
-        <div className="vision-quote"><span>우리가 향하는 한 문장</span><blockquote>“성경을 중심으로 사람을 세우고, 세상을 섬기며, 상식이 통하는 바른 공동체가 되어 지역에서 세계까지 복음을 전합니다.”</blockquote></div>
+        <div className="vision-quote"><span>airChurch가 지키는 한 문장</span><blockquote>“말씀과 교회를 정직하게 연결하고, 소속과 돌봄이 필요한 사람을 건강한 지역교회로 잇습니다.”</blockquote></div>
         <div className="goal-grid">{goals.map(([title,copy],i) => <article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
-        <div className="vision-footer"><div><small>3가지 핵심가치</small><strong>성경중심 · 선교중심 · 지역사회중심</strong></div><div><small>지역에서 세계까지</small><strong>지역문화 · 고양파주 · 교회개혁 · 북한선교 · 세계선교</strong></div></div>
+        <div className="vision-footer"><div><small>3가지 핵심가치</small><strong>말씀 중심 · 검증과 정직 · 지역교회 연결</strong></div><div><small>포털과 공동체의 역할</small><strong>발견은 airChurch에서 · 소속과 돌봄은 지역교회와 함께</strong></div></div>
       </section>
 
-      <section className="safety-section" id="principles"><div><span className="section-kicker">건강한 신앙 생태계</span><h2>열린 문에는<br />분명한 기준이 필요합니다</h2></div><div className="safety-steps"><article><b>1</b><div><h3>소속 확인</h3><p>교단·노회·공식 홈페이지와 공식 영상 채널을 교차 확인합니다.</p></div></article><article><b>2</b><div><h3>독립 검토</h3><p>한 사람의 판단이 아닌 초교파 검토위원회와 공개된 기준으로 심사합니다.</p></div></article><article><b>3</b><div><h3>상시 보호</h3><p>신고, 재검토, 이의제기 절차를 두고 문제가 확인되면 노출을 즉시 중단합니다.</p></div></article><p className="safety-note">‘이단’이라는 표현은 자의적으로 붙이지 않으며, 참여 제한의 근거와 이의제기 절차를 투명하게 공개합니다.</p></div></section>
+      <section className="safety-section" id="principles"><div><span className="section-kicker">건강한 신앙 생태계</span><h2>열린 문에는<br />분명한 기준이 필요합니다</h2><a className="safety-more" href="/about">운영 주체와 전체 기준 보기 →</a></div><div className="safety-steps"><article><b>1</b><div><h3>소속 확인</h3><p>교단·노회·공식 홈페이지와 공식 영상 채널을 교차 확인합니다.</p></div></article><article><b>2</b><div><h3>복수 검토</h3><p>운영팀과 참여 목회자가 공개된 기준에 따라 확인하고, 최종 공개 여부는 관리자가 결정합니다.</p></div></article><article><b>3</b><div><h3>상시 보호</h3><p>신고, 재검토, 이의제기 절차를 두고 문제가 확인되면 노출을 즉시 중단합니다.</p></div></article><p className="safety-note">‘이단’이라는 표현은 자의적으로 붙이지 않으며, 참여 제한의 근거와 이의제기 절차를 투명하게 공개합니다.</p></div></section>
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />말씀과 선한 영향력을 잇는 하나의 공동체</p><div className="footer-links"><a href="#church-directory">등록교회</a><a href="#principles">운영원칙</a><a href="#vision">비전</a><a href="#community">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />공개 자료를 정리해 사람과 교회를 잇는 크리스천 포털</p><div className="footer-links"><a href="/about">운영 안내</a><a href="/community-guidelines">공동체 안전</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/terms">이용약관</a><a href="/contact">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div>
       </footer>
     </main>
   );

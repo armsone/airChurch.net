@@ -29,6 +29,9 @@ export const visitorActivity = sqliteTable("visitor_activity", {
 export const churchRecommendations = sqliteTable("church_recommendations", {
   id: integer("id").primaryKey({ autoIncrement: true }), churchName: text("church_name").notNull(), pastor: text("pastor").notNull(), region: text("region").notNull(), denomination: text("denomination").notNull(), youtubeUrl: text("youtube_url"), reason: text("reason").notNull(), status: text("status").notNull().default("pending"), fingerprint: text("fingerprint").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`), reviewedAt: text("reviewed_at"),
 }, (table) => [index("idx_church_recommendations_status_created").on(table.status, table.createdAt)]);
+export const contactRequests = sqliteTable("contact_requests", {
+  id:integer("id").primaryKey({autoIncrement:true}), category:text("category").notNull(), name:text("name").notNull(), contact:text("contact").notNull(), message:text("message").notNull(), status:text("status").notNull().default("pending"), fingerprint:text("fingerprint").notNull(), createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`), reviewedAt:text("reviewed_at"),
+},(table)=>[index("idx_contact_requests_status_created").on(table.status,table.createdAt)]);
 export const reviewerAccounts = sqliteTable("reviewer_accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), contact: text("contact").notNull(), username: text("username").notNull().unique(), passwordHash: text("password_hash").notNull(), passwordSalt: text("password_salt").notNull(), status: text("status").notNull().default("pending"), fingerprint: text("fingerprint").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`), reviewedAt: text("reviewed_at"),
 }, (table) => [index("idx_reviewer_accounts_status_created").on(table.status, table.createdAt)]);
