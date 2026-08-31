@@ -20,6 +20,7 @@ type CommunityItem = { id:number; category:string; nickname:string; content:stri
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; subtitle:string; url:string };
+type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
@@ -168,6 +169,8 @@ export default function Home() {
   const [isAdmin,setIsAdmin]=useState(false);
   const [savedItems,setSavedItems]=useState<SavedItem[]>([]);
   const [dailyCompleted,setDailyCompleted]=useState<string[]>([]);
+  const [dailyNote,setDailyNote]=useState("");
+  const [journeyWeek,setJourneyWeek]=useState<JourneyDay[]>([]);
   const [personalStateReady,setPersonalStateReady]=useState(false);
   useEffect(()=>{
     try {
@@ -175,9 +178,23 @@ export default function Home() {
       const completed=JSON.parse(localStorage.getItem(`airchurch:daily:${todayKey}`)||"[]") as string[];
       setSavedItems(Array.isArray(saved)?saved.slice(0,30):[]);
       setDailyCompleted(Array.isArray(completed)?completed:[]);
+      setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");
     } catch { /* 손상된 브라우저 저장값은 빈 상태로 시작합니다. */ }
     setPersonalStateReady(true);
   },[todayKey]);
+  useEffect(()=>{
+    if(!personalStateReady) return;
+    const labels=["일","월","화","수","목","금","토"];
+    const days=Array.from({length:7},(_,index)=>{
+      const offset=6-index;
+      const date=new Date(Date.now()+9*60*60*1000-offset*24*60*60*1000);
+      const key=date.toISOString().slice(0,10);
+      let complete=false;
+      try { const steps=JSON.parse(localStorage.getItem(`airchurch:daily:${key}`)||"[]") as string[];complete=["bible","sermon","praise"].every((step)=>steps.includes(step)); } catch { /* 빈 기록 */ }
+      return {key,label:labels[date.getUTCDay()],complete,today:key===todayKey};
+    });
+    setJourneyWeek(days);
+  },[dailyCompleted,personalStateReady,todayKey]);
   useEffect(()=>{let active=true;fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((result)=>{if(active)setIsAdmin(result?.role==="admin");}).catch(()=>{});return()=>{active=false};},[]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
@@ -344,9 +361,8 @@ export default function Home() {
       shortPlayerInstanceRef.current=new youtube.Player(playerFrame,{
         events:{
           onReady: (event: YouTubeEvent) => {
-            if(!shortPlayerPlayPendingRef.current) return;
-            shortPlayerPlayPendingRef.current = false;
-            startMutedPlayback(event.target);
+            shortPlayerInstanceRef.current = event.target;
+            requestPlay();
           },
           onStateChange:(event)=>{
             if(event.data===5) { requestPlay(); return; }
@@ -413,6 +429,15 @@ export default function Home() {
 
   function isSaved(id:string){return savedItems.some((item)=>item.id===id);}
 
+  function saveDailyNote(event:FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const note=dailyNote.trim().slice(0,240);
+    if(note) localStorage.setItem(`airchurch:note:${todayKey}`,note);
+    else localStorage.removeItem(`airchurch:note:${todayKey}`);
+    setDailyNote(note);
+    setNotice(note?"오늘의 한 줄을 이 브라우저에 저장했습니다.":"오늘의 한 줄을 비웠습니다.");
+  }
+
   async function submitInterest(event: FormEvent<HTMLFormElement>, kind: "talent" | "community") {
     event.preventDefault();
     const form = event.currentTarget;
@@ -448,6 +473,25 @@ export default function Home() {
       setShortItems((items)=>shuffled(items));
     } finally {
       setShortLoading(false);
+    }
+  }
+
+  async function loadDifferentPraises() {
+    setPraiseLoading(true);
+    try {
+      const response=await fetch("/api/praises");
+      const items=response.ok?((await response.json()) as {items?:Praise[]}).items||[]:praiseItems;
+      const pinned=items.filter((item)=>item.pinned);
+      const next=shuffled(items.filter((item)=>!item.pinned));
+      const previousFirst=praiseItems.find((item)=>!item.pinned);
+      if(next.length>1&&next[0]?.youtubeId===previousFirst?.youtubeId) next.push(next.shift() as Praise);
+      setPraiseItems([...pinned,...next]);
+      setShowAllPraise(false);
+    } catch {
+      setPraiseItems((items)=>shuffled(items));
+      setShowAllPraise(false);
+    } finally {
+      setPraiseLoading(false);
     }
   }
 
@@ -538,12 +582,12 @@ export default function Home() {
       </section>
 
       <section className="daily-journey" aria-labelledby="daily-journey-title">
-        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote><div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
+        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
         <div className="daily-paths"><a className={dailyCompleted.includes("bible")?"is-complete":""} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><span>01</span><strong>성경 한 구절</strong><small>{dailyCompleted.includes("bible")?"오늘 읽었습니다 ✓":"공식 한국어 성경에서 읽습니다"}</small></a><a className={dailyCompleted.includes("sermon")?"is-complete":""} href="#sermons"><span>02</span><strong>말씀 한 편</strong><small>{dailyCompleted.includes("sermon")?"오늘 들었습니다 ✓":"재생하면 자동으로 기록됩니다"}</small></a><a className={dailyCompleted.includes("praise")?"is-complete":""} href="#praises"><span>03</span><strong>찬양 한 곡</strong><small>{dailyCompleted.includes("praise")?"오늘 들었습니다 ✓":"재생하면 오늘 여정이 완성됩니다"}</small></a></div>
       </section>
 
       {personalStateReady&&<section className={`continue-section${savedItems.length?" has-items":""}`} aria-labelledby="continue-title">
-        <div><span className="section-kicker">이 브라우저에만 저장</span><h2 id="continue-title">나의 이어보기</h2><p>{savedItems.length?"관심 있는 말씀·찬양·교회를 다음 방문에도 바로 이어보세요.":"말씀·찬양·교회의 ‘찜’ 버튼을 누르면 여기에 모입니다."}</p></div>
+        <div><span className="section-kicker">이 브라우저에만 저장</span><h2 id="continue-title">나의 이어보기</h2><p>{savedItems.length?"관심 있는 말씀·찬양·교회를 다음 방문에도 바로 이어보세요.":"말씀·찬양·교회의 ‘찜’ 버튼을 누르면 여기에 모입니다."}</p><div className="journey-week" aria-label="최근 7일 오늘의 5분 완료 기록">{journeyWeek.map((day)=><span className={`${day.complete?"is-complete":""}${day.today?" is-today":""}`} key={day.key} title={`${day.key} ${day.complete?"완료":"진행 전"}`}><i>{day.complete?"✓":"·"}</i><small>{day.label}</small></span>)}</div></div>
         {savedItems.length?<div className="continue-list">{savedItems.slice(0,6).map((item)=><article key={item.id}><span>{item.kind==="sermon"?"말씀":item.kind==="praise"?"찬양":"교회"}</span><a href={item.url} target="_blank" rel="noopener noreferrer"><strong>{item.title}</strong><small>{item.subtitle}</small></a><button type="button" onClick={()=>toggleSaved(item)} aria-label={`${item.title} 찜에서 빼기`}>×</button></article>)}</div>:<div className="continue-empty" aria-hidden="true"><span>♡</span><small>로그인 없이 가볍게 저장됩니다</small></div>}
       </section>}
 
@@ -595,7 +639,7 @@ export default function Home() {
       </div>}
 
       <section className="content-section praise-section" id="praises">
-        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><span className="result-count">{praiseLoading ? "찬양을 불러오는 중…" : "다른 찬양 보기"}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다른 찬양 보기"}</button></div>
         <form className="praise-youtube-search" role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         <div className={`praise-preview${!praiseLoading && !showAllPraise && filteredPraises.length > 3 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{praiseLoading ? <LoadingCards count={3} /> : visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           {videoThumbnail({youtubeId:praise.youtubeId,thumbnailUrl:praise.thumbnailUrl,marker:"♪",date:new Date(praise.publishedAt).toLocaleDateString("ko-KR"),title:praise.title,church:praise.church,kind:"찬양"})}
