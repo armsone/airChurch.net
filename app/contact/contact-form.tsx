@@ -16,7 +16,7 @@ export default function ContactForm() {
     <label>문의 종류<select name="category" defaultValue="정보 수정 요청" required><option>정보 수정 요청</option><option>저작권·비공개 요청</option><option>개인정보 요청</option><option>운영 문의</option></select></label>
     <div><label>이름 또는 교회명<input name="name" minLength={2} maxLength={80} required/></label><label>답변받을 연락처<input name="contact" minLength={5} maxLength={160} placeholder="전화번호 또는 이메일" required/></label></div>
     <label>확인할 내용<textarea name="message" minLength={20} maxLength={1500} rows={7} placeholder="대상 페이지와 수정·비공개가 필요한 이유를 구체적으로 적어 주세요." required/></label>
-    <input className="honeypot" name="company" tabIndex={-1} autoComplete="off"/>
+    <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true"/>
     <label className="agreement"><input type="checkbox" required/> 문의 처리에 필요한 이름·연락처·내용 수집에 동의합니다.</label>
     <button type="submit" disabled={busy}>{busy?"보내는 중…":"운영 문의 보내기"}</button>
     {message&&<p className={done?"form-success":"form-error"} role={done?"status":"alert"}>{message}</p>}
