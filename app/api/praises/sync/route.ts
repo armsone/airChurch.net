@@ -21,7 +21,8 @@ function parseFeed(xml: string, churchId: number): Praise[] {
   return items;
 }
 
-export async function POST() {
+export async function POST(request?:Request) {
+  if(request)return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const db = database();
   await Promise.all([ensureSermonTables(db), ensurePraiseTables(db)]);
   const syncKey = "youtube-praise-v1";

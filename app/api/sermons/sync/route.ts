@@ -443,7 +443,9 @@ type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:str
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
 
 export async function POST(request:Request) {
+  if(new URL(request.url).hostname!=="airchurch.internal")return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
+  if(!key) return Response.json({error:"YouTube API key not configured"},{status:503,headers:{"cache-control":"no-store"}});
   const db=database(); await ensureSermonTables(db); await ensureShortsTables(db); await ensurePraiseTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
   const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
@@ -464,7 +466,6 @@ export async function POST(request:Request) {
   const resetShortsResult=resetShorts?await db.prepare("DELETE FROM church_shorts WHERE lower(title) NOT LIKE '%shorts%' AND title NOT LIKE '%쇼츠%'").run():null;
   const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
   const removed=cleanup.meta.changes;
-  if(!key) return Response.json({error:"YouTube API key not configured",removed},{status:503});
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
   if(explicitStart===null&&start===0&&state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
     const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
