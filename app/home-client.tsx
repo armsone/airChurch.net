@@ -230,7 +230,7 @@ export default function Home() {
     });
     setJourneyWeek(days);
   },[dailyCompleted,personalStateReady,todayKey]);
-  useEffect(()=>{let active=true;fetch("/api/churches?countOnly=1").then((response)=>response.ok?response.json():null).then((result)=>{if(active&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>{active=false};},[]);
+  useEffect(()=>{const controller=new AbortController();fetch("/api/churches?countOnly=1",{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetch(`/api/search-suggestions?q=${encodeURIComponent(term)}`,{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>setSearchSuggestions(Array.isArray(result?.items)?result.items:[])).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
