@@ -7,8 +7,6 @@ type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:s
 type CountRow={total:number};
 
 export async function GET(request:Request) {
-  const db=database();
-  await ensureSermonTables(db);
   const url=new URL(request.url);
   const query=url.searchParams.get("q")?.trim().slice(0,100)??"";
   const globalQuery=url.searchParams.get("global")?.trim().toLowerCase().slice(0,100)??"";
@@ -17,16 +15,19 @@ export async function GET(request:Request) {
   const terms=query.toLowerCase().split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
   const globalTerms=globalQuery.split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
   const searchGroups=[...terms,...globalTerms].map(expand);
+  const responseHeaders={"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
+  if((query||globalQuery)&&!searchGroups.length)return Response.json({items:[],total:0},{headers:responseHeaders});
+  const db=database();
+  await ensureSermonTables(db);
   const haystack=sqlNormalized("name||pastor||region||denomination");
-  const textWithoutMeaning=Boolean((query||globalQuery)&&!searchGroups.length);
-  const conditions=["review_status='approved'",...(textWithoutMeaning?["0=1"]:[]),...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
+  const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
   const bindings:Array<string>=searchGroups.flat();
   if(region&&region!=="전체") { conditions.push("substr(region,1,length(?))=?");bindings.push(region,region); }
   if(denomination&&denomination!=="전체 교단") { conditions.push("denomination=?");bindings.push(denomination); }
   const where=conditions.join(" AND ");
   if(url.searchParams.get("countOnly")==="1") {
     const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
-    return Response.json({total:count?.total??0},{headers:{"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"}});
+    return Response.json({total:count?.total??0},{headers:responseHeaders});
   }
   const isSearch=Boolean(query||globalQuery||region&&region!=="전체"||denomination&&denomination!=="전체 교단");
   const limit=isSearch?200:36;
@@ -39,5 +40,5 @@ export async function GET(request:Request) {
     const channelImageUrl=churchImageUrls[church.name]||church.channelImageUrl||null;
     return {...church,homepageUrl,channelImageUrl};
   });
-  return Response.json({items,total:count?.total??items.length},{headers:{"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"}});
+  return Response.json({items,total:count?.total??items.length},{headers:responseHeaders});
 }
