@@ -26,6 +26,7 @@ type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 type SearchSuggestion = { value:string; label:string };
 
 const normalizeSearchText=normalizeSearchValue;
+const prefersLowData=()=>Boolean((navigator as Navigator&{connection?:{saveData?:boolean}}).connection?.saveData);
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
@@ -245,7 +246,8 @@ export default function Home() {
   useEffect(()=>{
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
-    loadItems("/api/sermons?limit=60").then((sermonData)=>{
+    const lowData=prefersLowData();
+    loadItems(`/api/sermons?limit=${lowData?24:60}`).then((sermonData)=>{
       if(!alive) return;
       const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
       setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
@@ -253,13 +255,13 @@ export default function Home() {
     });
 
     const loaders: Record<string, () => void> = {
-      praises: ()=>loadItems("/api/praises?limit=48").then((data)=>{
+      praises: ()=>loadItems(`/api/praises?limit=${lowData?24:48}`).then((data)=>{
         if(!alive) return;
         const items=(data as {items?:Praise[]}).items||[];
         setPraiseItems([...items.filter((item)=>item.pinned),...shuffled(items.filter((item)=>!item.pinned))]);
         setPraiseLoading(false);
       }),
-      shorts: ()=>loadItems("/api/shorts?limit=60").then((data)=>{
+      shorts: ()=>loadItems(`/api/shorts?limit=${lowData?24:60}`).then((data)=>{
         if(!alive) return;
         setShortItems((data as {items?:Short[]}).items||[]);
         setShortLoading(false);
@@ -515,7 +517,7 @@ export default function Home() {
   async function loadDifferentShorts() {
     setShortLoading(true);
     try {
-      const response=await fetch("/api/shorts?limit=60");
+      const response=await fetch(`/api/shorts?limit=${prefersLowData()?24:60}`);
       const items=response.ok?((await response.json()) as {items?:Short[]}).items||[]:shortItems;
       const next=shuffled(items);
       if(next.length>1&&next[0]?.youtubeId===shortItems[0]?.youtubeId) next.push(next.shift() as Short);
@@ -531,7 +533,7 @@ export default function Home() {
   async function loadDifferentPraises() {
     setPraiseLoading(true);
     try {
-      const response=await fetch("/api/praises?limit=48");
+      const response=await fetch(`/api/praises?limit=${prefersLowData()?24:48}`);
       const items=response.ok?((await response.json()) as {items?:Praise[]}).items||[]:praiseItems;
       const pinned=items.filter((item)=>item.pinned);
       const next=shuffled(items.filter((item)=>!item.pinned));
