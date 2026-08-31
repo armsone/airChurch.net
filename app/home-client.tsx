@@ -2,6 +2,7 @@
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
+import { matchesSearchTerms, normalizeSearchValue } from "./search-domain";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
 
@@ -23,8 +24,7 @@ type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; sub
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 type SearchSuggestion = { value:string; label:string };
 
-const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/목사(?:님)?$/,"");
-const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchText).filter(Boolean).every((term)=>haystack.includes(term));
+const normalizeSearchText=normalizeSearchValue;
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
