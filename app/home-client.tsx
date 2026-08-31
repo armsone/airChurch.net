@@ -173,6 +173,8 @@ export default function Home() {
   const [shortMuted,setShortMuted]=useState(true);
   const pullToRefreshStartRef=useRef<number|null>(null);
   const pullToRefreshDistanceRef=useRef(0);
+  const mobileMenuButtonRef=useRef<HTMLButtonElement>(null);
+  const mobileMenuPanelRef=useRef<HTMLDivElement>(null);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const shortViewerRef=useRef<HTMLDivElement>(null);
   const shortCloseButtonRef=useRef<HTMLButtonElement>(null);
@@ -206,6 +208,13 @@ export default function Home() {
   const [journeyWeek,setJourneyWeek]=useState<JourneyDay[]>([]);
   const [personalStateReady,setPersonalStateReady]=useState(false);
   const [recentSearches,setRecentSearches]=useState<string[]>([]);
+  useEffect(()=>{
+    if(!mobileMenuOpen)return;
+    mobileMenuPanelRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+    const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==="Escape"){setMobileMenuOpen(false);mobileMenuButtonRef.current?.focus();}};
+    window.addEventListener("keydown",closeOnEscape);
+    return()=>window.removeEventListener("keydown",closeOnEscape);
+  },[mobileMenuOpen]);
   useEffect(()=>{
     try {
       const completed=JSON.parse(localStorage.getItem(`airchurch:daily:${todayKey}`)||"[]") as string[];
@@ -614,8 +623,8 @@ export default function Home() {
         <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
         <nav aria-label="주요 메뉴">{menuItems.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
         <nav className="header-admin-links" aria-label="운영 메뉴">{headerAdminLinks.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
-        <button className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-site-menu" onClick={()=>setMobileMenuOpen((open)=>!open)}><span aria-hidden="true">☰</span> 메뉴</button>
-        <div className={`mobile-menu-panel${mobileMenuOpen?" is-open":""}`} id="mobile-site-menu" aria-hidden={!mobileMenuOpen}>{menuItems.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}<div className="mobile-menu-admin">{headerAdminLinks.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}</div></div>
+        <button ref={mobileMenuButtonRef} className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-site-menu" onClick={()=>setMobileMenuOpen((open)=>!open)}><span aria-hidden="true">☰</span> 메뉴</button>
+        <div ref={mobileMenuPanelRef} className={`mobile-menu-panel${mobileMenuOpen?" is-open":""}`} id="mobile-site-menu" aria-hidden={!mobileMenuOpen}>{menuItems.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}<div className="mobile-menu-admin">{headerAdminLinks.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}</div></div>
       </header>
 
       <section className="hero" id="primary-content" tabIndex={-1}>
