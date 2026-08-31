@@ -21,6 +21,7 @@ type TalentItem = { id:number; title:string; region:string; description:string; 
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; subtitle:string; url:string };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
+type SearchSuggestion = { value:string; label:string };
 
 const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/\s/g,"");
 const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchText).filter(Boolean).every((term)=>haystack.includes(term));
@@ -185,6 +186,7 @@ export default function Home() {
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
   const [churchTotal,setChurchTotal]=useState(0);
+  const [searchSuggestions,setSearchSuggestions]=useState<SearchSuggestion[]>([]);
   const [churchLoading,setChurchLoading]=useState(true);
   const [churchRadarRefresh,setChurchRadarRefresh]=useState(0);
   const [showAllChurches,setShowAllChurches]=useState(false);
@@ -223,6 +225,7 @@ export default function Home() {
   },[dailyCompleted,personalStateReady,todayKey]);
   useEffect(()=>{let active=true;fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((result)=>{if(active)setIsAdmin(result?.role==="admin");}).catch(()=>{});return()=>{active=false};},[]);
   useEffect(()=>{let active=true;fetch("/api/churches?countOnly=1").then((response)=>response.ok?response.json():null).then((result)=>{if(active&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>{active=false};},[]);
+  useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetch(`/api/search-suggestions?q=${encodeURIComponent(term)}`,{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>setSearchSuggestions(Array.isArray(result?.items)?result.items:[])).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
     const onTouchStart=(event:TouchEvent)=>{pullToRefreshStartRef.current=window.scrollY===0&&event.touches.length===1?event.touches[0].clientY:null;pullToRefreshDistanceRef.current=0;};
@@ -362,9 +365,9 @@ export default function Home() {
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
   const startMutedPlayback=(player:YouTubePlayer)=>{
-      player.mute();
-      player.playVideo();
-    };
+    player.mute();
+    player.playVideo();
+  };
     const requestPlay = () => {
       const player = shortPlayerInstanceRef.current;
       if(!player) return;
@@ -389,8 +392,7 @@ export default function Home() {
         events:{
           onReady: (event: YouTubeEvent) => {
             shortPlayerInstanceRef.current = event.target;
-            event.target.mute();
-            event.target.playVideo();
+            startMutedPlayback(event.target);
             requestPlay();
           },
           onStateChange:(event)=>{
@@ -599,7 +601,8 @@ export default function Home() {
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
         <form className="search" role="search" action="/search" method="get">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" name="q" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회, 목사, 지역, 교단으로 찾아보세요."} />
+          <input id="site-search" name="q" list="church-search-suggestions" autoComplete="off" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회, 목사, 지역, 교단으로 찾아보세요."} />
+          <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
           <div className="search-filters">
             <select name="region" aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
             <select name="denomination" className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
