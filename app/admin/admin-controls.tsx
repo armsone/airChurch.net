@@ -74,8 +74,8 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   const youtubeChannelId = church.youtube_channel_id ?? church.youtubeChannelId ?? null;
   const channelImageUrl = church.channel_image_url ?? church.channelImageUrl ?? null;
 
-  const churchPrimaryUrl = homepageUrl || (youtubeChannelId ? `https://www.youtube.com/channel/${youtubeChannelId}` : null);
-  const churchPrimaryLabel = `${church.name} ${homepageUrl ? "공식 홈페이지" : "공식 YouTube"} 열기`;
+  const churchExternalUrl = homepageUrl || (youtubeChannelId ? `https://www.youtube.com/channel/${youtubeChannelId}` : null);
+  const churchExternalLabel = `${church.name} ${homepageUrl ? "공식 홈페이지" : "공식 YouTube"} 열기`;
   const mark = denominationMark(church.denomination);
   const holdReasonText = holdReasons.find(([value]) => value === (holdReasonValue || holdReason))?.[1] ?? (holdReasonValue ? "기타" : "사유 미기록");
 
@@ -123,10 +123,10 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
         </div>
         {mark && <img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
       </div>
-      <h3>{churchPrimaryUrl ? <a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a> : church.name}</h3>
+      <h3><a className="church-primary-link" href={`/church/${church.id}`} aria-label={`${church.name} airChurch 교회 페이지 열기`}>{church.name}</a></h3>
       <div className="church-directory-meta">
         <div className="church-directory-meta-copy">
-          <p>{churchPrimaryUrl ? <a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.pastor}</a> : church.pastor}</p>
+          <p>{churchExternalUrl ? <a className="church-primary-link" href={churchExternalUrl} target="_blank" rel="noreferrer" aria-label={churchExternalLabel}>{church.pastor}</a> : church.pastor}</p>
           <small>{church.denomination}</small>
         </div>
         <div className="church-directory-links">
