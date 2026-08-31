@@ -18,7 +18,7 @@ const preparedSearchTerms=(query:string)=>query.toLowerCase().split(/\s+/).map(n
 export const searchTermCount=(query:string)=>preparedSearchTerms(query).length;
 export const tokenizeSearchQuery=(query:string)=>preparedSearchTerms(query).slice(0,MAX_SEARCH_TERMS);
 export const matchesSearchTerms=(haystack:string,query:string)=>tokenizeSearchQuery(query).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
-const sqlSearchPunctuation=[" ","-","–","—","―","·",".","…","(",")","&","/","／","｜",",",":","_","’","‘","“","”","[","]"];
+const sqlSearchPunctuation=[" ","-","–","—","―","·","ㆍ",".","…","(",")","（","）","&","/","／","|","｜","+","=",",",":",";","_","’","‘","“","”","[","]","【","】"];
 export const sqlNormalized=(value:string)=>`replace(${sqlSearchPunctuation.reduce((sql,character)=>`replace(${sql},'${character}','')`,`lower(${value})`)},char(39),'')`;
 export const metadataSearchValue=(name:string,pastor:string,region:string,denomination:string,extra="")=>normalizeSearchValue(`${name}${pastor}${region}${denomination}${region}${name}${denomination}${name}${pastor}${name}${extra}${region}${extra}${name}`);
 export const sqlMetadataSearchValue=(name:string,pastor:string,region:string,denomination:string,extra="''")=>sqlNormalized(`${name}||${pastor}||${region}||${denomination}||${region}||${name}||${denomination}||${name}||${pastor}||${name}||${extra}||${region}||${extra}||${name}`);

@@ -13,7 +13,7 @@ const ChurchControls = lazy(() => import("./admin/admin-controls").then((module)
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
 type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string; pinned?:boolean };
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
-type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
+type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
 type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; unMute:()=>void; getVideoData:()=>{video_id?:string} };
 type YouTubeEvent = { data?:number; target:YouTubePlayer };
@@ -27,7 +27,7 @@ type ChurchItem = { id:number; name:string; pastor:string; region:string; denomi
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 const normalizeSearchText=normalizeSearchValue;
-const prefersLowData=()=>Boolean((navigator as Navigator&{connection?:{saveData?:boolean}}).connection?.saveData);
+const prefersLowData=()=>{const connection=(navigator as Navigator&{connection?:{saveData?:boolean}}).connection;return connection?.saveData===true||(!connection&&window.matchMedia("(max-width: 600px)").matches);};
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
@@ -35,12 +35,12 @@ function denominationMark(denomination:string) {
   if (denomination === "기독교대한감리회") return { src:"/denominations/kmc.ico", alt:"기독교대한감리회 교단 심볼" };
   if (denomination === "대한예수교장로회 고신") return { src:"/denominations/pck-kosin.jpg", alt:"대한예수교장로회 고신 교단 심볼" };
   if (denomination === "기독교한국침례회") return { src:"/denominations/kbch.png", alt:"기독교한국침례회 공식 로고" };
-  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc.png", alt:"기독교대한성결교회 교단 심볼" };
+  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc-256.png", alt:"기독교대한성결교회 교단 심볼" };
   if (denomination === "대한예수교장로회 합신") return { src:"/denominations/pck-hapshin.png", alt:"대한예수교장로회 합신 공식 로고" };
-  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok.png", alt:"대한예수교장로회 백석 교단 심볼" };
+  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok-256.png", alt:"대한예수교장로회 백석 교단 심볼" };
   if (denomination === "기독교대한하나님의성회") return { src:"/denominations/agk.png", alt:"기독교대한하나님의성회 공식 로고" };
   if (denomination === "기독교대한하나님의성회 광화문총회") return { src:"/denominations/agk-gwanghwamun.png", alt:"기독교대한하나님의성회 광화문총회 공식 로고" };
-  if (denomination === "한국기독교장로회") return { src:"/denominations/prok.png", alt:"한국기독교장로회 교단 심볼" };
+  if (denomination === "한국기독교장로회") return { src:"/denominations/prok-256.png", alt:"한국기독교장로회 교단 심볼" };
   if (denomination === "한국독립교회선교단체연합회") return { src:"/denominations/kaicam.png", alt:"한국독립교회선교단체연합회 공식 로고" };
   return null;
 }
@@ -218,14 +218,15 @@ export default function Home() {
     return()=>window.removeEventListener("keydown",closeOnEscape);
   },[mobileMenuOpen]);
   useEffect(()=>{
-    try {
+    const refreshPersonalState=()=>{try {
       const completed=JSON.parse(localStorage.getItem(`airchurch:daily:${todayKey}`)||"[]") as string[];
-      setSavedItems(readSavedItems());
-      setDailyCompleted(Array.isArray(completed)?completed:[]);
-      setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");
-      setRecentSearches(readRecentSearches());
-    } catch { /* 손상된 브라우저 저장값은 빈 상태로 시작합니다. */ }
+      setSavedItems(readSavedItems());setDailyCompleted(Array.isArray(completed)?completed:[]);
+      setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");setRecentSearches(readRecentSearches());
+    } catch { /* 손상된 브라우저 저장값은 빈 상태로 시작합니다. */ }};
+    refreshPersonalState();
     setPersonalStateReady(true);
+    window.addEventListener("focus",refreshPersonalState);window.addEventListener("storage",refreshPersonalState);
+    return()=>{window.removeEventListener("focus",refreshPersonalState);window.removeEventListener("storage",refreshPersonalState);};
   },[todayKey]);
   useEffect(()=>{
     if(!personalStateReady) return;
@@ -577,7 +578,7 @@ export default function Home() {
       const result=await response.json() as {status?:string};
       form.reset();
       setShowRecommendationForm(false);
-      setNotice(result.status==="already_held"?"이미 보류 기록이 있는 교회입니다. 기존 보류 사유와 비교해 중복 접수하지 않았습니다.":result.status==="already_received"?"이미 접수되었거나 공개 중인 교회입니다.":"교회 추천을 접수했습니다. 관리자가 교단과 공식 채널을 확인한 뒤 등록 여부를 결정합니다.");
+      setNotice(result.status==="already_held"?"이미 보류 기록이 있는 교회입니다. 기존 보류 사유와 비교해 중복 접수하지 않았습니다.":result.status==="already_listed"?"이미 에어처치에 공개된 교회입니다.":result.status==="already_received"?"이미 같은 교회 추천이 접수되어 있습니다.":"교회 추천을 접수했습니다. 관리자가 교단과 공식 채널을 확인한 뒤 등록 여부를 결정합니다.");
     } catch {
       setNotice("추천을 접수하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.");
     }
@@ -742,7 +743,7 @@ export default function Home() {
         {!churchNewsLoading&&churchNewsSources.length>0&&<details className="church-news-sources"><summary>현재 소식을 가져오는 곳 · {churchNewsSources.length}곳</summary><div>{churchNewsSources.map((source)=><span key={source.rssUrl}><strong>{source.name}</strong><a href={source.homepage} target="_blank" rel="noopener noreferrer">홈페이지 ↗</a><a href={source.rssUrl} target="_blank" rel="noopener noreferrer">RSS ↗</a></span>)}</div></details>}
         <div className="church-news-grid">
           {churchNewsLoading ? Array.from({length:9},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
-            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark"><img src={item.markUrl} alt="" width={34} height={34} loading="lazy" decoding="async" referrerPolicy="no-referrer" /></span><small>{item.source}</small></span>
+            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark">{item.source.slice(0,2)}</span><small>{item.source}</small></span>
             <span className="church-news-copy"><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR")}</small><strong>{item.title}</strong><span>{item.summary}</span><em>원문에서 읽기 ↗</em></span>
           </a>)}
           {!churchNewsLoading&&!churchNews.length&&<div className="empty">새 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}
@@ -751,7 +752,7 @@ export default function Home() {
 
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
-        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.webp" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} loading="lazy" decoding="async" /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 확인합니다. 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인된 교회를 운영 검토 후 공개합니다.</p>
+        <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.webp" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} loading="lazy" decoding="async" /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보만 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않으며, 교회명·지역·담임목사와 공식 홈페이지 또는 YouTube 채널을 교차 확인합니다. 정보가 일치하고 최근 180일 이내 설교·예배 영상이 확인되면 자동 공개되므로 전체 수는 달라질 수 있으며, 문제 제보가 들어오면 즉시 보류해 다시 확인합니다.</p>
           <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
             <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
             <table className="church-radar-sources-table"><caption className="sr-only">자료 확인 기준과 출처</caption>

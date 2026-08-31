@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     siteName: "에어처치",
     locale: "ko_KR",
     type: "website",
-    images: [{ url: "/og.png", width: 1732, height: 909, alt: "말씀을 발견하고 교회와 이어지는 곳" }],
+    images: [{ url: "/og.png", width: 1731, height: 909, alt: "말씀을 발견하고 교회와 이어지는 곳" }],
   },
   twitter: { card:"summary_large_image", title:"에어처치", description:"말씀을 발견하고 교회와 이어지는 곳", images:["/og.png"] },
 };

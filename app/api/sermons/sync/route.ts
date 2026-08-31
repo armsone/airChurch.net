@@ -474,20 +474,22 @@ export async function POST(request:Request) {
   }
   const leaseKey=`${syncKey}:lease`;
   const leaseInsert=await db.prepare("INSERT OR IGNORE INTO sync_state (key,last_synced_at) VALUES (?,CURRENT_TIMESTAMP)").bind(leaseKey).run();
-  const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-10 minutes')").bind(leaseKey).run():null;
+  const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-30 minutes')").bind(leaseKey).run():null;
   if(Number(leaseInsert.meta?.changes??0)===0&&Number(leaseUpdate?.meta?.changes??0)===0)return Response.json({ok:true,imported:0,skipped:"sync_in_progress"});
   let imported=0;
   let verified=0;
   let checked=0;
   let failed=0;
   for(const source of batch) {
+    const held=await db.prepare(`SELECT id FROM churches WHERE ((${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) OR (?<>'' AND youtube_channel_id=?)) AND review_status IN ('removed','deleted') LIMIT 1`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region),source.channelId??"",source.channelId??"").first();
+    if(held)continue;
     const filter=source.channelId?`id=${encodeURIComponent(source.channelId)}`:source.handle?`forHandle=${encodeURIComponent(source.handle)}`:`forUsername=${encodeURIComponent(source.username||"")}`;
     const channelResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&${filter}&key=${encodeURIComponent(key)}`);
     if(!channelResponse?.ok) { failed++;continue; }
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
     if(!found) {
-      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status!='deleted'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
+      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status='approved'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
       continue;
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
@@ -519,14 +521,16 @@ export async function POST(request:Request) {
     }
     const recentPraises=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
-      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status!='deleted'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
+      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status='approved'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
       continue;
     }
     const existing=await db.prepare(`SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1`).bind(found.id,normalizeSearchValue(source.name),normalizeSearchValue(source.region),found.id).first<{id:number;review_status:string}>();
-    if(existing?.review_status==="deleted") continue;
+    if(existing&&existing.review_status!=="approved") continue;
     let churchId:number;
     if(existing) {
-      await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null,existing.id).run();
+      // Collection can refresh metadata, but only an administrator may reverse a hold.
+      // This protects copyright, privacy, and rights-holder takedowns from auto-republication.
+      await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url) WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null,existing.id).run();
       churchId=existing.id;
     } else {
       const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,homepage_url,review_status) VALUES (?,?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,channelImageUrl,source.homepage??null).run();
@@ -541,6 +545,7 @@ export async function POST(request:Request) {
   const nextCursor=nextStart<sourcePool.length?nextStart:0;
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
   if(nextCursor===0&&checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
+  if(checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-sermon-last-success',?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
   await db.prepare("DELETE FROM sync_state WHERE key=?").bind(leaseKey).run();
   return Response.json({ok:true,scope,checked,failed,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});

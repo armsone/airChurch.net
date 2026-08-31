@@ -11,6 +11,7 @@ async function updateAdmin(body: Record<string, unknown>, reload=true) {
 
 const holdReasons = [
   ["pastor_request", "목사님 요청"],
+  ["rights_request", "저작권·개인정보·권리자 요청"],
   ["youtube_unavailable", "공식 YouTube 확인 불가"],
   ["inactive", "최근 180일 업로드 없음"],
   ["info_unverified", "교회 정보 재확인 필요"],
@@ -24,12 +25,12 @@ export function denominationMark(denomination:string) {
   if (denomination === "기독교대한감리회") return { src:"/denominations/kmc.ico", alt:"기독교대한감리회 교단 심볼" };
   if (denomination === "대한예수교장로회 고신") return { src:"/denominations/pck-kosin.jpg", alt:"대한예수교장로회 고신 교단 심볼" };
   if (denomination === "기독교한국침례회") return { src:"/denominations/kbch.png", alt:"기독교한국침례회 공식 로고" };
-  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc.png", alt:"기독교대한성결교회 교단 심볼" };
+  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc-256.png", alt:"기독교대한성결교회 교단 심볼" };
   if (denomination === "대한예수교장로회 합신") return { src:"/denominations/pck-hapshin.png", alt:"대한예수교장로회 합신 공식 로고" };
-  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok.png", alt:"대한예수교장로회 백석 교단 심볼" };
+  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok-256.png", alt:"대한예수교장로회 백석 교단 심볼" };
   if (denomination === "기독교대한하나님의성회") return { src:"/denominations/agk.png", alt:"기독교대한하나님의성회 공식 로고" };
   if (denomination === "기독교대한하나님의성회 광화문총회") return { src:"/denominations/agk-gwanghwamun.png", alt:"기독교대한하나님의성회 광화문총회 공식 로고" };
-  if (denomination === "한국기독교장로회") return { src:"/denominations/prok.png", alt:"한국기독교장로회 교단 심볼" };
+  if (denomination === "한국기독교장로회") return { src:"/denominations/prok-256.png", alt:"한국기독교장로회 교단 심볼" };
   if (denomination === "한국독립교회선교단체연합회") return { src:"/denominations/kaicam.png", alt:"한국독립교회선교단체연합회 공식 로고" };
   return null;
 }

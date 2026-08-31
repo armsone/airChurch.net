@@ -2,7 +2,8 @@ import { env } from "cloudflare:workers";
 import { headers } from "next/headers";
 import { database, ensureAccessTables, ensureReviewerTables } from "./api/_shared";
 
-const COOKIE_NAME = "airchurch_admin_v2";
+// __Host- prevents subdomain/domain cookie shadowing and requires Secure + Path=/.
+const COOKIE_NAME = "__Host-airchurch_access";
 const SESSION_SECONDS = 12 * 60 * 60;
 // Cloudflare Workers rejects PBKDF2 iteration counts above 100,000.
 const PBKDF2_ITERATIONS = 100_000;
@@ -65,8 +66,18 @@ export async function createAccessToken(session:AccessSession) {
   const issuedAt = Math.floor(Date.now() / 1000).toString();
   const sessionId=crypto.randomUUID();
   const db=database();await ensureAccessTables(db);
+  let credentialMaterial="";
+  if(session.role==="admin") {
+    const current=adminEnv();credentialMaterial=`${current.ADMIN_USERNAME??""}\u0000${current.ADMIN_PASSWORD??""}`;
+  } else {
+    await ensureReviewerTables(db);
+    const reviewer=await db.prepare("SELECT password_hash FROM reviewer_accounts WHERE id=? AND status='approved' LIMIT 1").bind(session.reviewerId).first<{password_hash:string}>();
+    if(!reviewer)throw new Error("Reviewer access is no longer active");
+    credentialMaterial=reviewer.password_hash;
+  }
+  const credentialVersion=(await signature(`${session.role}|${session.reviewerId}|${credentialMaterial}`,secret)).slice(0,22);
   await db.prepare("INSERT INTO access_sessions (id,role,reviewer_id,expires_at) VALUES (?,?,?,datetime('now',?))").bind(sessionId,session.role,session.reviewerId,`+${SESSION_SECONDS} seconds`).run();
-  const payload=`${issuedAt}.${session.role}.${session.reviewerId}.${sessionId}`;
+  const payload=`${issuedAt}.${session.role}.${session.reviewerId}.${credentialVersion}.${sessionId}`;
   return `${payload}.${await signature(payload, secret)}`;
 }
 
@@ -76,27 +87,33 @@ export async function accessSession(request?:Request):Promise<AccessSession|null
   const requestHeaders = request ? request.headers : await headers();
   const token = cookieValue(requestHeaders.get("cookie"));
   if (!token) return null;
-  const [issuedAt,role,reviewerIdValue,sessionId,suppliedSignature] = token.split(".");
+  const [issuedAt,role,reviewerIdValue,credentialVersion,sessionId,suppliedSignature] = token.split(".");
   const issued = Number(issuedAt);
   const reviewerId=Number(reviewerIdValue);
   const now = Math.floor(Date.now() / 1000);
-  if (!issuedAt || !["admin","reviewer"].includes(role) || !Number.isInteger(reviewerId) || reviewerId<0 || !sessionId || !suppliedSignature || !Number.isInteger(issued) || issued > now + 60 || now - issued > SESSION_SECONDS) return null;
-  const payload=`${issuedAt}.${role}.${reviewerId}.${sessionId}`;
+  if (!issuedAt || !["admin","reviewer"].includes(role) || !Number.isInteger(reviewerId) || reviewerId<0 || !credentialVersion || !sessionId || !suppliedSignature || !Number.isInteger(issued) || issued > now + 60 || now - issued > SESSION_SECONDS) return null;
+  const payload=`${issuedAt}.${role}.${reviewerId}.${credentialVersion}.${sessionId}`;
   if(!constantTimeEqual(suppliedSignature,await signature(payload,secret))) return null;
   const db=database();await ensureAccessTables(db);
   const active=await db.prepare("SELECT id FROM access_sessions WHERE id=? AND role=? AND reviewer_id=? AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP LIMIT 1").bind(sessionId,role,reviewerId).first<{id:string}>();
   if(!active)return null;
+  let credentialMaterial="";
   if(role==="reviewer"&&reviewerId>0) {
     await ensureReviewerTables(db);
-    const reviewer=await db.prepare("SELECT id FROM reviewer_accounts WHERE id=? AND status='approved' LIMIT 1").bind(reviewerId).first<{id:number}>();
+    const reviewer=await db.prepare("SELECT id,password_hash FROM reviewer_accounts WHERE id=? AND status='approved' LIMIT 1").bind(reviewerId).first<{id:number;password_hash:string}>();
     if(!reviewer) return null;
+    credentialMaterial=reviewer.password_hash;
+  } else if(role==="admin") {
+    const current=adminEnv();credentialMaterial=`${current.ADMIN_USERNAME??""}\u0000${current.ADMIN_PASSWORD??""}`;
   }
+  const expectedCredentialVersion=(await signature(`${role}|${reviewerId}|${credentialMaterial}`,secret)).slice(0,22);
+  if(!constantTimeEqual(credentialVersion,expectedCredentialVersion))return null;
   return {role:role as AccessRole,reviewerId};
 }
 
 export async function revokeAccessSession(request:Request){
   const token=cookieValue(request.headers.get("cookie"));
-  const sessionId=token?.split(".")[3];
+  const sessionId=token?.split(".")[4];
   if(!sessionId)return;
   const db=database();await ensureAccessTables(db);
   await db.prepare("UPDATE access_sessions SET revoked_at=CURRENT_TIMESTAMP WHERE id=? AND revoked_at IS NULL").bind(sessionId).run();

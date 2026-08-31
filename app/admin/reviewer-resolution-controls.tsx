@@ -15,6 +15,7 @@ type ReviewerResolutionControlsProps = {
 };
 
 const holdReasons = [
+  ["rights_request", "저작권·개인정보·권리자 요청"],
   ["youtube_unavailable", "공식 YouTube 확인 불가"],
   ["inactive", "최근 180일 업로드 없음"],
   ["info_unverified", "교회 정보 재확인 필요"],

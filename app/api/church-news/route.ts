@@ -1,5 +1,5 @@
 type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string};
-type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string;markUrl:string};
+type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string};
 
 const sources:FeedSource[]=[
   {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"newsnjoy",markUrl:"https://cdn.newsnjoy.or.kr/image/logo/toplogo_20250820092205.png"},
@@ -57,7 +57,7 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
       const url=new URL(rawUrl);
       if(url.hostname!==source.allowedHost||!title) continue;
       if(url.protocol==="http:") url.protocol="https:";
-      items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone,markUrl:source.markUrl});
+      items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone});
     } catch { /* 형식이 잘못된 외부 링크는 뉴스 목록에서 제외합니다. */ }
   }
   return items;

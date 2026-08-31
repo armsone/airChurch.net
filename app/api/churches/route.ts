@@ -1,4 +1,4 @@
-import { database, ensureSermonTables } from "../_shared";
+import { database, ensureSermonTables, maybeRunDataRetention } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { expandSearchTerm as expand, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
@@ -16,9 +16,9 @@ export async function GET(request:Request) {
   const terms=tokenizeSearchQuery(query),globalTerms=tokenizeSearchQuery(globalQuery);
   const searchGroups=[...terms,...globalTerms].map(expand);
   const responseHeaders={"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
-  if((query||globalQuery)&&!searchGroups.length)return Response.json({items:[],total:0},{headers:responseHeaders});
   const db=database();
   await ensureSermonTables(db);
+  await maybeRunDataRetention(db);
   const haystack=sqlMetadataSearchValue("name","pastor","region","denomination");
   const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
   const bindings:Array<string>=searchGroups.flat();

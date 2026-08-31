@@ -24,6 +24,8 @@ export async function POST(request:Request) {
   for(const raw of records) {
     const source={name:clean(raw.name,100),pastor:clean(raw.pastor,80),region:clean(raw.region,80),denomination:clean(raw.denomination,120),channelId:clean(raw.channelId,80),homepage:safeHttpUrl(clean(raw.homepage,500))};
     if(!source.name||!source.pastor||!source.region||!source.denomination||!CHANNEL_ID.test(source.channelId)){skipped.push({name:source.name||"이름 없음",reason:"invalid_record"});continue;}
+    const held=await db.prepare(`SELECT id FROM churches WHERE ((${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) OR youtube_channel_id=?) AND review_status IN ('removed','deleted') LIMIT 1`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region),source.channelId).first();
+    if(held){skipped.push({name:source.name,reason:"held_by_admin"});continue;}
     let channelResponse:Response;
     try{channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${encodeURIComponent(source.channelId)}&key=${encodeURIComponent(key)}`,{signal:AbortSignal.timeout(10_000)});}catch{skipped.push({name:source.name,reason:"channel_verification_unavailable"});continue;}
     if(!channelResponse.ok){skipped.push({name:source.name,reason:"channel_verification_failed"});continue;}
@@ -38,9 +40,9 @@ export async function POST(request:Request) {
     if(!recent.length){skipped.push({name:source.name,reason:"no_recent_sermon"});continue;}
     const image=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
     const existing=await db.prepare(`SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1`).bind(found.id,normalizeSearchValue(source.name),normalizeSearchValue(source.region),found.id).first<{id:number;review_status:string}>();
-    if(existing?.review_status==="deleted"){skipped.push({name:source.name,reason:"deleted_by_admin"});continue;}
+    if(existing&&existing.review_status!=="approved"){skipped.push({name:source.name,reason:"held_by_admin"});continue;}
     let churchId:number;
-    if(existing){await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url),review_status='approved',hold_reason=NULL,hold_note=NULL,held_at=NULL WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,image,source.homepage||null,existing.id).run();churchId=existing.id;}
+    if(existing){await db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=?,youtube_channel_id=?,channel_image_url=?,homepage_url=COALESCE(?,homepage_url) WHERE id=?").bind(source.name,source.pastor,source.region,source.denomination,found.id,image,source.homepage||null,existing.id).run();churchId=existing.id;}
     else {const inserted=await db.prepare("INSERT INTO churches (name,pastor,region,denomination,youtube_channel_id,channel_image_url,homepage_url,review_status) VALUES (?,?,?,?,?,?,?,'approved')").bind(source.name,source.pastor,source.region,source.denomination,found.id,image,source.homepage||null).run();churchId=Number(inserted.meta.last_row_id);}
     verified++;
     for(const item of recent.slice(0,6)){const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run();imported++;}

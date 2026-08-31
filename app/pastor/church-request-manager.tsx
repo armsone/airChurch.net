@@ -7,7 +7,7 @@ type RequestItem={id:number;church_name:string;request_type:string;reason:string
 
 const historyActionLabels={edit:"정보 수정 제안",hold:"보류 제안",delete:"이전 삭제 요청"} as const;
 const statusLabels={pending:"관리자 확인 대기",approved:"승인",rejected:"반려",deferred:"일단 보류"} as const;
-function denominationMark(denomination:string){const marks:Record<string,string>={"대한예수교장로회 통합":"pck-tonghap.png","대한예수교장로회 합동":"pck-hapdong.svg","기독교대한감리회":"kmc.ico","대한예수교장로회 고신":"pck-kosin.jpg","기독교한국침례회":"kbch.png","기독교대한성결교회":"kehc.png","대한예수교장로회 합신":"pck-hapshin.png","대한예수교장로회 백석":"pck-baekseok.png","기독교대한하나님의성회":"agk.png","기독교대한하나님의성회 광화문총회":"agk-gwanghwamun.png","한국기독교장로회":"prok.png","한국독립교회선교단체연합회":"kaicam.png"};return marks[denomination]?`/denominations/${marks[denomination]}`:null;}
+function denominationMark(denomination:string){const marks:Record<string,string>={"대한예수교장로회 통합":"pck-tonghap.png","대한예수교장로회 합동":"pck-hapdong.svg","기독교대한감리회":"kmc.ico","대한예수교장로회 고신":"pck-kosin.jpg","기독교한국침례회":"kbch.png","기독교대한성결교회":"kehc-256.png","대한예수교장로회 합신":"pck-hapshin.png","대한예수교장로회 백석":"pck-baekseok-256.png","기독교대한하나님의성회":"agk.png","기독교대한하나님의성회 광화문총회":"agk-gwanghwamun.png","한국기독교장로회":"prok-256.png","한국독립교회선교단체연합회":"kaicam.png"};return marks[denomination]?`/denominations/${marks[denomination]}`:null;}
 async function sendProposal(body:Record<string,unknown>){
   const response=await fetch("/api/admin/manage",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"church-change-request",...body})});
   const result=await response.json().catch(()=>({})) as {error?:string};

@@ -40,7 +40,7 @@ export async function POST(request?:Request) {
   if (state && Number(current?.count || 0) >= 12 && Date.now() - Date.parse(state.lastSyncedAt) < 6 * 60 * 60 * 1000) return Response.json({ ok: true, imported: 0, total: current?.count || 0, skipped: "fresh" });
   const leaseKey=`${syncKey}:lease`;
   const leaseInsert=await db.prepare("INSERT OR IGNORE INTO sync_state (key,last_synced_at) VALUES (?,CURRENT_TIMESTAMP)").bind(leaseKey).run();
-  const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-10 minutes')").bind(leaseKey).run():null;
+  const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-30 minutes')").bind(leaseKey).run():null;
   if(Number(leaseInsert.meta?.changes??0)===0&&Number(leaseUpdate?.meta?.changes??0)===0)return Response.json({ok:true,imported:0,total:current?.count||0,skipped:"sync_in_progress"});
 
   const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
@@ -55,6 +55,7 @@ export async function POST(request?:Request) {
   const found = successfulFeeds.flat().sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
   if (found.length) await db.batch(found.map((item) => db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(item.churchId, item.youtubeId, item.title, item.thumbnailUrl, item.publishedAt)));
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey, new Date().toISOString()).run();
+  await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-praise-last-success',?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(new Date().toISOString()).run();
   await db.prepare("DELETE FROM sync_state WHERE key=?").bind(leaseKey).run();
   return Response.json({ ok: true, imported: found.length, total: Math.max(Number(current?.count || 0), found.length) });
 }

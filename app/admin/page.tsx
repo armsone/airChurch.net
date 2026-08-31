@@ -23,7 +23,7 @@ type ContactRow = { id:number; category:string; name:string; contact:string; mes
 type ReviewerAccountRow = { id:number; name:string; contact:string; username:string; status:string; created_at:string };
 type ChangeRequestRow={id:number;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;reviewer_name:string;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 type ConcernOpinionRow={id:number;church_id:number;reviewer_name:string;note:string|null;reviewed_at:string;admin_resolution:string|null;admin_note:string|null;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;church_status:string;hold_reason:string|null;hold_note:string|null};
-type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null;retention_at:string|null;now_epoch:string|null};
+type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;sermon_sync_at:string|null;praise_sync_at:string|null;retention_at:string|null;now_epoch:string|null};
 type ChurchStatusEventRow={id:number;church_id:number;church_name:string;previous_status:string|null;new_status:string;reason:string|null;created_at:string};
 
 async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
@@ -33,7 +33,7 @@ async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
 function koreanTime(value: string) { return new Date(`${value}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }); }
 function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : status === "removed" ? "보류" : "비공개"; }
 function contactStatusLabel(status:string){return status==="approved"?"처리 완료":status==="pending"?"미처리":"처리하지 않음";}
-function statusReasonLabel(reason:string|null){return reason==="registration"?"새 교회 등록":reason==="pastor_request"?"목회자 요청":reason==="youtube_unavailable"?"공식 YouTube 확인 불가":reason==="inactive"?"최근 설교 확인 불가":reason==="info_unverified"?"교회 정보 재확인":reason==="review_needed"?"운영상 재검토":reason==="status_change"?"공개 상태 변경":reason||"상태 변경";}
+function statusReasonLabel(reason:string|null){return reason==="registration"?"새 교회 등록":reason==="pastor_request"?"목회자 요청":reason==="rights_request"?"저작권·개인정보·권리자 요청":reason==="youtube_unavailable"?"공식 YouTube 확인 불가":reason==="inactive"?"최근 설교 확인 불가":reason==="info_unverified"?"교회 정보 재확인":reason==="review_needed"?"운영상 재검토":reason==="status_change"?"공개 상태 변경":reason||"상태 변경";}
 function pastorLabel(name:string){return name.trim().endsWith("목사")?name:`${name} 목사`;}
 function ChurchReferenceLinks({name,homepageUrl,youtubeChannelId,channelImageUrl}:{name:string;homepageUrl:string|null;youtubeChannelId:string|null;channelImageUrl?:string|null}){const homepage=safeHttpUrl(homepageUrl),image=safeHttpUrl(channelImageUrl);return <div className="admin-church-reference-links" aria-label={`${name} 확인 링크`}>{homepage&&<a className="admin-homepage-link" href={homepage} target="_blank" rel="noreferrer" aria-label={`${name} 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{image&&<img src={image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"/>}</span><b>홈페이지</b></a>}{youtubeChannelId&&<a className="admin-youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" aria-label={`${name} YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true"/><b>YouTube</b></a>}{!homepage&&!youtubeChannelId&&<span className="admin-reference-empty"><i aria-hidden="true">—</i><b>확인 링크 없음</b></span>}</div>}
 function TrafficChart({ rows, label, empty }: { rows: TimeRow[]; label: (period: string) => string; empty: string }) {
@@ -76,15 +76,16 @@ export default async function AdminPage() {
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
   const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
   const [mediaFreshness,statusEvents]=await Promise.all([
-    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at,(SELECT completed_at FROM maintenance_state WHERE key='personal-data-retention-v1') AS retention_at,strftime('%s','now') AS now_epoch").first<MediaFreshnessRow>(),
+    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,COALESCE((SELECT last_synced_at FROM sync_state WHERE key='youtube-sermon-last-success'),(SELECT last_synced_at FROM sync_state WHERE key='youtube-v9-regional-130')) AS sermon_sync_at,COALESCE((SELECT last_synced_at FROM sync_state WHERE key='youtube-praise-last-success'),(SELECT last_synced_at FROM sync_state WHERE key='youtube-praise-v1')) AS praise_sync_at,(SELECT completed_at FROM maintenance_state WHERE key='personal-data-retention-v1') AS retention_at,strftime('%s','now') AS now_epoch").first<MediaFreshnessRow>(),
     db.prepare("SELECT id,church_id,church_name,previous_status,new_status,reason,created_at FROM church_status_events ORDER BY created_at DESC,id DESC LIMIT 8").all<ChurchStatusEventRow>(),
   ]);
   const freshnessLabel=(value:string|null|undefined)=>value?new Date(value.endsWith("Z")?value:`${value}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"기록 없음";
   const utcEpoch=(value:string|null|undefined)=>value?Date.parse(value.endsWith("Z")?value:`${value}Z`)/1000:NaN;
-  const lastSyncEpoch=utcEpoch(mediaFreshness?.last_sync_at);
+  const sermonSyncEpoch=utcEpoch(mediaFreshness?.sermon_sync_at),praiseSyncEpoch=utcEpoch(mediaFreshness?.praise_sync_at);
   const retentionEpoch=utcEpoch(mediaFreshness?.retention_at);
   const nowEpoch=mediaFreshness?.now_epoch ? Number(mediaFreshness.now_epoch) : NaN;
-  const syncHealthy=Number.isFinite(lastSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-lastSyncEpoch<12*60*60;
+  const sermonSyncHealthy=Number.isFinite(sermonSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-sermonSyncEpoch<12*60*60;
+  const praiseSyncHealthy=Number.isFinite(praiseSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-praiseSyncEpoch<12*60*60;
   const retentionHealthy=Number.isFinite(retentionEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-retentionEpoch<36*60*60;
   const safeChurchRows=(rows:ChurchRow[])=>rows.map((church)=>({...church,homepage_url:safeHttpUrl(church.homepage_url),channel_image_url:safeHttpUrl(church.channel_image_url)}));
 
@@ -114,7 +115,8 @@ export default async function AdminPage() {
       <article><small>최근 말씀</small><strong>말씀</strong><span>{freshnessLabel(mediaFreshness?.sermon_at)}</span></article>
       <article><small>최근 찬양</small><strong>찬양</strong><span>{freshnessLabel(mediaFreshness?.praise_at)}</span></article>
       <article><small>최근 쇼츠</small><strong>쇼츠</strong><span>{freshnessLabel(mediaFreshness?.short_at)}</span></article>
-      <article className={syncHealthy?"active-visitors":"needs-attention"}><small>자동 동기화</small><strong>{syncHealthy?"정상":"점검 필요"}</strong><span>{freshnessLabel(mediaFreshness?.last_sync_at)}</span></article>
+      <article className={sermonSyncHealthy?"active-visitors":"needs-attention"}><small>말씀 자동 수집</small><strong>{sermonSyncHealthy?"정상":"점검 필요"}</strong><span>{freshnessLabel(mediaFreshness?.sermon_sync_at)}</span></article>
+      <article className={praiseSyncHealthy?"active-visitors":"needs-attention"}><small>찬양 자동 수집</small><strong>{praiseSyncHealthy?"정상":"점검 필요"}</strong><span>{freshnessLabel(mediaFreshness?.praise_sync_at)}</span></article>
       <p className={`admin-retention-health ${retentionHealthy?"is-healthy":"needs-attention"}`}><strong>개인정보 자동 파기 · {retentionHealthy?"정상":"점검 필요"}</strong><span>마지막 실행 {freshnessLabel(mediaFreshness?.retention_at)}</span></p>
     </section>
     <section className="admin-panel admin-status-events"><div className="admin-panel-title"><div><small>CHURCH STATUS LOG</small><h2>최근 교회 공개 상태 변경</h2><p>전체 교회 수가 달라진 이유를 교회별로 확인합니다.</p></div><span>{statusEvents.results.length}건</span></div><div className="review-list">{statusEvents.results.length?statusEvents.results.map((event)=><article key={event.id}><div><span>{event.previous_status?`${statusLabel(event.previous_status)} → ${statusLabel(event.new_status)}`:"새 등록"}</span><time>{koreanTime(event.created_at)}</time></div><strong><a href={`/church/${event.church_id}`}>{event.church_name}</a></strong><p>{statusReasonLabel(event.reason)}</p></article>):<p className="admin-empty">이 기능 적용 이후의 변경부터 기록됩니다.</p>}</div></section>

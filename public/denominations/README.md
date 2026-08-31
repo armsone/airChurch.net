@@ -28,6 +28,7 @@ CI 파일을 최우선으로 사용합니다. 별도 CI 다운로드가 없으�
   공식 홈페이지에는 아직 이 기존 로고가 적용되어 있습니다. 예정 도안은 실제 전환 전까지
   배지로 선반영하지 않습니다.
 - `kehc.png` — 기독교대한성결교회 공식 “교단로고” 페이지의 컬러 PNG 원본.
+- `kehc-256.png`, `prok-256.png`, `pck-baekseok-256.png` — 작은 카드 표시에서 원본 다운로드를 피하기 위한 256px 이하 파생본. 공식 원본은 같은 폴더에 보존한다.
   출처 페이지: <https://kehc.org/home/logo>
   원본 URL: <https://kehc.org/libs/files/logo_color.png>
 - `pck-hapshin.png` — 대한예수교장로회 합신 총회 공식 홈페이지 헤더 로고 원본.
