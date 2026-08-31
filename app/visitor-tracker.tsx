@@ -7,11 +7,13 @@ const VISITOR_KEY = "airchurch_visitor_id";
 export default function VisitorTracker() {
   useEffect(() => {
     if (location.pathname.startsWith("/admin")) return;
+    if (navigator.doNotTrack === "1") return;
 
-    let visitorId = localStorage.getItem(VISITOR_KEY);
+    let visitorId: string | null = null;
+    try { visitorId = localStorage.getItem(VISITOR_KEY); } catch { /* 저장 차단 환경은 일회성 식별자를 씁니다. */ }
     if (!visitorId) {
       visitorId = crypto.randomUUID();
-      localStorage.setItem(VISITOR_KEY, visitorId);
+      try { localStorage.setItem(VISITOR_KEY, visitorId); } catch { /* 방문 기록 전송 자체는 계속할 수 있습니다. */ }
     }
 
     const reportActivity = () => {
