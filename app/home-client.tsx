@@ -623,8 +623,9 @@ export default function Home() {
         <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(!normalized)return;const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{localStorage.setItem("airchurch:recent-searches",JSON.stringify(next));}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}>
-          <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" name="q" list="church-search-suggestions" autoComplete="off" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회, 목사, 지역, 교단으로 찾아보세요."} />
+          <label className="sr-only" htmlFor="site-search">교회, 목사, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
+          <input id="site-search" name="q" list="church-search-suggestions" aria-describedby="site-search-help" autoComplete="off" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목사, 지역, 교단으로 찾아 보세요."} />
+          <span className="sr-only" id="site-search-help">{churchTotal?`등록된 ${churchTotal.toLocaleString("ko-KR")}개 교회에서 여러 조건을 함께 검색할 수 있습니다.`:"여러 조건을 함께 검색할 수 있습니다."}</span>
           <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
           <div className="search-filters">
             <select name="region" aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
