@@ -130,6 +130,8 @@ export default function Home() {
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
   const [shortMuted,setShortMuted]=useState(true);
+  const pullToRefreshStartRef=useRef<number|null>(null);
+  const pullToRefreshDistanceRef=useRef(0);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const shortPlayerInstanceRef=useRef<YouTubePlayer|null>(null);
   const shortViewerInitialIdRef=useRef<string|undefined>(undefined);
@@ -154,6 +156,17 @@ export default function Home() {
   const [churchSearchLoading,setChurchSearchLoading]=useState(false);
   const [isAdmin,setIsAdmin]=useState(false);
   useEffect(()=>{let active=true;fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((result)=>{if(active)setIsAdmin(result?.role==="admin");}).catch(()=>{});return()=>{active=false};},[]);
+  useEffect(()=>{
+    const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
+    const onTouchStart=(event:TouchEvent)=>{pullToRefreshStartRef.current=window.scrollY===0&&event.touches.length===1?event.touches[0].clientY:null;pullToRefreshDistanceRef.current=0;};
+    const onTouchMove=(event:TouchEvent)=>{const start=pullToRefreshStartRef.current;if(start===null||window.scrollY>0||event.touches.length!==1)return;pullToRefreshDistanceRef.current=Math.max(0,event.touches[0].clientY-start);};
+    const onTouchEnd=()=>{const shouldRefresh=pullToRefreshDistanceRef.current>=90;resetPull();if(shouldRefresh)window.location.reload();};
+    window.addEventListener("touchstart",onTouchStart,{passive:true});
+    window.addEventListener("touchmove",onTouchMove,{passive:true});
+    window.addEventListener("touchend",onTouchEnd,{passive:true});
+    window.addEventListener("touchcancel",resetPull,{passive:true});
+    return()=>{window.removeEventListener("touchstart",onTouchStart);window.removeEventListener("touchmove",onTouchMove);window.removeEventListener("touchend",onTouchEnd);window.removeEventListener("touchcancel",resetPull);};
+  },[]);
   useEffect(()=>{
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
@@ -509,7 +522,7 @@ export default function Home() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
-          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"50%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
+          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
           <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
           <button type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
