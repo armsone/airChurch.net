@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
       headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
     },
     {
+      source: "/:page(contact|review)",
+      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+    },
+    {
+      source: "/pastor/join",
+      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+    },
+    {
       source: "/(.*)",
       headers: [
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
