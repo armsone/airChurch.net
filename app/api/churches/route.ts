@@ -22,6 +22,10 @@ export async function GET(request:Request) {
   if(region&&region!=="전체") { conditions.push("substr(region,1,length(?))=?");bindings.push(region,region); }
   if(denomination&&denomination!=="전체 교단") { conditions.push("denomination=?");bindings.push(denomination); }
   const where=conditions.join(" AND ");
+  if(url.searchParams.get("countOnly")==="1") {
+    const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
+    return Response.json({total:count?.total??0},{headers:{"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"}});
+  }
   const isSearch=Boolean(query);
   const limit=isSearch?200:1000;
   const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY priority_weight DESC,name LIMIT ${limit}`;
