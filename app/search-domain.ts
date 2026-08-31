@@ -7,7 +7,7 @@ export const denominationAliases:Record<string,string[]>={
   독립:["독립교회","한국독립교회선교단체연합회"],카이캄:["한국독립교회선교단체연합회"]
 };
 
-export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/목사(?:님)?$/,"");
+export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/(?:담임)?목사(?:님)?$/,"");
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
 export const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchValue).filter(Boolean).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
-export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')','')`;
+export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')',''),'&',''),'\/',''),',',''),':','')`;
