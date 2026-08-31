@@ -22,6 +22,8 @@ type ChurchItem = { id:number; name:string; pastor:string; region:string; denomi
 type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; subtitle:string; url:string };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
+const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/\s/g,"");
+
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
   if (denomination === "대한예수교장로회 합동") return { src:"/denominations/pck-hapdong.svg", alt:"대한예수교장로회 합동 교단 심볼" };
@@ -61,6 +63,14 @@ const dailyGuides = [
   { day:"금요일", theme:"쉼과 회복", reference:"마태복음 11:28", question:"한 주의 무게 가운데 내려놓아야 할 것은 무엇인가요?" },
   { day:"토요일", theme:"감사와 준비", reference:"데살로니가전서 5:16-18", question:"이번 주에 발견한 감사 세 가지를 떠올려 보세요." },
 ] as const;
+const discoveryTopics=[
+  {name:"위로",copy:"지친 마음에 머무는 말씀",symbol:"쉼"},
+  {name:"기도",copy:"염려를 맡기고 다시 시작하기",symbol:"맡김"},
+  {name:"가정",copy:"사랑과 관계를 세우는 지혜",symbol:"사랑"},
+  {name:"청년",copy:"진로와 믿음 사이의 질문",symbol:"길"},
+  {name:"믿음",copy:"흔들릴 때 붙드는 복음",symbol:"뿌리"},
+  {name:"감사",copy:"평범한 하루에서 은혜 찾기",symbol:"기쁨"},
+] as const;
 
 function easterSunday(year:number){
   const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
@@ -90,7 +100,7 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   access: "공개(로그인 없이 열람 가능)",
   lastChecked: "공개 자료 확인 시 갱신",
 }));
-const menuItems = [["말씀","#sermons"],["교회 찾기","#church-directory"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
+const menuItems = [["말씀","#sermons"],["교회 찾기","#church-directory"],["주제 탐색","#topic-discovery"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
 const headerAdminLinks = [["운영 안내","/about"],["문의","/contact"]] as const;
 
 function shuffled<T>(items: T[]) {
@@ -307,20 +317,20 @@ export default function Home() {
   },[churchQuery,query,region,denomination]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
-    const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination} ${s.title} ${s.verse}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
+    const haystack = normalizeSearchText(`${s.church}${s.pastor}${s.region}${s.denomination}${s.title}${s.verse}`);
+    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
   }), [query, region, denomination, sermonItems]);
   const visibleSermons = filtered.slice(0,visibleSermonCount);
   const previewSermons = filtered.slice(visibleSermonCount,visibleSermonCount+3);
   const sermonChurchCount = useMemo(() => new Set(filtered.map((sermon) => sermon.church)).size, [filtered]);
   const filteredPraises = useMemo(() => praiseItems.filter((praise) => {
-    const haystack = `${praise.church} ${praise.pastor} ${praise.region} ${praise.denomination} ${praise.title}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
+    const haystack = normalizeSearchText(`${praise.church}${praise.pastor}${praise.region}${praise.denomination}${praise.title}`);
+    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
   }), [praiseItems, query, region, denomination]);
   const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 6)).slice(0, 12);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
-    const haystack = `${short.church} ${short.pastor} ${short.region} ${short.denomination} ${short.title}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
+    const haystack = normalizeSearchText(`${short.church}${short.pastor}${short.region}${short.denomination}${short.title}`);
+    return haystack.includes(normalizeSearchText(query)) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
   }), [shortItems, query, region, denomination]);
   const visibleShorts = filteredShorts.slice(0, 12);
   filteredShortsLengthRef.current = filteredShorts.length;
@@ -400,10 +410,10 @@ export default function Home() {
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
   const filteredChurches = useMemo(() => {
-    const trimmedGlobal = query.trim().toLowerCase();
+    const trimmedGlobal = normalizeSearchText(query);
     const source=trimmedChurchQuery?(currentChurchSearch?.items??[]):churchItems;
     return source.filter((church) => {
-      const haystack = `${church.name} ${church.pastor} ${church.region} ${church.denomination}`.toLowerCase();
+      const haystack = normalizeSearchText(`${church.name}${church.pastor}${church.region}${church.denomination}`);
       const matchesGlobal = !trimmedGlobal || haystack.includes(trimmedGlobal);
       return matchesGlobal && (region === "전체" || church.region.startsWith(region)) && (denomination === "전체 교단" || church.denomination === denomination);
     });
@@ -585,15 +595,15 @@ export default function Home() {
         <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
         <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
-        <div className="search" role="search">
+        <form className="search" role="search" action="/search" method="get">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder="교회명, 목사님, 지역, 교단으로 찾아보세요" />
+          <input id="site-search" name="q" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder="교회명, 목사님, 지역, 교단으로 찾아보세요" />
           <div className="search-filters">
-            <select aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
-            <select className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
-            <a href={`/search?${new URLSearchParams({...(query.trim()?{q:query.trim()}:{}),...(region!=="전체"?{region}:{}),...(denomination!=="전체 교단"?{denomination}:{})}).toString()}`}>통합 검색</a>
+            <select name="region" aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
+            <select name="denomination" className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
+            <button type="submit">통합 검색</button>
           </div>
-        </div>
+        </form>
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
         <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
@@ -612,6 +622,11 @@ export default function Home() {
         <div className="season-symbol" aria-hidden="true"><span>{currentSeason.accent}</span></div>
         <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} 읽기 ↗</a></div>
         <div className="season-links"><a href="#sermons"><small>01</small><strong>이 절기의 말씀</strong><span>최근 설교에서 발견하기 →</span></a><a href="#praises"><small>02</small><strong>이 절기의 찬양</strong><span>공식 채널에서 듣기 →</span></a><a href="#church-news"><small>03</small><strong>교회의 오늘</strong><span>공식 소식 살펴보기 →</span></a></div>
+      </section>
+
+      <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
+        <div className="topic-intro"><span className="section-kicker">마음에서 시작하는 검색</span><h2 id="topic-title">오늘 필요한 말씀은<br/>어떤 주제인가요?</h2><p>정답을 대신 고르지 않습니다. 지금 마음에 가까운 단어를 선택하면 공개된 말씀과 찬양을 함께 찾아드립니다.</p><a href="/search">직접 통합 검색하기 →</a></div>
+        <div className="topic-grid">{discoveryTopics.map((topic,index)=><a href={`/search?q=${encodeURIComponent(topic.name)}`} key={topic.name}><span>0{index+1}</span><i>{topic.symbol}</i><strong>{topic.name}</strong><small>{topic.copy}</small><em>말씀·찬양 찾기 →</em></a>)}</div>
       </section>
 
       <section className="content-section" id="sermons">

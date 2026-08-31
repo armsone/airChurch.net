@@ -14,9 +14,9 @@ const denominations=["전체 교단","대한예수교장로회 통합","대한�
 export default async function SearchPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
   const params=await searchParams;
   const value=(key:string,max:number)=>String(Array.isArray(params[key])?params[key]?.[0]??"":params[key]??"").trim().slice(0,max);
-  const q=value("q",100),region=value("region",40),denomination=value("denomination",100),terms=q.toLowerCase().split(/\s+/).filter(Boolean).slice(0,5);
+  const q=value("q",100),region=value("region",40),denomination=value("denomination",100),terms=q.toLowerCase().split(/\s+/).map((term)=>term.replace(/\s/g,"")).filter(Boolean).slice(0,5);
   const filters=(haystack:string)=>{const conditions=[...terms.map(()=>`instr(${haystack},?)>0`)];const bindings:string[]=[...terms];if(region&&region!=="전체"){conditions.push("substr(c.region,1,length(?))=?");bindings.push(region,region);}if(denomination&&denomination!=="전체 교단"){conditions.push("c.denomination=?");bindings.push(denomination);}return {sql:conditions.length?` AND ${conditions.join(" AND ")}`:"",bindings};};
-  const churchFilter=filters("lower(c.name||' '||c.pastor||' '||c.region||' '||c.denomination)"),videoFilter=filters("lower(c.name||' '||c.pastor||' '||c.region||' '||c.denomination||' '||v.title)");
+  const churchFilter=filters("replace(lower(c.name||c.pastor||c.region||c.denomination),' ','')"),videoFilter=filters("replace(lower(c.name||c.pastor||c.region||c.denomination||v.title),' ','')");
   const db=database();await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
   const [churches,sermons,praises]=await Promise.all([
     db.prepare(`SELECT c.id,c.name,c.pastor,c.region,c.denomination FROM churches c WHERE c.review_status='approved'${churchFilter.sql} ORDER BY c.priority_weight DESC,c.name LIMIT 48`).bind(...churchFilter.bindings).all<ChurchResult>(),

@@ -21,7 +21,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
   const [sermons,praises,related]=await Promise.all([
     db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 9").bind(id).all<VideoRow>(),
     db.prepare("SELECT youtube_id,title,published_at FROM praise_videos WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 6").bind(id).all<VideoRow>(),
-    db.prepare("SELECT id,name,pastor,region,denomination FROM churches WHERE review_status='approved' AND id!=? AND (region LIKE ? OR denomination=?) ORDER BY CASE WHEN region LIKE ? THEN 0 ELSE 1 END,priority_weight DESC,name LIMIT 6").bind(id,regionPrefix,church.denomination,regionPrefix).all<RelatedChurch>(),
+    db.prepare("SELECT id,name,pastor,region,denomination FROM churches WHERE review_status='approved' AND id!=? AND (region LIKE ? OR denomination=?) ORDER BY RANDOM() LIMIT 6").bind(id,regionPrefix,church.denomination).all<RelatedChurch>(),
   ]);
   const homepage=churchHomepageUrls[church.name]||church.homepage_url;const image=churchImageUrls[church.name]||church.channel_image_url;
   const videoCard=(video:VideoRow,kind:string)=><a className="church-detail-video" href={`https://www.youtube.com/watch?v=${video.youtube_id}`} target="_blank" rel="noopener noreferrer" key={`${kind}-${video.youtube_id}`}><img src={`https://i.ytimg.com/vi/${video.youtube_id}/mqdefault.jpg`} alt="" loading="lazy" decoding="async"/><span><small>{kind} · {new Date(video.published_at).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})}</small><strong>{video.title}</strong><em>YouTube에서 보기 ↗</em></span></a>;
