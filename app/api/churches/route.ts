@@ -2,6 +2,7 @@ import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlNormalized } from "../../search-domain";
+import { safeHttpUrl } from "../../safe-url";
 
 type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
 type CountRow={total:number};
@@ -36,7 +37,7 @@ export async function GET(request:Request) {
   const result=await db.prepare(selectSql).bind(...bindings).all<ChurchRow>();
   const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
-    const homepageUrl=churchHomepageUrls[church.name]||church.homepageUrl||null;
+    const homepageUrl=safeHttpUrl(churchHomepageUrls[church.name]||church.homepageUrl);
     const channelImageUrl=churchImageUrls[church.name]||church.channelImageUrl||null;
     return {...church,homepageUrl,channelImageUrl};
   });

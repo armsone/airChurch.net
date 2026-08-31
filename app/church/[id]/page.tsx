@@ -6,6 +6,7 @@ import { churchImageUrls } from "../../church-images";
 import { database, ensurePraiseTables, ensureSermonTables } from "../../api/_shared";
 import ChurchSaveButton from "./church-save-button";
 import ChurchShareButton from "./church-share-button";
+import { safeHttpUrl } from "../../safe-url";
 import SavedNavLink from "../../saved-nav-link";
 import SkipLink from "../../skip-link";
 
@@ -44,7 +45,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
     db.prepare("SELECT youtube_id,title,published_at FROM praise_videos WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 6").bind(id).all<VideoRow>(),
     db.prepare("SELECT id,name,pastor,region,denomination FROM churches WHERE review_status='approved' AND id!=? AND (region LIKE ? OR denomination=?) ORDER BY RANDOM() LIMIT 6").bind(id,regionPrefix,church.denomination).all<RelatedChurch>(),
   ]);
-  const homepage=churchHomepageUrls[church.name]||church.homepage_url;const image=churchImageUrls[church.name]||church.channel_image_url;
+  const homepage=safeHttpUrl(churchHomepageUrls[church.name]||church.homepage_url);const image=safeHttpUrl(churchImageUrls[church.name]||church.channel_image_url);
   const churchJsonLd={"@context":"https://schema.org","@type":"Church",name:church.name,url:`https://airchurch.net/church/${church.id}`,address:{"@type":"PostalAddress",addressRegion:church.region,addressCountry:"KR"},member:{"@type":"Person",name:church.pastor},sameAs:[homepage,church.youtube_channel_id?`https://www.youtube.com/channel/${church.youtube_channel_id}`:null].filter(Boolean)};
   const videoCard=(video:VideoRow,kind:string)=><a className="church-detail-video" href={`https://www.youtube.com/watch?v=${video.youtube_id}`} target="_blank" rel="noopener noreferrer" key={`${kind}-${video.youtube_id}`}><img src={`https://i.ytimg.com/vi/${video.youtube_id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer"/><span><small>{kind} · {new Date(video.published_at).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})}</small><strong>{video.title}</strong><em>YouTube에서 보기 ↗</em></span></a>;
   return <main className="church-detail-shell"><SkipLink/>

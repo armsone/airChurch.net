@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { accessSession } from "../../../../admin-access";
 import { clean, database, ensureSermonTables, requestBodyTooLarge, requestOriginIsInvalid } from "../../../_shared";
 import { isSermonTitle } from "../../../sermons/_selection";
+import { safeHttpUrl } from "../../../../safe-url";
 
 type ImportRecord={name?:unknown;pastor?:unknown;region?:unknown;denomination?:unknown;channelId?:unknown;homepage?:unknown};
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
@@ -21,7 +22,7 @@ export async function POST(request:Request) {
   const db=database();await ensureSermonTables(db);
   let verified=0,imported=0;const skipped:Array<{name:string;reason:string}>=[];
   for(const raw of records) {
-    const source={name:clean(raw.name,100),pastor:clean(raw.pastor,80),region:clean(raw.region,80),denomination:clean(raw.denomination,120),channelId:clean(raw.channelId,80),homepage:clean(raw.homepage,500)};
+    const source={name:clean(raw.name,100),pastor:clean(raw.pastor,80),region:clean(raw.region,80),denomination:clean(raw.denomination,120),channelId:clean(raw.channelId,80),homepage:safeHttpUrl(clean(raw.homepage,500))};
     if(!source.name||!source.pastor||!source.region||!source.denomination||!CHANNEL_ID.test(source.channelId)){skipped.push({name:source.name||"이름 없음",reason:"invalid_record"});continue;}
     const channelResponse=await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${encodeURIComponent(source.channelId)}&key=${encodeURIComponent(key)}`);
     if(!channelResponse.ok){skipped.push({name:source.name,reason:"channel_verification_failed"});continue;}
