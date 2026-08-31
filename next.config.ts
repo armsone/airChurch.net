@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
       headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
     },
     {
+      source: "/sitemap.xml",
+      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=3600" }],
+    },
+    {
       source: "/(.*)",
       headers: [
         { key: "X-Frame-Options", value: "SAMEORIGIN" },

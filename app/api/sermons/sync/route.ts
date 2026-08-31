@@ -9,6 +9,7 @@ import { tonghapSources } from "../tonghap-sources";
 import { kmcSources } from "../kmc-sources";
 import { salvationSources } from "../salvation-sources";
 import { publicRemainingSources } from "../public-remaining-sources";
+import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 
 type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
@@ -45,8 +46,8 @@ async function seedHeldSources(db:D1Database) {
   if(heldSourcesSeeded) return heldSourcesSeeded;
   const holdNote="지난 24곳 재검토에서 공식 YouTube 채널과 최근 180일 내 설교·예배 운영을 확인하지 못해 보류했습니다. 새 추천 시 이 기록과 먼저 비교합니다.";
   heldSourcesSeeded=db.batch([
-    ...heldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=?)").bind(source.name,source.pastor,source.region,source.denomination,holdNote,source.name)),
-    ...regionalHeldSources.map((source)=>db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed',?,?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE name=?)").bind(source.name,source.pastor,source.region,source.denomination,source.holdReason,source.holdNote,source.name)),
+    ...heldSources.map((source)=>db.prepare(`INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed','youtube_unavailable',?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE ${sqlNormalized("name")}=?)`).bind(source.name,source.pastor,source.region,source.denomination,holdNote,normalizeSearchValue(source.name))),
+    ...regionalHeldSources.map((source)=>db.prepare(`INSERT INTO churches (name,pastor,region,denomination,review_status,hold_reason,hold_note,held_at) SELECT ?,?,?,?,'removed',?,?,CURRENT_TIMESTAMP WHERE NOT EXISTS (SELECT 1 FROM churches WHERE ${sqlNormalized("name")}=?)`).bind(source.name,source.pastor,source.region,source.denomination,source.holdReason,source.holdNote,normalizeSearchValue(source.name))),
   ]).then(()=>undefined).catch((error)=>{heldSourcesSeeded=null;throw error;});
   return heldSourcesSeeded;
 }
@@ -486,7 +487,7 @@ export async function POST(request:Request) {
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
     if(!found) {
-      await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=? AND review_status!='deleted'").bind(source.name,source.region).run();
+      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status!='deleted'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
       continue;
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
@@ -518,10 +519,10 @@ export async function POST(request:Request) {
     }
     const recentPraises=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
-      await db.prepare("UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE name=? AND region=? AND review_status!='deleted'").bind(source.name,source.region).run();
+      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status!='deleted'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
       continue;
     }
-    const existing=await db.prepare("SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (name=? AND region=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1").bind(found.id,source.name,source.region,found.id).first<{id:number;review_status:string}>();
+    const existing=await db.prepare(`SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1`).bind(found.id,normalizeSearchValue(source.name),normalizeSearchValue(source.region),found.id).first<{id:number;review_status:string}>();
     if(existing?.review_status==="deleted") continue;
     let churchId:number;
     if(existing) {

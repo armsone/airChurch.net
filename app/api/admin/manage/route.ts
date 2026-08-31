@@ -1,5 +1,6 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, readLimitedJson } from "../../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, ensureShortsTables, readLimitedJson } from "../../_shared";
+import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
@@ -19,7 +20,7 @@ export async function PATCH(request: Request) {
   if (kind !== "church-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
-  await Promise.all([ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await Promise.all([ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 
   if(kind==="church-batch") {
     if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});
@@ -39,7 +40,7 @@ export async function PATCH(request: Request) {
     if(updated.length&&(status==="removed"||status==="deleted")) {
       for(let offset=0;offset<updated.length;offset+=80) {
         const chunk=updated.slice(offset,offset+80),placeholders=chunk.map(()=>"?").join(",");
-        await db.batch([db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk)]);
+        await db.batch([db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE church_shorts SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk)]);
       }
     }
     return Response.json({ok:true,updated,failed},{headers:{"cache-control":"no-store"}});
@@ -66,7 +67,8 @@ export async function PATCH(request: Request) {
     if(!church)return Response.json({error:"요청할 교회를 찾을 수 없습니다."},{status:404});
     const name=requestType==="edit"?clean(data.name,100):"",pastor=requestType==="edit"?clean(data.pastor,80):"",region=requestType==="edit"?clean(data.region,80):"",denomination=requestType==="edit"?clean(data.denomination,120):"";
     if(requestType==="edit"&&(!name||!pastor||!region||!denomination)) return Response.json({error:"수정할 교회 정보를 모두 입력해 주세요."},{status:400});
-    await db.prepare("INSERT INTO church_change_requests (reviewer_id,church_id,request_type,reason,proposed_name,proposed_pastor,proposed_region,proposed_denomination) VALUES (?,?,?,?,?,?,?,?)").bind(session.reviewerId,id,requestType,reason,name||null,pastor||null,region||null,denomination||null).run();
+    const inserted=await db.prepare("INSERT INTO church_change_requests (reviewer_id,church_id,request_type,reason,proposed_name,proposed_pastor,proposed_region,proposed_denomination) SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM church_change_requests WHERE reviewer_id=? AND church_id=? AND request_type=? AND status IN ('pending','deferred')) AND (SELECT COUNT(*) FROM church_change_requests WHERE reviewer_id=? AND status IN ('pending','deferred'))<100").bind(session.reviewerId,id,requestType,reason,name||null,pastor||null,region||null,denomination||null,session.reviewerId,id,requestType,session.reviewerId).run();
+    if(Number(inserted.meta?.changes??0)!==1)return Response.json({error:"이미 같은 요청이 처리 대기 중이거나 대기 요청이 너무 많습니다."},{status:409,headers:{"cache-control":"no-store"}});
   } else if(kind==="church-change-request-resolution") {
     if(role!=="admin")return Response.json({error:"관리자만 요청을 결정할 수 있습니다."},{status:403});
     const resolution=clean(data.resolution,20),adminNote=clean(data.adminNote,500);
@@ -80,7 +82,7 @@ export async function PATCH(request: Request) {
       if(change.request_type==="edit")statements.push(db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=? WHERE id=?").bind(change.proposed_name,change.proposed_pastor,change.proposed_region,change.proposed_denomination,change.church_id));
       if(change.request_type==="hold")statements.push(db.prepare("UPDATE churches SET review_status='removed',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목사님 요청 승인",change.church_id));
       if(change.request_type==="delete")statements.push(db.prepare("UPDATE churches SET review_status='deleted',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목사님 삭제 요청 승인",change.church_id));
-      if(change.request_type==="hold"||change.request_type==="delete")statements.push(db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(change.church_id),db.prepare("UPDATE praise_videos SET status='hidden' WHERE church_id=?").bind(change.church_id));
+      if(change.request_type==="hold"||change.request_type==="delete")statements.push(db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(change.church_id),db.prepare("UPDATE praise_videos SET status='hidden' WHERE church_id=?").bind(change.church_id),db.prepare("UPDATE church_shorts SET status='hidden' WHERE church_id=?").bind(change.church_id));
     }
     statements.push(db.prepare("UPDATE church_change_requests SET status=?,admin_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(resolution,adminNote||null,id));
     await db.batch(statements);
@@ -124,12 +126,14 @@ export async function PATCH(request: Request) {
       finalStatements.push(db.prepare(`UPDATE churches SET review_status='removed',hold_reason=?,hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(holdReason,adminNote,id,claimToken,id,claimToken,...opinionIds,opinions.length));
       finalStatements.push(db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
       finalStatements.push(db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
+      finalStatements.push(db.prepare(`UPDATE church_shorts SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
     } else if(resolution==="kept_public") {
       finalStatements.push(db.prepare(`UPDATE churches SET review_status='approved',hold_reason=NULL,hold_note=NULL WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
     } else if(resolution==="deleted") {
       finalStatements.push(db.prepare(`UPDATE churches SET review_status='deleted',hold_reason=NULL,hold_note=NULL WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
       finalStatements.push(db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
       finalStatements.push(db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
+      finalStatements.push(db.prepare(`UPDATE church_shorts SET status='hidden' WHERE church_id=? AND EXISTS(SELECT 1 FROM churches WHERE id=? AND review_resolution_token=?)`).bind(id,id,claimToken));
     } else {
       finalStatements.push(db.prepare(`UPDATE churches SET review_resolution_token=review_resolution_token WHERE id=? AND review_resolution_token=? AND ${allClaims}`).bind(id,claimToken,id,claimToken,...opinionIds,opinions.length));
     }
@@ -166,7 +170,7 @@ export async function PATCH(request: Request) {
       } else {
         await db.prepare("UPDATE churches SET review_status=? WHERE id=?").bind(status, id).run();
       }
-      if (status === "removed" || status === "deleted") await db.batch([db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(id),db.prepare("UPDATE praise_videos SET status='hidden' WHERE church_id=?").bind(id)]);
+      if (status === "removed" || status === "deleted") await db.batch([db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(id),db.prepare("UPDATE praise_videos SET status='hidden' WHERE church_id=?").bind(id),db.prepare("UPDATE church_shorts SET status='hidden' WHERE church_id=?").bind(id)]);
     } else {
       const name = clean(data.name, 100), pastor = clean(data.pastor, 80), region = clean(data.region, 80), denomination = clean(data.denomination, 120);
       const holdReason = clean(data.holdReason, 40), holdNote = clean(data.holdNote, 500), priorityWeight = Number(data.priorityWeight);
@@ -187,7 +191,7 @@ export async function PATCH(request: Request) {
     if (status === "deleted") await db.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
     else {
       if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
-      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : "";
+      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : kind==="post"&&status==="approved" ? ",report_count=0" : "";
       await db.prepare(`UPDATE ${table} SET status=?${reviewed} WHERE id=?`).bind(status, id).run();
     }
   } else if (kind === "recommendation") {
@@ -200,10 +204,11 @@ export async function PATCH(request: Request) {
     const recommendation=await db.prepare("SELECT church_name,pastor,region,denomination FROM church_recommendations WHERE id=?").bind(id).first<{church_name:string;pastor:string;region:string;denomination:string}>();
     if(!recommendation) return Response.json({error:"교회 추천을 찾을 수 없습니다."},{status:404});
     if(status==="approved") {
-      const existing=await db.prepare("SELECT id FROM churches WHERE name=? AND region=? AND review_status!='deleted' LIMIT 1").bind(recommendation.church_name,recommendation.region).first();
-      const statements=[db.prepare("UPDATE church_recommendations SET status='approved',reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(id)];
-      if(!existing) statements.unshift(db.prepare("INSERT INTO churches (name,pastor,region,denomination,review_status) VALUES (?,?,?,?,'approved')").bind(recommendation.church_name,recommendation.pastor,recommendation.region,recommendation.denomination));
-      await db.batch(statements);
+      const approved=await db.batch([
+        db.prepare(`INSERT INTO churches (name,pastor,region,denomination,review_status) SELECT ?,?,?,?,'approved' WHERE NOT EXISTS (SELECT 1 FROM churches WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?)`).bind(recommendation.church_name,recommendation.pastor,recommendation.region,recommendation.denomination,normalizeSearchValue(recommendation.church_name),normalizeSearchValue(recommendation.region)),
+        db.prepare(`UPDATE church_recommendations SET status='approved',reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND EXISTS (SELECT 1 FROM churches WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status='approved')`).bind(id,normalizeSearchValue(recommendation.church_name),normalizeSearchValue(recommendation.region)),
+      ]);
+      if(Number(approved[1]?.meta?.changes??0)!==1)return Response.json({error:"삭제·보류된 교회는 추천으로 다시 등록할 수 없습니다."},{status:409,headers:{"cache-control":"no-store"}});
     } else {
       await db.prepare("UPDATE church_recommendations SET status=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id).run();
     }

@@ -1,10 +1,11 @@
 import { clean, consumeSubmissionLimit, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint, readLimitedJson, requestOriginIsInvalid } from "../_shared";
+import { normalizeSearchValue, sqlNormalized } from "../../search-domain";
 
 function validYoutubeUrl(value:string) {
   if(!value) return true;
   try {
-    const host=new URL(value).hostname.toLowerCase();
-    return host==="youtu.be"||host==="youtube.com"||host.endsWith(".youtube.com");
+    const url=new URL(value),host=url.hostname.toLowerCase();
+    return (url.protocol==="https:"||url.protocol==="http:")&&(host==="youtu.be"||host==="youtube.com"||host.endsWith(".youtube.com"));
   } catch { return false; }
 }
 
@@ -16,12 +17,11 @@ export async function POST(request:Request) {
   if(churchName.length<2||pastor.length<2||region.length<2||denomination.length<2||reason.length<10||!validYoutubeUrl(youtubeUrl)) return Response.json({error:"교회 정보와 추천 이유를 확인해 주세요."},{status:400});
   const db=database();
   await Promise.all([ensureChurchRecommendationTables(db),ensureSermonTables(db)]);
-  const held=await db.prepare("SELECT id FROM churches WHERE name=? AND review_status='removed' LIMIT 1").bind(churchName).first();
+  const held=await db.prepare(`SELECT id FROM churches WHERE ${sqlNormalized("name")}=? AND review_status IN ('removed','deleted') LIMIT 1`).bind(normalizeSearchValue(churchName)).first();
   if(held) return Response.json({ok:true,status:"already_held"});
   const fp=await fingerprint(request,"church-recommendation");
   if(!await consumeSubmissionLimit(db,"church-recommendation",fp,2,10)) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"600"}});
-  const duplicate=await db.prepare("SELECT id FROM church_recommendations WHERE church_name=? AND region=? AND status IN ('pending','approved') LIMIT 1").bind(churchName,region).first();
-  if(duplicate) return Response.json({ok:true,status:"already_received"});
-  await db.prepare("INSERT INTO church_recommendations (church_name,pastor,region,denomination,youtube_url,reason,fingerprint) VALUES (?,?,?,?,?,?,?)").bind(churchName,pastor,region,denomination,youtubeUrl||null,reason,"").run();
+  const inserted=await db.prepare(`INSERT INTO church_recommendations (church_name,pastor,region,denomination,youtube_url,reason,fingerprint) SELECT ?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM church_recommendations WHERE ${sqlNormalized("church_name")}=? AND ${sqlNormalized("region")}=? AND status IN ('pending','approved'))`).bind(churchName,pastor,region,denomination,youtubeUrl||null,reason,"",normalizeSearchValue(churchName),normalizeSearchValue(region)).run();
+  if(Number(inserted.meta?.changes??0)!==1)return Response.json({ok:true,status:"already_received"});
   return Response.json({ok:true,status:"pending"},{status:201,headers:{"cache-control":"no-store"}});
 }

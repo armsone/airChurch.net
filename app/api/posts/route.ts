@@ -3,7 +3,7 @@ const categories=new Set(["신앙과 삶","말씀 나눔","우리 교회 이야�
 export async function GET() {
   const db=database();
   const result=await db.prepare("SELECT id,category,nickname,content,created_at AS createdAt FROM community_posts WHERE status='approved' ORDER BY created_at DESC LIMIT 12").all();
-  return Response.json({items:result.results},{headers:{"cache-control":"public, max-age=120, s-maxage=120, stale-while-revalidate=600"}});
+  return Response.json({items:result.results},{headers:{"cache-control":"public, max-age=15, s-maxage=15, stale-while-revalidate=30"}});
 }
 export async function POST(request: Request) {
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});

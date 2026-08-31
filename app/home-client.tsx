@@ -516,6 +516,15 @@ export default function Home() {
     }
   }
 
+  async function reportPost(post:CommunityItem) {
+    if(!window.confirm("이 글을 운영자 검토 대상으로 신고할까요?")) return;
+    const response=await fetch("/api/posts/report",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:post.id,reason:"공동체 원칙 위반 신고"})}).catch(()=>null);
+    const result=await response?.json().catch(()=>({})) as {error?:string;hidden?:boolean}|undefined;
+    if(!response?.ok){setNotice(result?.error||"신고를 접수하지 못했습니다.");return;}
+    if(result?.hidden)setApprovedPosts((items)=>items.filter((item)=>item.id!==post.id));
+    setNotice(result?.hidden?"신고가 누적되어 글을 검토 대기로 전환했습니다.":"신고를 접수했습니다. 운영자가 확인합니다.");
+  }
+
   function searchYouTubePraise(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const term=String(new FormData(event.currentTarget).get("praiseQuery")||"").trim();
@@ -805,7 +814,7 @@ export default function Home() {
       </section>
 
       {(approvedPosts.length > 0 || approvedTalents.length > 0) && <section className="approved-section" aria-label="공개된 공동체 이야기와 달란트">
-        {approvedPosts.length > 0 && <div><span className="section-kicker">광장에서 나눈 이야기</span><h2>함께 읽는 마음</h2><div className="approved-list">{approvedPosts.map((post)=><article key={post.id}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p></article>)}</div></div>}
+        {approvedPosts.length > 0 && <div><span className="section-kicker">광장에서 나눈 이야기</span><h2>함께 읽는 마음</h2><div className="approved-list">{approvedPosts.map((post)=><article key={post.id}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p><button className="community-report" type="button" aria-label={`${post.nickname} 글을 운영자에게 신고`} onClick={()=>void reportPost(post)}>원칙에 맞지 않는 글 신고</button></article>)}</div></div>}
         {approvedTalents.length > 0 && <div><span className="section-kicker">이어진 달란트</span><h2>나눌 수 있는 선물</h2><div className="approved-list">{approvedTalents.map((talent)=><article key={talent.id}><small>{talent.region}</small><h3>{talent.title}</h3><p>{talent.description}</p></article>)}</div></div>}
       </section>}
 
