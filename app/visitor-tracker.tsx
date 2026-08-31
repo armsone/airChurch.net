@@ -16,8 +16,11 @@ export default function VisitorTracker() {
       try { localStorage.setItem(VISITOR_KEY, visitorId); } catch { /* 방문 기록 전송 자체는 계속할 수 있습니다. */ }
     }
 
+    let lastReportedAt=0;
     const reportActivity = () => {
       if (document.visibilityState !== "visible") return;
+      if(Date.now()-lastReportedAt<300_000)return;
+      lastReportedAt=Date.now();
       void fetch("/api/analytics/track", {
         method: "POST",
         headers: { "content-type": "application/json" },
