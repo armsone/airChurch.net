@@ -245,7 +245,8 @@ export default function Home() {
   },[]);
   useEffect(()=>{
     let alive=true;
-    const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
+    const controller=new AbortController();
+    const loadItems=(url:string)=>fetch(url,{signal:controller.signal}).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
     const lowData=prefersLowData();
     const loaders: Record<string, () => void> = {
       sermons: ()=>loadItems(`/api/sermons?limit=${lowData?24:60}`).then((sermonData)=>{
@@ -286,20 +287,20 @@ export default function Home() {
         setChurchItems(result.items||[]);
         setChurchTotal(result.total??result.items?.length??0);
         setChurchLoading(false);
-        fetch("/api/admin/session",{cache:"no-store"}).then((response)=>response.ok?response.json():null).then((session)=>{if(alive)setIsAdmin(session?.role==="admin");}).catch(()=>{});
+        fetch("/api/admin/session",{cache:"no-store",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((session)=>{if(alive)setIsAdmin(session?.role==="admin");}).catch(()=>{});
       }),
     };
     const loaded=new Set<string>();
     const loadSection=(id:string)=>{ if(!loaded.has(id)){ loaded.add(id);loaders[id]?.(); } };
     if(!("IntersectionObserver" in window)) {
       Object.keys(loaders).forEach(loadSection);
-      return()=>{alive=false};
+      return()=>{alive=false;controller.abort();};
     }
     const observer=new IntersectionObserver((entries)=>entries.forEach((entry)=>{
       if(entry.isIntersecting) { loadSection(entry.target.id);observer.unobserve(entry.target); }
     }),{rootMargin:lowData?"200px 0px":"800px 0px"});
     Object.keys(loaders).forEach((id)=>{ const section=document.getElementById(id);if(section) observer.observe(section); });
-    return()=>{alive=false;observer.disconnect()};
+    return()=>{alive=false;controller.abort();observer.disconnect();};
   },[]);
   useEffect(()=>{
     const trimmed=churchQuery.trim(),global=query.trim(),active=Boolean(trimmed||global||region!=="전체"||denomination!=="전체 교단"),searchKey=[trimmed,global,region,denomination].join("|");
