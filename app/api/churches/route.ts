@@ -1,7 +1,7 @@
 import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, tokenizeSearchQuery } from "../../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
 
 type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
@@ -31,9 +31,10 @@ export async function GET(request:Request) {
   }
   const isSearch=Boolean(query||globalQuery||region&&region!=="전체"||denomination&&denomination!=="전체 교단");
   const limit=isSearch?200:36;
-  const order=isSearch?"priority_weight DESC,name":`CASE WHEN priority_weight>1 THEN 0 ELSE 1 END,CASE WHEN priority_weight>1 THEN priority_weight END DESC,RANDOM()`;
+  const relevance=sqlRelevance([["name",40],["pastor",25],["region",15],["denomination",12]],searchGroups);
+  const order=isSearch&&searchGroups.length?`(${relevance.sql}) DESC,priority_weight DESC,name`:isSearch?"priority_weight DESC,name":`CASE WHEN priority_weight>1 THEN 0 ELSE 1 END,CASE WHEN priority_weight>1 THEN priority_weight END DESC,RANDOM()`;
   const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY ${order} LIMIT ${limit}`;
-  const result=await db.prepare(selectSql).bind(...bindings).all<ChurchRow>();
+  const result=await db.prepare(selectSql).bind(...bindings,...(searchGroups.length?relevance.bindings:[])).all<ChurchRow>();
   const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
     const homepageUrl=safeHttpUrl(churchHomepageUrls[church.name]||church.homepageUrl);
