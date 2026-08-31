@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 
-export const metadata: Metadata = { title:"개인정보처리방침 | airChurch", description:"airChurch가 처리하는 정보와 이용 목적 안내" };
+export const metadata: Metadata = { title:"개인정보처리방침 | airChurch", description:"airChurch가 처리하는 정보와 이용 목적 안내", alternates:{canonical:"/privacy"} };
 
 export default function PrivacyPage() {
   return <InfoShell kicker="PRIVACY" title="필요한 정보만, 공개 자료는 공개 범위에서만" intro="airChurch는 교회 공개 자료를 정리하며, 서비스 운영과 남용 방지에 필요한 최소한의 정보만 처리합니다. 시행일: 2026년 8월 31일">

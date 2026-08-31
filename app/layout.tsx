@@ -4,8 +4,10 @@ import VisitorTracker from "./visitor-tracker";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://airchurch.net"),
+  applicationName: "에어처치",
   title: "에어처치 | 말씀을 발견하고 교회와 이어지는 곳",
   description: "공개된 말씀과 교계 소식을 정리하고, 사람을 건강한 지역교회와 잇는 가볍고 정직한 크리스천 포털",
+  category: "religion",
   manifest: "/site.webmanifest",
   icons: {
     icon: "/favicon.svg",
@@ -33,7 +35,31 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "에어처치",
+      alternateName: "airChurch",
+      url: "https://airchurch.net",
+      description: "말씀과 찬양을 발견하고 지역교회와 이어지는 크리스천 포털",
+      inLanguage: "ko-KR",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: "https://airchurch.net/search?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "에어처치",
+      alternateName: "airChurch",
+      url: "https://airchurch.net",
+      logo: "https://airchurch.net/icon-512.png",
+    },
+  ];
   return (
-    <html lang="ko"><body>{children}<VisitorTracker /></body></html>
+    <html lang="ko"><head><link rel="preconnect" href="https://i.ytimg.com" crossOrigin=""/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body>{children}<VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
   );
 }

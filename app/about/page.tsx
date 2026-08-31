@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 
-export const metadata: Metadata = { title:"운영 안내 | airChurch", description:"airChurch의 자동 수집, 교회 확인, 목회자 제보와 최소 관리 원칙" };
+export const metadata: Metadata = { title:"운영 안내 | airChurch", description:"airChurch의 자동 수집, 교회 확인, 목회자 제보와 최소 관리 원칙", alternates:{canonical:"/about"} };
 
 export default function AboutPage() {
   return <InfoShell kicker="HOW AIRCHURCH WORKS" title="자료는 자동으로, 결정은 최소한으로" intro="airChurch는 직접 목회하거나 교회를 대신하지 않습니다. 공개된 자료를 모으고 정리해 말씀을 찾는 사람과 지역교회를 잇는 크리스천 포털입니다.">

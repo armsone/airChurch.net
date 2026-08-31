@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { accessSession } from "../admin-access";
 import AdminLogin from "../admin/admin-login";
 import HomeReloadLink from "../home-reload-link";
@@ -5,6 +6,7 @@ import { database, ensureReviewerTables, ensureSermonTables } from "../api/_shar
 import ChurchRequestManager from "./church-request-manager";
 
 export const dynamic="force-dynamic";
+export const metadata:Metadata={title:"목회자 검토 | airChurch",robots:{index:false,follow:false}};
 
 type Church={id:number;name:string;pastor:string;region:string;denomination:string;review_status:string;homepage_url:string|null;youtube_channel_id:string|null;channel_image_url:string|null;hold_reason:string|null;hold_note:string|null;held_at:string|null;priority_weight:number};
 type RequestItem={id:number;church_name:string;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};

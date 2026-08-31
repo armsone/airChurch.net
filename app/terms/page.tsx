@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 
-export const metadata: Metadata = { title:"이용약관 | airChurch", description:"airChurch 이용 조건과 책임 범위 안내" };
+export const metadata: Metadata = { title:"이용약관 | airChurch", description:"airChurch 이용 조건과 책임 범위 안내", alternates:{canonical:"/terms"} };
 
 export default function TermsPage() {
   return <InfoShell kicker="TERMS" title="자료를 정직하게 연결하기 위한 약속" intro="airChurch를 이용하면 아래 기준에 동의한 것으로 봅니다. 시행일: 2026년 8월 31일">

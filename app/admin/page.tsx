@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { hasAdminAccess } from "../admin-access";
 import { AdminChurchList, ChurchControls, ChurchInfoEditControls, ReviewControls, ReviewerAccountControls } from "./admin-controls";
 import AdminLogin from "./admin-login";
@@ -9,6 +10,7 @@ import HomeReloadLink from "../home-reload-link";
 import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
 
 export const dynamic = "force-dynamic";
+export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
 
 type CountRow = { views: number; visitors: number };
 type TimeRow = { period: string; views: number; visitors: number };

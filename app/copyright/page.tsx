@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 
-export const metadata: Metadata = { title:"저작권 원칙 | airChurch", description:"교회와 창작자의 권리를 지키는 airChurch의 수집·소개·연결 원칙" };
+export const metadata: Metadata = { title:"저작권 원칙 | airChurch", description:"교회와 창작자의 권리를 지키는 airChurch의 수집·소개·연결 원칙", alternates:{canonical:"/copyright"} };
 
 export default function CopyrightPage() {
   return <InfoShell kicker="COPYRIGHT & SOURCES" title="도움이 되기 위해, 원작자의 권리부터 지킵니다" intro="airChurch는 콘텐츠를 소유한 것처럼 복제하지 않습니다. 공개된 공식 자료를 찾기 쉽게 정리하고 원래 제작자와 원문으로 연결합니다.">

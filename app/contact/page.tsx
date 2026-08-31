@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 import ContactForm from "./contact-form";
 
-export const metadata: Metadata = { title:"운영 문의 | airChurch", description:"교회 정보 수정, 저작권·비공개, 개인정보와 운영 문의 접수" };
+export const metadata: Metadata = { title:"운영 문의 | airChurch", description:"교회 정보 수정, 저작권·비공개, 개인정보와 운영 문의 접수", alternates:{canonical:"/contact"} };
 
 export default function ContactPage() {
   return <InfoShell kicker="CONTACT" title="잘못된 정보는 고치고, 권리자의 요청은 먼저 살핍니다" intro="교회 정보 수정, 저작권·비공개, 개인정보 요청처럼 운영 판단이 필요한 내용만 접수합니다. 일반 상담과 기도 응답은 제공하지 않습니다.">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import InfoShell from "../info-shell";
 
-export const metadata: Metadata = { title:"공동체 안전 원칙 | airChurch", description:"airChurch 익명 광장과 공개 콘텐츠의 최소 관리 기준" };
+export const metadata: Metadata = { title:"공동체 안전 원칙 | airChurch", description:"airChurch 익명 광장과 공개 콘텐츠의 최소 관리 기준", alternates:{canonical:"/community-guidelines"} };
 
 export default function CommunityGuidelinesPage() {
   return <InfoShell kicker="COMMUNITY SAFETY" title="자유롭게 나누되, 공개 기준은 분명하게" intro="익명 글은 먼저 접수되고 운영자가 공개 또는 비공개만 판단합니다. airChurch는 논쟁을 지휘하거나 모든 글에 답변하지 않습니다.">
