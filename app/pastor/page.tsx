@@ -19,8 +19,8 @@ export default async function PastorPage() {
   const reviewerAccount=session.reviewerId>0?await db.prepare("SELECT name FROM reviewer_accounts WHERE id=? AND status='approved'").bind(session.reviewerId).first<{name:string}>():null;
   const reviewerName=session.role==="admin"?"관리자":reviewerAccount?.name??"목사님";
   const [churchRows,featuredRows,requestRows]=await Promise.all([
-    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url,hold_reason,hold_note,held_at,priority_weight FROM churches WHERE review_status IN ('approved','removed') ORDER BY name LIMIT 2000").all<Church>(),
-    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url,hold_reason,hold_note,held_at,priority_weight FROM churches WHERE review_status IN ('approved','removed') ORDER BY RANDOM() LIMIT 20").all<Church>(),
+    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url,NULL AS hold_reason,NULL AS hold_note,NULL AS held_at,priority_weight FROM churches WHERE review_status='approved' ORDER BY name LIMIT 2000").all<Church>(),
+    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url,NULL AS hold_reason,NULL AS hold_note,NULL AS held_at,priority_weight FROM churches WHERE review_status='approved' ORDER BY RANDOM() LIMIT 20").all<Church>(),
     db.prepare("SELECT r.id,c.name AS church_name,r.request_type,r.reason,r.status,r.admin_note,r.created_at,r.proposed_name,r.proposed_pastor,r.proposed_region,r.proposed_denomination FROM church_change_requests r JOIN churches c ON c.id=r.church_id WHERE r.reviewer_id=? ORDER BY r.created_at DESC LIMIT 500").bind(session.reviewerId).all<RequestItem>(),
   ]);
   const safeChurch=(church:Church)=>({...church,homepage_url:safeHttpUrl(church.homepage_url),channel_image_url:safeHttpUrl(church.channel_image_url)});

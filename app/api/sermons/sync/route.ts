@@ -471,6 +471,10 @@ export async function POST(request:Request) {
     const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
     return Response.json({ok:true,approved:approved?.count??0,removed,imported:0,skipped:"fresh"});
   }
+  const leaseKey=`${syncKey}:lease`;
+  const leaseInsert=await db.prepare("INSERT OR IGNORE INTO sync_state (key,last_synced_at) VALUES (?,CURRENT_TIMESTAMP)").bind(leaseKey).run();
+  const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-10 minutes')").bind(leaseKey).run():null;
+  if(Number(leaseInsert.meta?.changes??0)===0&&Number(leaseUpdate?.meta?.changes??0)===0)return Response.json({ok:true,imported:0,skipped:"sync_in_progress"});
   let imported=0;
   let verified=0;
   let checked=0;
@@ -537,5 +541,6 @@ export async function POST(request:Request) {
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
   if(nextCursor===0&&checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
+  await db.prepare("DELETE FROM sync_state WHERE key=?").bind(leaseKey).run();
   return Response.json({ok:true,scope,checked,failed,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});
 }

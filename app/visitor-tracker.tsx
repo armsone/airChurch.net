@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 const VISITOR_KEY = "airchurch_visitor_id";
+const VISITOR_ID_MAX_AGE=30*24*60*60*1000;
 
 export default function VisitorTracker() {
   useEffect(() => {
@@ -10,10 +11,13 @@ export default function VisitorTracker() {
     if (navigator.doNotTrack === "1") return;
 
     let visitorId: string | null = null;
-    try { visitorId = localStorage.getItem(VISITOR_KEY); } catch { /* 저장 차단 환경은 일회성 식별자를 씁니다. */ }
+    try {
+      const saved=JSON.parse(localStorage.getItem(VISITOR_KEY)||"null") as {id?:unknown;createdAt?:unknown}|null;
+      if(saved&&typeof saved.id==="string"&&typeof saved.createdAt==="number"&&Date.now()-saved.createdAt<VISITOR_ID_MAX_AGE)visitorId=saved.id;
+    } catch { /* 이전 형식이나 손상된 값은 새 임시 식별자로 교체합니다. */ }
     if (!visitorId) {
       visitorId = crypto.randomUUID();
-      try { localStorage.setItem(VISITOR_KEY, visitorId); } catch { /* 방문 기록 전송 자체는 계속할 수 있습니다. */ }
+      try { localStorage.setItem(VISITOR_KEY, JSON.stringify({id:visitorId,createdAt:Date.now()})); } catch { /* 방문 기록 전송 자체는 계속할 수 있습니다. */ }
     }
 
     let lastReportedAt=0;

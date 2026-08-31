@@ -1,4 +1,4 @@
-import { clean, database, ensureAnalyticsTables, readLimitedJson, requestOriginIsInvalid } from "../../_shared";
+import { clean, database, ensureAnalyticsTables, maybeRunDataRetention, readLimitedJson, requestOriginIsInvalid } from "../../_shared";
 
 let cleanupPromise:Promise<void>|null=null;
 let cleanedAt=0;
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
 
   const db = database();
   await ensureAnalyticsTables(db);
+  await maybeRunDataRetention(db);
   await cleanupExpiredAnalytics(db);
   const visitorHash = await hashVisitor(visitorId);
   await db.prepare("INSERT INTO visitor_activity (visitor_hash,path,last_seen) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(visitor_hash) DO UPDATE SET path=excluded.path,last_seen=CURRENT_TIMESTAMP").bind(visitorHash, path).run();

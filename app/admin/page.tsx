@@ -8,7 +8,7 @@ import ChurchRequestResolution from "./church-request-resolution";
 import { safeHttpUrl } from "../safe-url";
 import ReviewerResolutionControls from "./reviewer-resolution-controls";
 import HomeReloadLink from "../home-reload-link";
-import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensureReviewerTables, ensureSermonTables } from "../api/_shared";
+import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, ensureShortsTables } from "../api/_shared";
 
 export const dynamic = "force-dynamic";
 export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
@@ -23,6 +23,8 @@ type ContactRow = { id:number; category:string; name:string; contact:string; mes
 type ReviewerAccountRow = { id:number; name:string; contact:string; username:string; status:string; created_at:string };
 type ChangeRequestRow={id:number;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;reviewer_name:string;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 type ConcernOpinionRow={id:number;church_id:number;reviewer_name:string;note:string|null;reviewed_at:string;admin_resolution:string|null;admin_note:string|null;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;church_status:string;hold_reason:string|null;hold_note:string|null};
+type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null};
+type ChurchStatusEventRow={id:number;church_id:number;church_name:string;previous_status:string|null;new_status:string;reason:string|null;created_at:string};
 
 async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
   return (await db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now',?)").bind(modifier).first<CountRow>()) ?? { views: 0, visitors: 0 };
@@ -31,6 +33,7 @@ async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
 function koreanTime(value: string) { return new Date(`${value}Z`).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }); }
 function statusLabel(status: string) { return status === "approved" || status === "published" ? "공개" : status === "pending" ? "검토 중" : status === "removed" ? "보류" : "비공개"; }
 function contactStatusLabel(status:string){return status==="approved"?"처리 완료":status==="pending"?"미처리":"처리하지 않음";}
+function statusReasonLabel(reason:string|null){return reason==="registration"?"새 교회 등록":reason==="pastor_request"?"목회자 요청":reason==="youtube_unavailable"?"공식 YouTube 확인 불가":reason==="inactive"?"최근 설교 확인 불가":reason==="info_unverified"?"교회 정보 재확인":reason==="review_needed"?"운영상 재검토":reason==="status_change"?"공개 상태 변경":reason||"상태 변경";}
 function pastorLabel(name:string){return name.trim().endsWith("목사")?name:`${name} 목사`;}
 function ChurchReferenceLinks({name,homepageUrl,youtubeChannelId,channelImageUrl}:{name:string;homepageUrl:string|null;youtubeChannelId:string|null;channelImageUrl?:string|null}){const homepage=safeHttpUrl(homepageUrl),image=safeHttpUrl(channelImageUrl);return <div className="admin-church-reference-links" aria-label={`${name} 확인 링크`}>{homepage&&<a className="admin-homepage-link" href={homepage} target="_blank" rel="noreferrer" aria-label={`${name} 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{image&&<img src={image} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer"/>}</span><b>홈페이지</b></a>}{youtubeChannelId&&<a className="admin-youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" aria-label={`${name} YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true"/><b>YouTube</b></a>}{!homepage&&!youtubeChannelId&&<span className="admin-reference-empty"><i aria-hidden="true">—</i><b>확인 링크 없음</b></span>}</div>}
 function randomChurchIds(rows:ChurchRow[],count:number){const ids=rows.map((row)=>row.id);for(let index=ids.length-1;index>0;index--){const swap=Math.floor(Math.random()*(index+1));[ids[index],ids[swap]]=[ids[swap],ids[index]];}return new Set(ids.slice(0,count));}
@@ -43,7 +46,7 @@ export default async function AdminPage() {
   if (!(await hasAdminAccess())) return <AdminLogin />;
 
   const db = database();
-  await Promise.all([ensureAnalyticsTables(db), ensureCommunityTables(db), ensureContactTables(db), ensureSermonTables(db), ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await Promise.all([ensureAnalyticsTables(db), ensureCommunityTables(db), ensureContactTables(db), ensureSermonTables(db), ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
   const [today, week, month, active, hourly, daily, monthly, churches, recommendations, churchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),
@@ -74,6 +77,13 @@ export default async function AdminPage() {
   const pendingRequestCount=changeRequestRows.results.filter((request)=>request.status==="pending").length;
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
   const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
+  const [mediaFreshness,statusEvents]=await Promise.all([
+    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at").first<MediaFreshnessRow>(),
+    db.prepare("SELECT id,church_id,church_name,previous_status,new_status,reason,created_at FROM church_status_events ORDER BY created_at DESC,id DESC LIMIT 8").all<ChurchStatusEventRow>(),
+  ]);
+  const freshnessLabel=(value:string|null|undefined)=>value?new Date(value.endsWith("Z")?value:`${value}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"기록 없음";
+  const lastSyncTime=mediaFreshness?.last_sync_at?Date.parse(mediaFreshness.last_sync_at):NaN;
+  const syncHealthy=Number.isFinite(lastSyncTime)&&Date.now()-lastSyncTime<12*60*60*1000;
 
   return <main className="admin-shell">
     <AdminLiveRefresh />
@@ -96,6 +106,14 @@ export default async function AdminPage() {
       <article><small>최근 7일 방문자</small><strong>{Number(week.visitors).toLocaleString("ko-KR")}</strong><span>{Number(week.views).toLocaleString("ko-KR")}회 조회</span></article>
       <article><small>최근 30일 방문자</small><strong>{Number(month.visitors).toLocaleString("ko-KR")}</strong><span>{Number(month.views).toLocaleString("ko-KR")}회 조회</span></article>
     </section>
+    <section className="admin-section-heading admin-system-heading" id="system-health"><span>AUTOMATION HEALTH</span><h2>자동 운영 상태</h2><p>최근 자료와 동기화 시각만 확인하면 됩니다. 오래된 항목이 생길 때 점검하세요.</p></section>
+    <section className="admin-metrics admin-system-health" aria-label="자동 운영 상태">
+      <article><small>최근 말씀</small><strong>말씀</strong><span>{freshnessLabel(mediaFreshness?.sermon_at)}</span></article>
+      <article><small>최근 찬양</small><strong>찬양</strong><span>{freshnessLabel(mediaFreshness?.praise_at)}</span></article>
+      <article><small>최근 쇼츠</small><strong>쇼츠</strong><span>{freshnessLabel(mediaFreshness?.short_at)}</span></article>
+      <article className={syncHealthy?"active-visitors":"needs-attention"}><small>자동 동기화</small><strong>{syncHealthy?"정상":"점검 필요"}</strong><span>{freshnessLabel(mediaFreshness?.last_sync_at)}</span></article>
+    </section>
+    <section className="admin-panel admin-status-events"><div className="admin-panel-title"><div><small>CHURCH STATUS LOG</small><h2>최근 교회 공개 상태 변경</h2><p>전체 교회 수가 달라진 이유를 교회별로 확인합니다.</p></div><span>{statusEvents.results.length}건</span></div><div className="review-list">{statusEvents.results.length?statusEvents.results.map((event)=><article key={event.id}><div><span>{event.previous_status?`${statusLabel(event.previous_status)} → ${statusLabel(event.new_status)}`:"새 등록"}</span><time>{koreanTime(event.created_at)}</time></div><strong><a href={`/church/${event.church_id}`}>{event.church_name}</a></strong><p>{statusReasonLabel(event.reason)}</p></article>):<p className="admin-empty">이 기능 적용 이후의 변경부터 기록됩니다.</p>}</div></section>
     <section className="admin-grid analytics-grid">
       <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 14일</small><h2>날짜별 방문</h2></div><span>빠진 날짜 없이 조회수 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(5,7))}/${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 24시간</small><h2>시간별 방문</h2></div><span>빠진 시간 없이 표시</span></div><TrafficChart rows={hourly.results} label={(period)=>`${Number(period.slice(11,13))}시`} empty="방문 기록이 없습니다." /></article>

@@ -30,6 +30,9 @@ export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
   ]);
 });
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
+  await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v4' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS churches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_channel_id TEXT UNIQUE, review_status TEXT NOT NULL DEFAULT 'pending', hold_reason TEXT, hold_note TEXT, held_at TEXT, priority_weight INTEGER NOT NULL DEFAULT 1, reviewer_status TEXT NOT NULL DEFAULT 'unreviewed', reviewer_note TEXT, reviewed_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sermons (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -38,6 +41,10 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_review_region ON churches(review_status, region)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_churches_review_denomination ON churches(review_status, denomination)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sync_state (key TEXT PRIMARY KEY, last_synced_at TEXT NOT NULL)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS church_status_events (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL,church_name TEXT NOT NULL,previous_status TEXT,new_status TEXT NOT NULL,reason TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_status_events_created ON church_status_events(created_at DESC)"),
+    db.prepare("CREATE TRIGGER IF NOT EXISTS log_church_insert AFTER INSERT ON churches BEGIN INSERT INTO church_status_events (church_id,church_name,previous_status,new_status,reason) VALUES (NEW.id,NEW.name,NULL,NEW.review_status,COALESCE(NEW.hold_reason,'registration')); END"),
+    db.prepare("CREATE TRIGGER IF NOT EXISTS log_church_status_update AFTER UPDATE OF review_status ON churches WHEN OLD.review_status<>NEW.review_status BEGIN INSERT INTO church_status_events (church_id,church_name,previous_status,new_status,reason) VALUES (NEW.id,NEW.name,OLD.review_status,NEW.review_status,COALESCE(NEW.hold_reason,'status_change')); END"),
   ]);
   const columns = await db.prepare("PRAGMA table_info(sermons)").all<{ name: string }>();
   if (!columns.results.some((column) => column.name === "status")) {
@@ -52,6 +59,7 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await addColumnIfMissing(db,churchColumns.results,"review_resolution_token","ALTER TABLE churches ADD COLUMN review_resolution_token TEXT");
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_church_status_published ON sermons(church_id, status, published_at DESC)").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v4',CURRENT_TIMESTAMP)").run();
 });
 export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
   await db.batch([
@@ -118,7 +126,13 @@ export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
   ]);
 });
 export const ensureAccessTables=memoizeEnsure(async(db:D1Database)=>{
-  await db.batch([db.prepare("CREATE TABLE IF NOT EXISTS admin_login_attempts (fingerprint TEXT PRIMARY KEY,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')")]);
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS admin_login_attempts (fingerprint TEXT PRIMARY KEY,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS access_sessions (id TEXT PRIMARY KEY,role TEXT NOT NULL,reviewer_id INTEGER NOT NULL,expires_at TEXT NOT NULL,revoked_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_access_sessions_expires ON access_sessions(expires_at)"),
+    db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')"),
+    db.prepare("DELETE FROM access_sessions WHERE expires_at<datetime('now','-2 days')"),
+  ]);
 });
 export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
   await db.batch([
@@ -127,6 +141,30 @@ export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"),
   ]);
 });
+let retentionCheckAfter=0;
+let retentionPromise:Promise<void>|null=null;
+export async function maybeRunDataRetention(db:D1Database){
+  if(Date.now()<retentionCheckAfter)return;
+  if(!retentionPromise)retentionPromise=(async()=>{
+    retentionCheckAfter=Date.now()+10*60*1000;
+    await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+    await db.prepare("INSERT OR IGNORE INTO maintenance_state (key,completed_at) VALUES ('personal-data-retention-v1',datetime('now','-2 days'))").run();
+    const lease=await db.prepare("UPDATE maintenance_state SET completed_at=CURRENT_TIMESTAMP WHERE key='personal-data-retention-v1' AND completed_at<datetime('now','-1 day')").run();
+    if(Number(lease.meta?.changes??0)!==1)return;
+    const existing=await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all<{name:string}>();
+    const tables=new Set(existing.results.map((row)=>row.name));
+    const statements:Array<ReturnType<typeof db.prepare>>=[];
+    if(tables.has("contact_requests"))statements.push(db.prepare("DELETE FROM contact_requests WHERE status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-90 days')"));
+    if(tables.has("church_recommendations"))statements.push(db.prepare("DELETE FROM church_recommendations WHERE status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-180 days')"));
+    if(tables.has("community_posts"))statements.push(db.prepare("DELETE FROM community_posts WHERE status='rejected' AND created_at<datetime('now','-30 days')"));
+    if(tables.has("talent_offers"))statements.push(db.prepare("DELETE FROM talent_offers WHERE status='rejected' AND created_at<datetime('now','-30 days')"));
+    if(tables.has("reviewer_accounts"))statements.push(db.prepare("DELETE FROM reviewer_accounts WHERE status='rejected' AND COALESCE(reviewed_at,created_at)<datetime('now','-30 days')"));
+    if(tables.has("church_change_requests"))statements.push(db.prepare("DELETE FROM church_change_requests WHERE status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-180 days')"));
+    if(tables.has("reviewer_church_reviews"))statements.push(db.prepare("DELETE FROM reviewer_church_reviews WHERE handled_at IS NOT NULL AND handled_at<datetime('now','-180 days')"));
+    if(statements.length)await db.batch(statements);
+  })().catch(()=>{retentionCheckAfter=Date.now()+60*1000;}).finally(()=>{retentionPromise=null;});
+  await retentionPromise;
+}
 export async function consumeSubmissionLimit(db:D1Database,purpose:string,fp:string,maxAttempts:number,windowMinutes:number){
   await ensureSubmissionRateTables(db);
   await db.prepare("INSERT INTO submission_rate_limits (purpose,fingerprint,attempt_count,window_started) VALUES (?,?,1,CURRENT_TIMESTAMP) ON CONFLICT(purpose,fingerprint) DO UPDATE SET attempt_count=CASE WHEN window_started<datetime('now',?) THEN 1 ELSE attempt_count+1 END,window_started=CASE WHEN window_started<datetime('now',?) THEN CURRENT_TIMESTAMP ELSE window_started END").bind(purpose,fp,`-${windowMinutes} minutes`,`-${windowMinutes} minutes`).run();
