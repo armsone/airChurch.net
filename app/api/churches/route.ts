@@ -18,7 +18,8 @@ export async function GET(request:Request) {
   const globalTerms=globalQuery.split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
   const searchGroups=[...terms,...globalTerms].map(expand);
   const haystack=sqlNormalized("name||pastor||region||denomination");
-  const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
+  const textWithoutMeaning=Boolean((query||globalQuery)&&!searchGroups.length);
+  const conditions=["review_status='approved'",...(textWithoutMeaning?["0=1"]:[]),...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
   const bindings:Array<string>=searchGroups.flat();
   if(region&&region!=="전체") { conditions.push("substr(region,1,length(?))=?");bindings.push(region,region); }
   if(denomination&&denomination!=="전체 교단") { conditions.push("denomination=?");bindings.push(denomination); }
