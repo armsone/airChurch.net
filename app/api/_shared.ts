@@ -106,6 +106,19 @@ export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
 export const ensureAccessTables=memoizeEnsure(async(db:D1Database)=>{
   await db.batch([db.prepare("CREATE TABLE IF NOT EXISTS admin_login_attempts (fingerprint TEXT PRIMARY KEY,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')")]);
 });
+export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS submission_rate_limits (purpose TEXT NOT NULL,fingerprint TEXT NOT NULL,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(purpose,fingerprint))"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_submission_rate_limits_window ON submission_rate_limits(window_started)"),
+    db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"),
+  ]);
+});
+export async function consumeSubmissionLimit(db:D1Database,purpose:string,fp:string,maxAttempts:number,windowMinutes:number){
+  await ensureSubmissionRateTables(db);
+  await db.prepare("INSERT INTO submission_rate_limits (purpose,fingerprint,attempt_count,window_started) VALUES (?,?,1,CURRENT_TIMESTAMP) ON CONFLICT(purpose,fingerprint) DO UPDATE SET attempt_count=CASE WHEN window_started<datetime('now',?) THEN 1 ELSE attempt_count+1 END,window_started=CASE WHEN window_started<datetime('now',?) THEN CURRENT_TIMESTAMP ELSE window_started END").bind(purpose,fp,`-${windowMinutes} minutes`,`-${windowMinutes} minutes`).run();
+  const row=await db.prepare("SELECT attempt_count AS attemptCount FROM submission_rate_limits WHERE purpose=? AND fingerprint=?").bind(purpose,fp).first<{attemptCount:number}>();
+  return (row?.attemptCount??1)<=maxAttempts;
+}
 export async function fingerprint(request:Request,purpose="general") {
   const ip=request.headers.get("cf-connecting-ip")||"local",agent=request.headers.get("user-agent")||"unknown",day=new Date().toISOString().slice(0,10);
   const encoder=new TextEncoder(),bytes=encoder.encode(`${purpose}|${ip}|${agent}|${day}`);
