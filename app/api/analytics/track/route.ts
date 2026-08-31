@@ -1,4 +1,4 @@
-import { clean, database, ensureAnalyticsTables, requestBodyTooLarge, requestOriginIsInvalid } from "../../_shared";
+import { clean, database, ensureAnalyticsTables, readLimitedJson, requestOriginIsInvalid } from "../../_shared";
 
 let cleanupPromise:Promise<void>|null=null;
 let cleanedAt=0;
@@ -31,9 +31,8 @@ async function hashVisitor(visitorId: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  if(requestBodyTooLarge(request,2_048))return Response.json({error:"request too large"},{status:413,headers:{"cache-control":"no-store"}});
   if(requestOriginIsInvalid(request))return Response.json({error:"invalid origin"},{status:403,headers:{"cache-control":"no-store"}});
-  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const parsed=await readLimitedJson(request,2_048);if(parsed.tooLarge)return Response.json({error:"request too large"},{status:413,headers:{"cache-control":"no-store"}});const body=parsed.data;
   const visitorId = clean(body.visitorId, 80);
   const path = clean(body.path, 160);
   if (!/^[0-9a-f-]{36}$/i.test(visitorId) || !path.startsWith("/") || path.startsWith("//")) {

@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { accessSession } from "../../../../admin-access";
-import { clean, database, ensureSermonTables, requestBodyTooLarge, requestOriginIsInvalid } from "../../../_shared";
+import { clean, database, ensureSermonTables, readLimitedJson, requestOriginIsInvalid } from "../../../_shared";
 import { isSermonTitle } from "../../../sermons/_selection";
 import { safeHttpUrl } from "../../../../safe-url";
 
@@ -10,13 +10,12 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 const CHANNEL_ID=/^UC[\w-]{20,}$/;
 
 export async function POST(request:Request) {
-  if(requestBodyTooLarge(request,65_536))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403,headers:{"cache-control":"no-store"}});
   const session=await accessSession(request);
   if(!session||session.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key)return Response.json({error:"YouTube API key not configured"},{status:503});
-  const data=await request.json().catch(()=>({})) as {records?:unknown};
+  const body=await readLimitedJson(request,65_536);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});const data=body.data;
   if(!Array.isArray(data.records)||data.records.length<1||data.records.length>20)return Response.json({error:"한 번에 1~20곳을 등록할 수 있습니다."},{status:400});
   const records=data.records as ImportRecord[];
   const db=database();await ensureSermonTables(db);

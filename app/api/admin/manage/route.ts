@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, requestBodyTooLarge } from "../../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, readLimitedJson } from "../../_shared";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
@@ -8,12 +8,11 @@ async function requestRole(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});
   const session=await requestRole(request);
   if (!session) return Response.json({ error: "운영자 권한이 필요합니다." }, { status: 403 });
   const {role}=session;
 
-  const data = await request.json().catch(() => ({})) as Record<string, unknown>;
+  const body=await readLimitedJson(request);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});const data=body.data;
   const id = Number(data.id);
   const kind = clean(data.kind, 40);
   if(role==="reviewer"&&kind!=="church-change-request") return Response.json({error:"교회 정보 요청 권한만 사용할 수 있습니다."},{status:403});
