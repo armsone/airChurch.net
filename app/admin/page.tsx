@@ -23,7 +23,7 @@ type ContactRow = { id:number; category:string; name:string; contact:string; mes
 type ReviewerAccountRow = { id:number; name:string; contact:string; username:string; status:string; created_at:string };
 type ChangeRequestRow={id:number;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;reviewer_name:string;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 type ConcernOpinionRow={id:number;church_id:number;reviewer_name:string;note:string|null;reviewed_at:string;admin_resolution:string|null;admin_note:string|null;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;church_status:string;hold_reason:string|null;hold_note:string|null};
-type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null};
+type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null;now_epoch:string|null};
 type ChurchStatusEventRow={id:number;church_id:number;church_name:string;previous_status:string|null;new_status:string;reason:string|null;created_at:string};
 
 async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
@@ -78,12 +78,13 @@ export default async function AdminPage() {
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
   const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
   const [mediaFreshness,statusEvents]=await Promise.all([
-    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at").first<MediaFreshnessRow>(),
+    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at, strftime('%s','now') AS now_epoch").first<MediaFreshnessRow>(),
     db.prepare("SELECT id,church_id,church_name,previous_status,new_status,reason,created_at FROM church_status_events ORDER BY created_at DESC,id DESC LIMIT 8").all<ChurchStatusEventRow>(),
   ]);
   const freshnessLabel=(value:string|null|undefined)=>value?new Date(value.endsWith("Z")?value:`${value}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"기록 없음";
-  const lastSyncTime=mediaFreshness?.last_sync_at?Date.parse(mediaFreshness.last_sync_at):NaN;
-  const syncHealthy=Number.isFinite(lastSyncTime)&&Date.now()-lastSyncTime<12*60*60*1000;
+  const lastSyncEpoch=mediaFreshness?.last_sync_at ? Date.parse(mediaFreshness.last_sync_at)/1000 : NaN;
+  const nowEpoch=mediaFreshness?.now_epoch ? Number(mediaFreshness.now_epoch) : NaN;
+  const syncHealthy=Number.isFinite(lastSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-lastSyncEpoch<12*60*60;
 
   return <main className="admin-shell">
     <AdminLiveRefresh />
