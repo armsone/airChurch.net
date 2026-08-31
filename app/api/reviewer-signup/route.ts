@@ -5,6 +5,7 @@ export async function POST(request:Request) {
   if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
   const data=await request.json().catch(()=>({})) as Record<string,unknown>;
+  if(clean(data.company,20))return Response.json({ok:true},{headers:{"cache-control":"no-store"}});
   const name=clean(data.name,80),contact=clean(data.contact,120),username=clean(data.username,40).toLowerCase();
   const password=typeof data.password==="string"?data.password:"";
   if(name.length<2||contact.length<5||!/^[a-z0-9._-]{4,40}$/.test(username)||password.length<10||password.length>128) return Response.json({error:"성함·연락처, 4자 이상의 영문 아이디와 10자 이상의 비밀번호를 확인해 주세요."},{status:400});
