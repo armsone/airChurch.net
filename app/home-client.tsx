@@ -500,7 +500,7 @@ export default function Home() {
       </section>
 
       <section className="daily-journey" aria-labelledby="daily-journey-title">
-        <div className="daily-journey-main"><span className="section-kicker">{todayGuide.day} · 오늘의 신앙 여정</span><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className="daily-reference" href={`https://www.bible.com/search/bible?q=${encodeURIComponent(todayGuide.reference)}`} target="_blank" rel="noopener noreferrer"><strong>{todayGuide.reference}</strong><span>성경에서 읽기 ↗</span></a><blockquote>{todayGuide.question}</blockquote></div>
+        <div className="daily-journey-main"><span className="section-kicker">{todayGuide.day} · 오늘의 신앙 여정</span><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className="daily-reference" href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer"><strong>{todayGuide.reference}</strong><span>성경에서 읽기 ↗</span></a><blockquote>{todayGuide.question}</blockquote></div>
         <div className="daily-paths"><a href="#sermons"><span>01</span><strong>말씀 한 편</strong><small>오늘 올라온 설교에서 시작합니다</small></a><a href="#praises"><span>02</span><strong>찬양 한 곡</strong><small>공식 교회 채널의 찬양으로 이어갑니다</small></a><a href="#church-directory"><span>03</span><strong>교회 한 곳</strong><small>매일 새롭게 지역교회를 발견합니다</small></a></div>
       </section>
 
