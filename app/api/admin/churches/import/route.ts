@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { accessSession } from "../../../../admin-access";
-import { clean, database, ensureSermonTables } from "../../../_shared";
+import { clean, database, ensureSermonTables, requestBodyTooLarge, requestOriginIsInvalid } from "../../../_shared";
 import { isSermonTitle } from "../../../sermons/_selection";
 
 type ImportRecord={name?:unknown;pastor?:unknown;region?:unknown;denomination?:unknown;channelId?:unknown;homepage?:unknown};
@@ -9,8 +9,8 @@ type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;th
 const CHANNEL_ID=/^UC[\w-]{20,}$/;
 
 export async function POST(request:Request) {
-  const origin=request.headers.get("origin");
-  if(origin&&origin!==new URL(request.url).origin)return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
+  if(requestBodyTooLarge(request,65_536))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});
+  if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403,headers:{"cache-control":"no-store"}});
   const session=await accessSession(request);
   if(!session||session.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;

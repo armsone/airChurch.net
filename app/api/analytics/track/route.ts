@@ -1,4 +1,4 @@
-import { clean, database, ensureAnalyticsTables } from "../../_shared";
+import { clean, database, ensureAnalyticsTables, requestBodyTooLarge, requestOriginIsInvalid } from "../../_shared";
 
 let cleanupPromise:Promise<void>|null=null;
 let cleanedAt=0;
@@ -31,6 +31,8 @@ async function hashVisitor(visitorId: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
+  if(requestBodyTooLarge(request,2_048))return Response.json({error:"request too large"},{status:413,headers:{"cache-control":"no-store"}});
+  if(requestOriginIsInvalid(request))return Response.json({error:"invalid origin"},{status:403,headers:{"cache-control":"no-store"}});
   const body = await request.json().catch(() => ({})) as Record<string, unknown>;
   const visitorId = clean(body.visitorId, 80);
   const path = clean(body.path, 160);
