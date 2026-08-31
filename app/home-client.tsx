@@ -4,6 +4,7 @@ import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 
 import HomeReloadLink from "./home-reload-link";
 import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./recent-searches";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
+import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 import SkipLink from "./skip-link";
 
@@ -24,7 +25,6 @@ type CommunityItem = { id:number; category:string; nickname:string; content:stri
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
-type SearchSuggestion = { value:string; label:string };
 
 const normalizeSearchText=normalizeSearchValue;
 const prefersLowData=()=>Boolean((navigator as Navigator&{connection?:{saveData?:boolean}}).connection?.saveData);
@@ -186,6 +186,7 @@ export default function Home() {
   const shortMutedRef=useRef(true);
   const shortPlayerPlayPendingRef=useRef(false);
   const filteredShortsLengthRef=useRef(0);
+  const shortViewerEmbedUrl = `https://www.youtube-nocookie.com/embed/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
@@ -240,7 +241,7 @@ export default function Home() {
     setJourneyWeek(days);
   },[dailyCompleted,personalStateReady,todayKey]);
   useEffect(()=>{if(prefersLowData())return;const controller=new AbortController();fetch("/api/churches?countOnly=1",{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
-  useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetch(`/api/search-suggestions?q=${encodeURIComponent(term)}`,{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>setSearchSuggestions(Array.isArray(result?.items)?result.items:[])).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
+  useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetchSearchSuggestions(term,controller.signal).then(setSearchSuggestions).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
     const onTouchStart=(event:TouchEvent)=>{pullToRefreshStartRef.current=window.scrollY===0&&event.touches.length===1?event.touches[0].clientY:null;pullToRefreshDistanceRef.current=0;};
@@ -258,19 +259,19 @@ export default function Home() {
     const loadItems=(url:string)=>fetch(url,{signal:controller.signal}).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
     const lowData=prefersLowData();
     const loaders: Record<string, () => void> = {
-      sermons: ()=>loadItems(`/api/sermons?limit=${lowData?24:60}`).then((sermonData)=>{
+      sermons: ()=>loadItems(`/api/sermons?limit=${lowData?12:60}`).then((sermonData)=>{
         if(!alive) return;
         const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
         setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
         setSermonLoading(false);
       }),
-      praises: ()=>loadItems(`/api/praises?limit=${lowData?24:48}`).then((data)=>{
+      praises: ()=>loadItems(`/api/praises?limit=${lowData?12:48}`).then((data)=>{
         if(!alive) return;
         const items=(data as {items?:Praise[]}).items||[];
         setPraiseItems([...items.filter((item)=>item.pinned),...shuffled(items.filter((item)=>!item.pinned))]);
         setPraiseLoading(false);
       }),
-      shorts: ()=>loadItems(`/api/shorts?limit=${lowData?24:60}`).then((data)=>{
+      shorts: ()=>loadItems(`/api/shorts?limit=${lowData?12:60}`).then((data)=>{
         if(!alive) return;
         setShortItems((data as {items?:Short[]}).items||[]);
         setShortLoading(false);
@@ -397,8 +398,8 @@ export default function Home() {
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
   const startMutedPlayback=(player:YouTubePlayer)=>{
-    player.mute();
-    player.playVideo();
+        player.mute();
+        player.playVideo();
   };
     const requestPlay = () => {
       const player = shortPlayerInstanceRef.current;
@@ -634,7 +635,7 @@ export default function Home() {
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(!normalized)return;const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}>
           <label className="sr-only" htmlFor="site-search">교회, 목사, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목사, 지역, 교단으로 찾아 보세요."} />
-          <span className="sr-only" id="site-search-help">{churchTotal?`등록된 ${churchTotal.toLocaleString("ko-KR")}개 교회에서 여러 조건을 함께 검색할 수 있습니다.`:"여러 조건을 함께 검색할 수 있습니다."}</span>
+          <span className="sr-only" id="site-search-help" role="status" aria-live="polite">{searchSuggestions.length?`자동완성 ${searchSuggestions.length}개가 있습니다.`:churchTotal?`등록된 ${churchTotal.toLocaleString("ko-KR")}개 교회에서 여러 조건을 함께 검색할 수 있습니다.`:"여러 조건을 함께 검색할 수 있습니다."}</span>
           <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
           <div className="search-filters">
             <select name="region" aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
@@ -701,7 +702,7 @@ export default function Home() {
           <iframe
             ref={shortPlayerRef}
             className="shorts-viewer-frame"
-            src={`https://www.youtube-nocookie.com/embed/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`}
+            src={shortViewerEmbedUrl}
             title={activeShort.title}
             referrerPolicy="no-referrer"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

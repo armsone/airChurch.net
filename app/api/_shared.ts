@@ -14,6 +14,9 @@ function memoizeEnsure(run:(db:D1Database)=>Promise<void>) {
     return pending;
   };
 }
+const ensureMaintenanceState=memoizeEnsure(async(db:D1Database)=>{
+  await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+});
 export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -30,7 +33,7 @@ export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
   ]);
 });
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
-  await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+  await ensureMaintenanceState(db);
   const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v4' LIMIT 1").first<{key:string}>();
   if(ready)return;
   await db.batch([
@@ -62,17 +65,25 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v4',CURRENT_TIMESTAMP)").run();
 });
 export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-praises-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS praise_videos (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_status_published ON praise_videos(status, published_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_praise_videos_church_status_published ON praise_videos(church_id, status, published_at DESC)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-praises-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 export const ensureShortsTables = memoizeEnsure(async (db:D1Database) => {
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-shorts-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_shorts (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'published', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_shorts_status_published ON church_shorts(status, published_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_shorts_church_status_published ON church_shorts(church_id, status, published_at DESC)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-shorts-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 export const ensureChurchRecommendationTables = memoizeEnsure(async (db:D1Database) => {
@@ -116,6 +127,9 @@ export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
   await addColumnIfMissing(db,reviewColumns.results,"resolved_by","ALTER TABLE reviewer_church_reviews ADD COLUMN resolved_by TEXT");
 });
 export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-analytics-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL, referrer_domain TEXT, visitor_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at DESC)"),
@@ -123,22 +137,28 @@ export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_path_created ON page_views(path, created_at DESC)"),
     db.prepare("CREATE TABLE IF NOT EXISTS visitor_activity (visitor_hash TEXT PRIMARY KEY NOT NULL, path TEXT NOT NULL, last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_visitor_activity_last_seen ON visitor_activity(last_seen DESC)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-analytics-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 export const ensureAccessTables=memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-access-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS admin_login_attempts (fingerprint TEXT PRIMARY KEY,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS access_sessions (id TEXT PRIMARY KEY,role TEXT NOT NULL,reviewer_id INTEGER NOT NULL,expires_at TEXT NOT NULL,revoked_at TEXT,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_access_sessions_expires ON access_sessions(expires_at)"),
-    db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')"),
-    db.prepare("DELETE FROM access_sessions WHERE expires_at<datetime('now','-2 days')"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-access-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-submission-rate-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS submission_rate_limits (purpose TEXT NOT NULL,fingerprint TEXT NOT NULL,attempt_count INTEGER NOT NULL DEFAULT 0,window_started TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(purpose,fingerprint))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_submission_rate_limits_window ON submission_rate_limits(window_started)"),
-    db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-submission-rate-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 let retentionCheckAfter=0;
@@ -147,7 +167,7 @@ export async function maybeRunDataRetention(db:D1Database){
   if(Date.now()<retentionCheckAfter)return;
   if(!retentionPromise)retentionPromise=(async()=>{
     retentionCheckAfter=Date.now()+10*60*1000;
-    await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+    await ensureMaintenanceState(db);
     await db.prepare("INSERT OR IGNORE INTO maintenance_state (key,completed_at) VALUES ('personal-data-retention-v1',datetime('now','-2 days'))").run();
     const lease=await db.prepare("UPDATE maintenance_state SET completed_at=CURRENT_TIMESTAMP WHERE key='personal-data-retention-v1' AND completed_at<datetime('now','-1 day')").run();
     if(Number(lease.meta?.changes??0)!==1)return;
@@ -161,6 +181,11 @@ export async function maybeRunDataRetention(db:D1Database){
     if(tables.has("reviewer_accounts"))statements.push(db.prepare("DELETE FROM reviewer_accounts WHERE status='rejected' AND COALESCE(reviewed_at,created_at)<datetime('now','-30 days')"));
     if(tables.has("church_change_requests"))statements.push(db.prepare("DELETE FROM church_change_requests WHERE status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-180 days')"));
     if(tables.has("reviewer_church_reviews"))statements.push(db.prepare("DELETE FROM reviewer_church_reviews WHERE handled_at IS NOT NULL AND handled_at<datetime('now','-180 days')"));
+    if(tables.has("page_views"))statements.push(db.prepare("DELETE FROM page_views WHERE created_at<datetime('now','-90 days')"));
+    if(tables.has("visitor_activity"))statements.push(db.prepare("DELETE FROM visitor_activity WHERE last_seen<datetime('now','-30 days')"));
+    if(tables.has("admin_login_attempts"))statements.push(db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')"));
+    if(tables.has("access_sessions"))statements.push(db.prepare("DELETE FROM access_sessions WHERE expires_at<datetime('now','-2 days')"));
+    if(tables.has("submission_rate_limits"))statements.push(db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"));
     if(statements.length)await db.batch(statements);
   })().catch(()=>{retentionCheckAfter=Date.now()+60*1000;}).finally(()=>{retentionPromise=null;});
   await retentionPromise;

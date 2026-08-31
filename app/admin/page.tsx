@@ -23,7 +23,7 @@ type ContactRow = { id:number; category:string; name:string; contact:string; mes
 type ReviewerAccountRow = { id:number; name:string; contact:string; username:string; status:string; created_at:string };
 type ChangeRequestRow={id:number;request_type:string;reason:string;status:string;admin_note:string|null;created_at:string;reviewer_name:string;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null};
 type ConcernOpinionRow={id:number;church_id:number;reviewer_name:string;note:string|null;reviewed_at:string;admin_resolution:string|null;admin_note:string|null;church_name:string;church_pastor:string;church_region:string;church_denomination:string;church_homepage_url:string|null;church_youtube_channel_id:string|null;church_status:string;hold_reason:string|null;hold_note:string|null};
-type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null;now_epoch:string|null};
+type MediaFreshnessRow={sermon_at:string|null;praise_at:string|null;short_at:string|null;last_sync_at:string|null;retention_at:string|null;now_epoch:string|null};
 type ChurchStatusEventRow={id:number;church_id:number;church_name:string;previous_status:string|null;new_status:string;reason:string|null;created_at:string};
 
 async function countSince(db: D1Database, modifier: string): Promise<CountRow> {
@@ -78,13 +78,16 @@ export default async function AdminPage() {
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
   const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
   const [mediaFreshness,statusEvents]=await Promise.all([
-    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at, strftime('%s','now') AS now_epoch").first<MediaFreshnessRow>(),
+    db.prepare("SELECT (SELECT MAX(published_at) FROM sermons WHERE status='published') AS sermon_at,(SELECT MAX(published_at) FROM praise_videos WHERE status='published') AS praise_at,(SELECT MAX(published_at) FROM church_shorts WHERE status='published') AS short_at,(SELECT MAX(last_synced_at) FROM sync_state WHERE key NOT LIKE '%:cursor' AND key NOT LIKE '%:lease') AS last_sync_at,(SELECT completed_at FROM maintenance_state WHERE key='personal-data-retention-v1') AS retention_at,strftime('%s','now') AS now_epoch").first<MediaFreshnessRow>(),
     db.prepare("SELECT id,church_id,church_name,previous_status,new_status,reason,created_at FROM church_status_events ORDER BY created_at DESC,id DESC LIMIT 8").all<ChurchStatusEventRow>(),
   ]);
   const freshnessLabel=(value:string|null|undefined)=>value?new Date(value.endsWith("Z")?value:`${value}Z`).toLocaleString("ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"기록 없음";
-  const lastSyncEpoch=mediaFreshness?.last_sync_at ? Date.parse(mediaFreshness.last_sync_at)/1000 : NaN;
+  const utcEpoch=(value:string|null|undefined)=>value?Date.parse(value.endsWith("Z")?value:`${value}Z`)/1000:NaN;
+  const lastSyncEpoch=utcEpoch(mediaFreshness?.last_sync_at);
+  const retentionEpoch=utcEpoch(mediaFreshness?.retention_at);
   const nowEpoch=mediaFreshness?.now_epoch ? Number(mediaFreshness.now_epoch) : NaN;
   const syncHealthy=Number.isFinite(lastSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-lastSyncEpoch<12*60*60;
+  const retentionHealthy=Number.isFinite(retentionEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-retentionEpoch<36*60*60;
 
   return <main className="admin-shell">
     <AdminLiveRefresh />
@@ -113,6 +116,7 @@ export default async function AdminPage() {
       <article><small>최근 찬양</small><strong>찬양</strong><span>{freshnessLabel(mediaFreshness?.praise_at)}</span></article>
       <article><small>최근 쇼츠</small><strong>쇼츠</strong><span>{freshnessLabel(mediaFreshness?.short_at)}</span></article>
       <article className={syncHealthy?"active-visitors":"needs-attention"}><small>자동 동기화</small><strong>{syncHealthy?"정상":"점검 필요"}</strong><span>{freshnessLabel(mediaFreshness?.last_sync_at)}</span></article>
+      <p className={`admin-retention-health ${retentionHealthy?"is-healthy":"needs-attention"}`}><strong>개인정보 자동 파기 · {retentionHealthy?"정상":"점검 필요"}</strong><span>마지막 실행 {freshnessLabel(mediaFreshness?.retention_at)}</span></p>
     </section>
     <section className="admin-panel admin-status-events"><div className="admin-panel-title"><div><small>CHURCH STATUS LOG</small><h2>최근 교회 공개 상태 변경</h2><p>전체 교회 수가 달라진 이유를 교회별로 확인합니다.</p></div><span>{statusEvents.results.length}건</span></div><div className="review-list">{statusEvents.results.length?statusEvents.results.map((event)=><article key={event.id}><div><span>{event.previous_status?`${statusLabel(event.previous_status)} → ${statusLabel(event.new_status)}`:"새 등록"}</span><time>{koreanTime(event.created_at)}</time></div><strong><a href={`/church/${event.church_id}`}>{event.church_name}</a></strong><p>{statusReasonLabel(event.reason)}</p></article>):<p className="admin-empty">이 기능 적용 이후의 변경부터 기록됩니다.</p>}</div></section>
     <section className="admin-grid analytics-grid">
@@ -122,8 +126,8 @@ export default async function AdminPage() {
     </section>
 
     <section className="admin-management-grid">
-      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시합니다. 검색하면 전체 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{publicChurchRows.length}곳</span></div><AdminListSearch targetId="public-church-list" total={publicChurchRows.length} label="공개 교회 검색" placeholder="교회명, 목사님, 지역, 교단 검색" initialLimit={20}/><div className="admin-manage-list" id="public-church-list">{publicChurchRows.length ? <AdminChurchList churches={publicChurchRows} previewIds={[...publicPreviewIds]} variant="public"/> : <p className="admin-empty">공개 중인 교회가 없습니다.</p>}</div></article>
-      <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시합니다. 검색하면 전체 보류 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{heldChurchRows.length}곳</span></div><AdminListSearch targetId="held-church-list" total={heldChurchRows.length} label="보류 교회 검색" placeholder="교회명, 목사님, 지역, 보류 메모 검색" initialLimit={10}/><div className="admin-manage-list" id="held-church-list">{heldChurchRows.length ? <AdminChurchList churches={heldChurchRows} previewIds={[...heldPreviewIds]} variant="held"/> : <p className="admin-empty">보류된 교회가 없습니다.</p>}</div></article>
+      <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시합니다. 검색하면 전체 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{publicChurchRows.length}곳</span></div><AdminListSearch targetId="public-church-list" total={publicChurchRows.length} label="공개 교회 검색" placeholder="교회명, 목사, 지역, 교단 검색" initialLimit={20}/><div className="admin-manage-list" id="public-church-list">{publicChurchRows.length ? <AdminChurchList churches={publicChurchRows} previewIds={[...publicPreviewIds]} variant="public"/> : <p className="admin-empty">공개 중인 교회가 없습니다.</p>}</div></article>
+      <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시합니다. 검색하면 전체 보류 교회에서 일치하는 결과를 보여줍니다.</p></div><span>{heldChurchRows.length}곳</span></div><AdminListSearch targetId="held-church-list" total={heldChurchRows.length} label="보류 교회 검색" placeholder="교회명, 목사, 지역, 보류 메모 검색" initialLimit={10}/><div className="admin-manage-list" id="held-church-list">{heldChurchRows.length ? <AdminChurchList churches={heldChurchRows} previewIds={[...heldPreviewIds]} variant="held"/> : <p className="admin-empty">보류된 교회가 없습니다.</p>}</div></article>
     </section>
 
     <section className="admin-review-grid">

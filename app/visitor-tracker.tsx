@@ -9,6 +9,10 @@ export default function VisitorTracker() {
   useEffect(() => {
     if (location.pathname.startsWith("/admin")) return;
     if (navigator.doNotTrack === "1") return;
+    const saveData=Boolean((navigator as Navigator&{connection?:{saveData?:boolean}}).connection?.saveData);
+    const reportInterval=saveData?600_000:300_000;
+    let referrerOrigin="";
+    try { if(document.referrer)referrerOrigin=new URL(document.referrer).origin; } catch { /* 잘못된 유입 주소는 보내지 않습니다. */ }
 
     let visitorId: string | null = null;
     try {
@@ -23,17 +27,17 @@ export default function VisitorTracker() {
     let lastReportedAt=0;
     const reportActivity = () => {
       if (document.visibilityState !== "visible") return;
-      if(Date.now()-lastReportedAt<300_000)return;
+      if(Date.now()-lastReportedAt<reportInterval)return;
       lastReportedAt=Date.now();
       void fetch("/api/analytics/track", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ path: location.pathname, referrer: document.referrer, visitorId }),
+        body: JSON.stringify({ path: location.pathname, referrer: referrerOrigin, visitorId }),
         keepalive: true,
       }).catch(() => null);
     };
-    const initialReport = window.setTimeout(reportActivity, 1_500);
-    const interval = window.setInterval(reportActivity, 300_000);
+    const initialReport = window.setTimeout(reportActivity, saveData?5_000:1_500);
+    const interval = window.setInterval(reportActivity, reportInterval);
     document.addEventListener("visibilitychange", reportActivity);
     return () => {
       window.clearTimeout(initialReport);
