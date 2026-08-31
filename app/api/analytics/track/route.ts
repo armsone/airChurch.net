@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const visitorId = clean(body.visitorId, 80);
   const path = clean(body.path, 160);
   if (!/^[0-9a-f-]{36}$/i.test(visitorId) || !path.startsWith("/") || path.startsWith("//")) {
-    return Response.json({ error: "invalid visit" }, { status: 400 });
+    return Response.json({ error: "invalid visit" }, { status: 400,headers:{"cache-control":"no-store"} });
   }
 
   const db = database();
@@ -45,8 +45,8 @@ export async function POST(request: Request) {
   const visitorHash = await hashVisitor(visitorId);
   await db.prepare("INSERT INTO visitor_activity (visitor_hash,path,last_seen) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(visitor_hash) DO UPDATE SET path=excluded.path,last_seen=CURRENT_TIMESTAMP").bind(visitorHash, path).run();
   const recent = await db.prepare("SELECT id FROM page_views WHERE visitor_hash=? AND path=? AND created_at >= datetime('now','-30 minutes') LIMIT 1").bind(visitorHash, path).first();
-  if (recent) return Response.json({ ok: true, skipped: "recent" });
+  if (recent) return Response.json({ ok: true, skipped: "recent" },{headers:{"cache-control":"no-store"}});
 
   await db.prepare("INSERT INTO page_views (path,referrer_domain,visitor_hash) VALUES (?,?,?)").bind(path, referrerDomain(body.referrer), visitorHash).run();
-  return Response.json({ ok: true }, { status: 201 });
+  return Response.json({ ok: true }, { status: 201,headers:{"cache-control":"no-store"} });
 }
