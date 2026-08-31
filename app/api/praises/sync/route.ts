@@ -32,10 +32,12 @@ export async function POST() {
   const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
   const feeds = await Promise.allSettled(churches.results.map(async (church) => {
     const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`);
-    if (!response.ok) return [];
+    if (!response.ok) return null;
     return parseFeed(await response.text(), church.id);
   }));
-  const found = feeds.flatMap((result) => result.status === "fulfilled" ? result.value : []).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
+  const successfulFeeds=feeds.filter((result):result is PromiseFulfilledResult<Praise[]>=>result.status==="fulfilled"&&result.value!==null);
+  if(!successfulFeeds.length)return Response.json({ok:false,error:"YouTube feeds temporarily unavailable"},{status:502,headers:{"cache-control":"no-store"}});
+  const found = successfulFeeds.flatMap((result) => result.value).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
   if (found.length) await db.batch(found.map((item) => db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(item.churchId, item.youtubeId, item.title, item.thumbnailUrl, item.publishedAt)));
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey, new Date().toISOString()).run();
   return Response.json({ ok: true, imported: found.length, total: Math.max(Number(current?.count || 0), found.length) });
