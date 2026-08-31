@@ -247,14 +247,13 @@ export default function Home() {
     let alive=true;
     const loadItems=(url:string)=>fetch(url).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
     const lowData=prefersLowData();
-    loadItems(`/api/sermons?limit=${lowData?24:60}`).then((sermonData)=>{
-      if(!alive) return;
-      const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
-      setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
-      setSermonLoading(false);
-    });
-
     const loaders: Record<string, () => void> = {
+      sermons: ()=>loadItems(`/api/sermons?limit=${lowData?24:60}`).then((sermonData)=>{
+        if(!alive) return;
+        const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
+        setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
+        setSermonLoading(false);
+      }),
       praises: ()=>loadItems(`/api/praises?limit=${lowData?24:48}`).then((data)=>{
         if(!alive) return;
         const items=(data as {items?:Praise[]}).items||[];
