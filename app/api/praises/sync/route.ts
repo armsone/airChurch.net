@@ -21,6 +21,15 @@ function parseFeed(xml: string, churchId: number): Praise[] {
   return items;
 }
 
+async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Promise<R>):Promise<R[]> {
+  const results=new Array<R>(items.length);
+  let next=0;
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(true){const index=next++;if(index>=items.length)return;results[index]=await task(items[index]);}
+  }));
+  return results;
+}
+
 export async function POST(request?:Request) {
   if(request)return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const db = database();
@@ -31,14 +40,15 @@ export async function POST(request?:Request) {
   if (state && Number(current?.count || 0) >= 12 && Date.now() - Date.parse(state.lastSyncedAt) < 6 * 60 * 60 * 1000) return Response.json({ ok: true, imported: 0, total: current?.count || 0, skipped: "fresh" });
 
   const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
-  const feeds = await Promise.allSettled(churches.results.map(async (church) => {
+  const feeds = await mapWithConcurrency(churches.results,6,async (church):Promise<Praise[]|null> => {
     const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
     if (!response?.ok) return null;
-    return parseFeed(await response.text(), church.id);
-  }));
-  const successfulFeeds=feeds.filter((result):result is PromiseFulfilledResult<Praise[]>=>result.status==="fulfilled"&&result.value!==null);
+    const xml=await response.text().catch(()=>null);
+    return xml===null?null:parseFeed(xml, church.id);
+  });
+  const successfulFeeds=feeds.filter((result):result is Praise[]=>result!==null);
   if(!successfulFeeds.length)return Response.json({ok:false,error:"YouTube feeds temporarily unavailable"},{status:502,headers:{"cache-control":"no-store"}});
-  const found = successfulFeeds.flatMap((result) => result.value).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
+  const found = successfulFeeds.flat().sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt)).slice(0, 60);
   if (found.length) await db.batch(found.map((item) => db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(item.churchId, item.youtubeId, item.title, item.thumbnailUrl, item.publishedAt)));
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey, new Date().toISOString()).run();
   return Response.json({ ok: true, imported: found.length, total: Math.max(Number(current?.count || 0), found.length) });

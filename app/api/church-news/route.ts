@@ -79,6 +79,15 @@ async function loadSource(source:FeedSource) {
   const xml=await limitedText(response);return xml===null?[]:parseFeed(xml,source);
 }
 
+async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Promise<R>):Promise<R[]> {
+  const results=new Array<R>(items.length);
+  let next=0;
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(true){const index=next++;if(index>=items.length)return;results[index]=await task(items[index]);}
+  }));
+  return results;
+}
+
 const MAX_PER_SOURCE=2;
 
 function capPerSource(items:NewsItem[],limit:number) {
@@ -94,9 +103,9 @@ function capPerSource(items:NewsItem[],limit:number) {
 }
 
 export async function GET() {
-  const settled=await Promise.allSettled(sources.map(loadSource));
+  const loaded=await mapWithConcurrency(sources,6,async(source)=>loadSource(source).catch(()=>[]));
   const items=capPerSource(
-    settled.flatMap((result)=>result.status==="fulfilled"?result.value:[])
+    loaded.flat()
       .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)),
     MAX_PER_SOURCE,
   ).slice(0,50);
