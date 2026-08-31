@@ -10,7 +10,7 @@ type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
-type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; getVideoData:()=>{video_id?:string} };
+type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; unMute:()=>void; getVideoData:()=>{video_id?:string} };
 type YouTubeEvent = { data:number; target:YouTubePlayer };
 type YouTubeApi = { Player:new(
   element:HTMLIFrameElement,
@@ -129,10 +129,12 @@ export default function Home() {
   const [shortItems,setShortItems]=useState<Short[]>([]);
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
+  const [shortMuted,setShortMuted]=useState(true);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const shortPlayerInstanceRef=useRef<YouTubePlayer|null>(null);
   const shortViewerInitialIdRef=useRef<string|undefined>(undefined);
   const activeShortIdRef=useRef<string|undefined>(undefined);
+  const shortMutedRef=useRef(true);
   const shortPlayerPlayPendingRef=useRef(false);
   const filteredShortsLengthRef=useRef(0);
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
@@ -264,6 +266,7 @@ export default function Home() {
   }
   const activeShort = activeShortIndex !== null ? filteredShorts[activeShortIndex] : undefined;
   activeShortIdRef.current=activeShort?.youtubeId;
+  shortMutedRef.current=shortMuted;
   if(activeShort && shortViewerInitialIdRef.current===undefined) shortViewerInitialIdRef.current=activeShort.youtubeId;
   if(!activeShort) shortViewerInitialIdRef.current=undefined;
   useEffect(()=>{
@@ -283,7 +286,7 @@ export default function Home() {
       if(!player) return;
       if(!shortPlayerPlayPendingRef.current) return;
       shortPlayerPlayPendingRef.current = false;
-      player.mute();
+      if(shortMutedRef.current) player.mute();
       player.playVideo();
     };
 
@@ -314,6 +317,10 @@ export default function Home() {
     shortPlayerPlayPendingRef.current = true;
     return ()=>{cancelled=true;};
   },[activeShort?.youtubeId]);
+  function unmuteShort() {
+    shortPlayerInstanceRef.current?.unMute();
+    setShortMuted(false);
+  }
   const trimmedChurchQuery=churchQuery.trim();
   const currentChurchSearch=churchSearch?.query===trimmedChurchQuery?churchSearch:null;
   const filteredChurches = useMemo(() => {
@@ -483,7 +490,7 @@ export default function Home() {
       <section className="content-section shorts-section" id="shorts">
         <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "↻ 다른 쇼츠 보기"}</button></div>
         <div className="shorts-grid">
-          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={()=>setActiveShortIndex(index)} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
+          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={()=>{setShortMuted(true);setActiveShortIndex(index);}} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
             <img className="shorts-thumb" src={short.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />
             <span className="shorts-play-badge" aria-hidden="true">▶</span>
             <span className="shorts-card-meta"><strong>{short.church}</strong><small>{short.title}</small></span>
@@ -502,6 +509,7 @@ export default function Home() {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
+          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"50%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
           <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
           <button type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
