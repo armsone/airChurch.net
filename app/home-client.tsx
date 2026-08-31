@@ -507,7 +507,7 @@ export default function Home() {
   async function loadDifferentShorts() {
     setShortLoading(true);
     try {
-      const response=await fetch("/api/shorts");
+      const response=await fetch("/api/shorts?limit=60");
       const items=response.ok?((await response.json()) as {items?:Short[]}).items||[]:shortItems;
       const next=shuffled(items);
       if(next.length>1&&next[0]?.youtubeId===shortItems[0]?.youtubeId) next.push(next.shift() as Short);
@@ -523,7 +523,7 @@ export default function Home() {
   async function loadDifferentPraises() {
     setPraiseLoading(true);
     try {
-      const response=await fetch("/api/praises");
+      const response=await fetch("/api/praises?limit=48");
       const items=response.ok?((await response.json()) as {items?:Praise[]}).items||[]:praiseItems;
       const pinned=items.filter((item)=>item.pinned);
       const next=shuffled(items.filter((item)=>!item.pinned));
