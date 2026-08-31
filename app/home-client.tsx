@@ -102,7 +102,7 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   access: "공개(로그인 없이 열람 가능)",
   lastChecked: "공개 자료 확인 시 갱신",
 }));
-const menuItems = [["말씀","#sermons"],["교회 찾기","#church-directory"],["주제 탐색","#topic-discovery"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
+const menuItems = [["말씀","#sermons"],["교회 찾기","#church-directory"],["주제 탐색","#topic-discovery"],["나의 모음","/saved"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
 const headerAdminLinks = [["운영 안내","/about"],["문의","/contact"]] as const;
 
 function shuffled<T>(items: T[]) {
