@@ -17,7 +17,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
   const church=Number.isInteger(id)&&id>0?await db.prepare("SELECT id,name,pastor,region,denomination,youtube_channel_id,homepage_url,channel_image_url FROM churches WHERE id=? AND review_status='approved' LIMIT 1").bind(id).first<ChurchRow>():null;
   if(!church)return <main className="church-detail-shell"><header className="church-detail-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><a href="/#church-directory">교회 찾기로 돌아가기</a></header><section className="church-detail-missing"><span>CHURCH DIRECTORY</span><h1>현재 공개된 교회가 아닙니다</h1><p>정보가 변경되었거나 운영 기준에 따라 보류되었을 수 있습니다.</p><a href="/#church-directory">다른 교회 찾아보기 →</a></section></main>;
   const [sermons,praises]=await Promise.all([
-    db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 12").bind(id).all<VideoRow>(),
+    db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 9").bind(id).all<VideoRow>(),
     db.prepare("SELECT youtube_id,title,published_at FROM praise_videos WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 6").bind(id).all<VideoRow>(),
   ]);
   const homepage=churchHomepageUrls[church.name]||church.homepage_url;const image=churchImageUrls[church.name]||church.channel_image_url;
