@@ -100,5 +100,6 @@ export async function GET() {
       .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)),
     MAX_PER_SOURCE,
   ).slice(0,50);
-  return Response.json({items,sources:sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}))},{headers:{"cache-control":"public, max-age=300, s-maxage=900, stale-while-revalidate=21600"}});
+  const cacheControl=items.length?"public, max-age=300, s-maxage=900, stale-while-revalidate=21600":"no-store";
+  return Response.json({items,sources:sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}))},{headers:{"cache-control":cacheControl}});
 }
