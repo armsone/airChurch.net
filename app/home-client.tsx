@@ -2,6 +2,7 @@
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
+import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./recent-searches";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 import SkipLink from "./skip-link";
@@ -221,8 +222,7 @@ export default function Home() {
       setSavedItems(readSavedItems());
       setDailyCompleted(Array.isArray(completed)?completed:[]);
       setDailyNote(localStorage.getItem(`airchurch:note:${todayKey}`)||"");
-      const recent=JSON.parse(localStorage.getItem("airchurch:recent-searches")||"[]") as unknown;
-      setRecentSearches(Array.isArray(recent)?recent.filter((item):item is string=>typeof item==="string").slice(0,5):[]);
+      setRecentSearches(readRecentSearches());
     } catch { /* 손상된 브라우저 저장값은 빈 상태로 시작합니다. */ }
     setPersonalStateReady(true);
   },[todayKey]);
@@ -631,9 +631,9 @@ export default function Home() {
         <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
         <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
-        <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(!normalized)return;const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{localStorage.setItem("airchurch:recent-searches",JSON.stringify(next));}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}>
+        <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(!normalized)return;const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}>
           <label className="sr-only" htmlFor="site-search">교회, 목사, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" name="q" list="church-search-suggestions" aria-describedby="site-search-help" autoComplete="off" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목사, 지역, 교단으로 찾아 보세요."} />
+          <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목사, 지역, 교단으로 찾아 보세요."} />
           <span className="sr-only" id="site-search-help">{churchTotal?`등록된 ${churchTotal.toLocaleString("ko-KR")}개 교회에서 여러 조건을 함께 검색할 수 있습니다.`:"여러 조건을 함께 검색할 수 있습니다."}</span>
           <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
           <div className="search-filters">
@@ -642,7 +642,7 @@ export default function Home() {
             <button type="submit">통합 검색</button>
           </div>
         </form>
-        {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{localStorage.removeItem("airchurch:recent-searches");}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
+        {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
         <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
         <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
