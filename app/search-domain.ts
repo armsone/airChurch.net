@@ -7,9 +7,12 @@ export const denominationAliases:Record<string,string[]>={
   독립:["독립교회","한국독립교회선교단체연합회"],카이캄:["한국독립교회선교단체연합회"]
 };
 
+const regionPrefixes=["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+
 export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/(?:담임)?목사(?:님)?$/,"");
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
-export const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchValue).filter(Boolean).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
+export const tokenizeSearchQuery=(query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchValue).filter(Boolean).flatMap((term)=>{if(term.length<5)return [term];const prefix=[...regionPrefixes,...Object.keys(denominationAliases).sort((a,b)=>b.length-a.length)].find((candidate)=>term.startsWith(candidate)&&term.slice(candidate.length).length>=3);return prefix?[prefix,term.slice(prefix.length)]:[term];}).slice(0,5);
+export const matchesSearchTerms=(haystack:string,query:string)=>tokenizeSearchQuery(query).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
 export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')',''),'&',''),'\/',''),',',''),':',''),'_',''),char(39),''),'[',''),']','')`;
 export const metadataSearchValue=(name:string,pastor:string,region:string,denomination:string,extra="")=>normalizeSearchValue(`${name}${pastor}${region}${denomination}${region}${name}${denomination}${name}${pastor}${name}${extra}${region}${extra}${name}`);
 export const sqlMetadataSearchValue=(name:string,pastor:string,region:string,denomination:string,extra="''")=>sqlNormalized(`${name}||${pastor}||${region}||${denomination}||${region}||${name}||${denomination}||${name}||${pastor}||${name}||${extra}||${region}||${extra}||${name}`);

@@ -1,7 +1,7 @@
 import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue } from "../../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, tokenizeSearchQuery } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
 
 type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
@@ -13,8 +13,7 @@ export async function GET(request:Request) {
   const globalQuery=url.searchParams.get("global")?.trim().toLowerCase().slice(0,100)??"";
   const region=url.searchParams.get("region")?.trim().slice(0,40)??"";
   const denomination=url.searchParams.get("denomination")?.trim().slice(0,80)??"";
-  const terms=query.toLowerCase().split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
-  const globalTerms=globalQuery.split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
+  const terms=tokenizeSearchQuery(query),globalTerms=tokenizeSearchQuery(globalQuery);
   const searchGroups=[...terms,...globalTerms].map(expand);
   const responseHeaders={"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
   if((query||globalQuery)&&!searchGroups.length)return Response.json({items:[],total:0},{headers:responseHeaders});

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensurePraiseTables, ensureSermonTables } from "../api/_shared";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, sqlRelevance } from "../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../search-domain";
 import SearchForm from "./search-form";
 import SavedNavLink from "../saved-nav-link";
 import SkipLink from "../skip-link";
@@ -25,7 +25,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<Re
   const value=(key:string,max:number)=>String(Array.isArray(params[key])?params[key]?.[0]??"":params[key]??"").trim().slice(0,max);
   const displayLimit=(key:string)=>{const parsed=Number(value(key,3));return [12,24,36,48].includes(parsed)?parsed:12;};
   const churchLimit=displayLimit("churchLimit"),sermonLimit=displayLimit("sermonLimit"),praiseLimit=displayLimit("praiseLimit");
-  const q=value("q",100),region=value("region",40),denomination=value("denomination",100),terms=q.toLowerCase().split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
+  const q=value("q",100),region=value("region",40),denomination=value("denomination",100),terms=tokenizeSearchQuery(q);
   const filters=(haystack:string)=>{const groups=terms.map(expand);const conditions=[...(q&&!terms.length?["0=1"]:[]),...groups.map((group)=>`(${group.map(()=>`instr(${haystack},?)>0`).join(" OR ")})`)];const bindings:string[]=groups.flat();if(region&&region!=="전체"){conditions.push("substr(c.region,1,length(?))=?");bindings.push(region,region);}if(denomination&&denomination!=="전체 교단"){conditions.push("c.denomination=?");bindings.push(denomination);}return {sql:conditions.length?` AND ${conditions.join(" AND ")}`:"",bindings};};
   const churchFilter=filters(sqlMetadataSearchValue("c.name","c.pastor","c.region","c.denomination")),videoFilter=filters(sqlMetadataSearchValue("c.name","c.pastor","c.region","c.denomination","v.title"));
   const groups=terms.map(expand),churchSqlScore=sqlRelevance([["c.name",40],["c.pastor",25],["c.region",15],["c.denomination",12]],groups),videoSqlScore=sqlRelevance([["v.title",45],["c.name",35],["c.pastor",24],["c.region",14],["c.denomination",12]],groups);
