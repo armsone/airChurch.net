@@ -23,7 +23,7 @@ type SavedItem = { id:string; kind:"sermon"|"praise"|"church"; title:string; sub
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 type SearchSuggestion = { value:string; label:string };
 
-const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/\s/g,"");
+const normalizeSearchText=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/목사(?:님)?$/,"");
 const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchText).filter(Boolean).every((term)=>haystack.includes(term));
 
 function denominationMark(denomination:string) {
