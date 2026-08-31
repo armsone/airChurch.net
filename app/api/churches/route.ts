@@ -38,7 +38,7 @@ export async function GET(request:Request) {
   const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
     const homepageUrl=safeHttpUrl(churchHomepageUrls[church.name]||church.homepageUrl);
-    const channelImageUrl=churchImageUrls[church.name]||church.channelImageUrl||null;
+    const channelImageUrl=safeHttpUrl(churchImageUrls[church.name]||church.channelImageUrl);
     return {...church,homepageUrl,channelImageUrl};
   });
   return Response.json({items,total:count?.total??items.length},{headers:responseHeaders});
