@@ -297,7 +297,7 @@ export default function Home() {
     }
     const observer=new IntersectionObserver((entries)=>entries.forEach((entry)=>{
       if(entry.isIntersecting) { loadSection(entry.target.id);observer.unobserve(entry.target); }
-    }),{rootMargin:"800px 0px"});
+    }),{rootMargin:lowData?"200px 0px":"800px 0px"});
     Object.keys(loaders).forEach((id)=>{ const section=document.getElementById(id);if(section) observer.observe(section); });
     return()=>{alive=false;observer.disconnect()};
   },[]);
