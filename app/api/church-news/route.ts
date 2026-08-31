@@ -64,8 +64,8 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
 }
 
 async function loadSource(source:FeedSource) {
-  const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1"}});
-  if(!response.ok) return [];
+  const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1"},signal:AbortSignal.timeout(8_000)}).catch(()=>null);
+  if(!response?.ok) return [];
   return parseFeed(await response.text(),source);
 }
 
