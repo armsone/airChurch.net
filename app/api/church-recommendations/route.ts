@@ -1,4 +1,4 @@
-import { clean, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint } from "../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureSermonTables, fingerprint, requestBodyTooLarge } from "../_shared";
 
 function validYoutubeUrl(value:string) {
   if(!value) return true;
@@ -9,6 +9,7 @@ function validYoutubeUrl(value:string) {
 }
 
 export async function POST(request:Request) {
+  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   const data=await request.json().catch(()=>({})) as Record<string,unknown>;
   if(clean(data.company,20)) return Response.json({ok:true});
   const churchName=clean(data.churchName,100),pastor=clean(data.pastor,80),region=clean(data.region,80),denomination=clean(data.denomination,120),youtubeUrl=clean(data.youtubeUrl,300),reason=clean(data.reason,800);

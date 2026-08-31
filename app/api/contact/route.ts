@@ -1,8 +1,9 @@
-import { clean, database, ensureContactTables, fingerprint } from "../_shared";
+import { clean, database, ensureContactTables, fingerprint, requestBodyTooLarge } from "../_shared";
 
 const categories = new Set(["정보 수정 요청", "저작권·비공개 요청", "개인정보 요청", "운영 문의"]);
 
 export async function POST(request:Request) {
+  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413});
   const origin=request.headers.get("origin");
   if(origin&&origin!==new URL(request.url).origin) return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
   const data=await request.json().catch(()=>({})) as Record<string,unknown>;

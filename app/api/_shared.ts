@@ -100,3 +100,4 @@ export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
 });
 export async function fingerprint(request: Request) { const ip=request.headers.get("cf-connecting-ip")||"local", agent=request.headers.get("user-agent")||"unknown", day=new Date().toISOString().slice(0,10); const bytes=new TextEncoder().encode(`${ip}|${agent}|${day}`); return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map((b)=>b.toString(16).padStart(2,"0")).join(""); }
 export function clean(value:unknown,max:number) { return typeof value === "string" ? value.trim().replace(/<[^>]*>/g,"").slice(0,max) : ""; }
+export function requestBodyTooLarge(request:Request,maxBytes=16_384){const length=Number(request.headers.get("content-length"));return Number.isFinite(length)&&length>maxBytes;}
