@@ -35,7 +35,7 @@ export async function GET(request:Request) {
   const order=isSearch&&searchGroups.length?`(${relevance.sql}) DESC,priority_weight DESC,name`:isSearch?"priority_weight DESC,name":`CASE WHEN priority_weight>1 THEN 0 ELSE 1 END,CASE WHEN priority_weight>1 THEN priority_weight END DESC,RANDOM()`;
   const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY ${order} LIMIT ${limit}`;
   const result=await db.prepare(selectSql).bind(...bindings,...(searchGroups.length?relevance.bindings:[])).all<ChurchRow>();
-  const count=await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
+  const count=result.results.length<limit?{total:result.results.length}:await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
     const homepageUrl=safeHttpUrl(churchHomepageUrls[church.name]||church.homepageUrl);
     const channelImageUrl=safeHttpUrl(churchImageUrls[church.name]||church.channelImageUrl);
