@@ -1,11 +1,21 @@
 {
   "name": "에어처치",
   "short_name": "에어처치",
-  "description": "검증된 교회의 설교를 발견하고 선한 나눔에 참여하는 크리스천 포털",
+  "description": "공개된 말씀과 찬양을 발견하고 건강한 지역교회와 이어지는 크리스천 포털",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
+  "lang": "ko-KR",
+  "dir": "ltr",
   "display": "standalone",
   "background_color": "#F5F3ED",
   "theme_color": "#18362F",
+  "categories": ["lifestyle", "education", "social"],
+  "shortcuts": [
+    { "name": "오늘의 말씀", "short_name": "말씀", "url": "/#sermons" },
+    { "name": "교회 찾기", "short_name": "교회", "url": "/#church-directory" },
+    { "name": "나의 모음", "short_name": "모음", "url": "/saved" }
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
