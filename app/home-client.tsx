@@ -599,7 +599,7 @@ export default function Home() {
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
         <form className="search" role="search" action="/search" method="get">
           <label className="sr-only" htmlFor="site-search">교회, 목사님, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" name="q" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회명, 목사님, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회명, 목사님, 지역, 교단으로 찾아보세요."} />
+          <input id="site-search" name="q" value={query} onChange={(e) => { setQuery(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아보세요.`:"교회, 목사, 지역, 교단으로 찾아보세요."} />
           <div className="search-filters">
             <select name="region" aria-label="지역 선택" value={region} onChange={(e) => { setRegion(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{regions.map((item) => <option key={item}>{item}</option>)}</select>
             <select name="denomination" className="denomination-filter" aria-label="교단 선택" value={denomination} onChange={(e) => { setDenomination(e.target.value);setVisibleSermonCount(6);setShowAllChurches(false); }}>{denominationOptions.map((item) => <option key={item}>{item}</option>)}</select>
