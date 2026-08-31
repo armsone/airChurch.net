@@ -7,11 +7,12 @@ import { POST as syncPraises } from "./sync/route";
 type PraiseRow={youtubeId:string;title:string;publishedAt:string;churchId:number;church:string;pastor:string;region:string;denomination:string;priorityWeight:number};
 
 let pendingSync:Promise<void>|null=null;
+let lastSyncAttemptAt=0;
 
 function scheduleSync() {
   const context=getRequestExecutionContext();
-  if(!context)return;
-  if(!pendingSync) pendingSync=syncPraises().then(()=>undefined).catch(()=>undefined).finally(()=>{pendingSync=null;});
+  if(!context||Date.now()-lastSyncAttemptAt<5*60*1000)return;
+  if(!pendingSync) {lastSyncAttemptAt=Date.now();pendingSync=syncPraises().then(()=>undefined).catch(()=>undefined).finally(()=>{pendingSync=null;});}
   context.waitUntil(pendingSync);
 }
 
