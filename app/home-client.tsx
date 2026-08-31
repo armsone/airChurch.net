@@ -4,6 +4,7 @@ import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 
 import HomeReloadLink from "./home-reload-link";
 import { matchesSearchTerms, normalizeSearchValue } from "./search-domain";
 import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
+import SkipLink from "./skip-link";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
 
@@ -589,7 +590,7 @@ export default function Home() {
   }
 
   return (
-    <main>
+    <main><SkipLink/>
       {notice && <div className="toast" role="status"><span>{notice}</span><button onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
       <header className="site-header">
         <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
@@ -599,7 +600,7 @@ export default function Home() {
         <div className={`mobile-menu-panel${mobileMenuOpen?" is-open":""}`} id="mobile-site-menu" aria-hidden={!mobileMenuOpen}>{menuItems.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}<div className="mobile-menu-admin">{headerAdminLinks.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}</div></div>
       </header>
 
-      <section className="hero" id="top">
+      <section className="hero" id="primary-content" tabIndex={-1}>
         <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
         <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
