@@ -173,6 +173,8 @@ export default function Home() {
   const pullToRefreshStartRef=useRef<number|null>(null);
   const pullToRefreshDistanceRef=useRef(0);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
+  const shortCloseButtonRef=useRef<HTMLButtonElement>(null);
+  const shortTriggerRef=useRef<HTMLElement|null>(null);
   const shortPlayerInstanceRef=useRef<YouTubePlayer|null>(null);
   const shortViewerInitialIdRef=useRef<string|undefined>(undefined);
   const activeShortIdRef=useRef<string|undefined>(undefined);
@@ -366,6 +368,12 @@ export default function Home() {
     window.addEventListener("keydown",onKeyDown);
     return ()=>window.removeEventListener("keydown",onKeyDown);
   },[activeShortIndex,filteredShorts.length]);
+  const shortViewerOpen=activeShortIndex!==null;
+  useEffect(()=>{
+    if(!shortViewerOpen)return;
+    const timer=window.setTimeout(()=>shortCloseButtonRef.current?.focus(),0);
+    return()=>{window.clearTimeout(timer);shortTriggerRef.current?.focus();};
+  },[shortViewerOpen]);
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
   const startMutedPlayback=(player:YouTubePlayer)=>{
@@ -659,7 +667,7 @@ export default function Home() {
       <section className="content-section shorts-section" id="shorts">
         <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "↻ 다른 쇼츠 보기"}</button></div>
         <div className="shorts-grid">
-          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={()=>{setShortMuted(true);setActiveShortIndex(index);}} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
+          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={(event)=>{shortTriggerRef.current=event.currentTarget;setShortMuted(true);setActiveShortIndex(index);}} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
             <img className="shorts-thumb" src={short.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />
             <span className="shorts-play-badge" aria-hidden="true">▶</span>
             <span className="shorts-card-meta"><strong>{short.church}</strong><small>{short.title}</small></span>
@@ -680,7 +688,7 @@ export default function Home() {
           />
           {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
           <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
-          <button type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
+          <button ref={shortCloseButtonRef} type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-next" onClick={()=>setActiveShortIndex((current)=>current!==null && current<filteredShorts.length-1 ? current+1 : current)} disabled={activeShortIndex===filteredShorts.length-1} aria-label="다음 쇼츠 보기">›</button>
           <div className="shorts-viewer-meta"><strong>{activeShort.church}</strong><span>{activeShort.title}</span></div>
