@@ -10,4 +10,4 @@ export const denominationAliases:Record<string,string[]>={
 export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/(?:담임)?목사(?:님)?$/,"");
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
 export const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchValue).filter(Boolean).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
-export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')',''),'&',''),'\/',''),',',''),':','')`;
+export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')',''),'&',''),'\/',''),',',''),':',''),'_',''),char(39),''),'[',''),']','')`;
