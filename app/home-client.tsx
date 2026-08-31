@@ -444,12 +444,12 @@ export default function Home() {
     if(standard.length&&churchRadarRefresh) standard.push(...standard.splice(0,churchRadarRefresh%standard.length));
     return [...prioritized,...standard].slice(0,12);
   },[filteredChurches,hasActiveChurchFilter,churchRadarRefresh]);
-  const visibleChurches=hasActiveChurchFilter?(showAllChurches?filteredChurches:filteredChurches.slice(0,12)):radarChurches;
+  const visibleChurches=hasActiveChurchFilter?filteredChurches.slice(0,showAllChurches?48:12):radarChurches;
   const isUnfilteredChurchDirectory=!query.trim()&&region==="전체"&&denomination==="전체 교단";
   const churchSearchTotal=hasActiveChurchFilter?(currentChurchSearch?.total??0):churchTotal;
   const churchSearchPending=Boolean(hasActiveChurchFilter&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":isUnfilteredChurchDirectory?`전국 ${churchTotal.toLocaleString("ko-KR")}개 교회`:`${churchSearchTotal.toLocaleString("ko-KR")}개 검색 결과`;
-  const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${filteredChurches.length}곳)`;
+  const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${Math.min(48,filteredChurches.length)}곳까지)`;
   const dailyProgress=Math.round(dailyCompleted.filter((step)=>["bible","sermon","praise"].includes(step)).length/3*100);
 
   function markDailyStep(step:"bible"|"sermon"|"praise") {
