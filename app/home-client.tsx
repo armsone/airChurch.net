@@ -589,7 +589,7 @@ export default function Home() {
     const isPlaying=Boolean(video.youtubeId&&activeVideoId===video.youtubeId);
     return <div className={`sermon-thumb ${video.tone??""}${video.thumbnailUrl?" has-image":""}`}>
       {isPlaying ? <><iframe className="video-frame" src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /><button className="video-close" type="button" onClick={()=>setActiveVideoId(null)} aria-label={`${video.church} ${video.kind} 영상 닫기`}>×</button></> : <>
-        {video.thumbnailUrl&&<img className="thumbnail-image" src={video.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}
+        {video.thumbnailUrl&&<img className="thumbnail-image" src={video.thumbnailUrl} alt="" width={320} height={180} loading="lazy" decoding="async" fetchPriority="low" />}
         <span className="rank">{video.marker}</span>
         {video.youtubeId?<button className="play" type="button" onClick={()=>{setActiveVideoId(video.youtubeId!);markDailyStep(video.kind==="설교"?"sermon":"praise");}} aria-label={`${video.church} ${video.kind} 현 화면에서 재생`}>▶</button>:<button type="button" onClick={()=>setNotice("연결된 영상이 아직 없습니다.")} aria-label={`${video.church} ${video.kind} 재생 준비 중`}>▶</button>}
         <span className="duration">{video.date}</span>
@@ -658,7 +658,7 @@ export default function Home() {
           {!sermonLoading && !filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
         {!sermonLoading && previewSermons.length > 0 && <div className="sermon-next-preview"><div className="sermon-grid">{previewSermons.map((sermon)=><article className="sermon-card" key={`preview-${sermon.id}`}>
-          <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span></div>
+          <div className={`sermon-thumb ${sermon.tone}${sermon.thumbnailUrl?" has-image":""}`}>{sermon.thumbnailUrl&&<img className="thumbnail-image" src={sermon.thumbnailUrl} alt="" width={320} height={180} loading="lazy" decoding="async" fetchPriority="low" />}<span className="rank">{sermon.rank}</span></div>
           <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{sermon.title}</h3><p>{sermon.church} · {sermon.pastor} · {sermon.region}</p></div>
         </article>)}</div><button type="button" onClick={()=>setVisibleSermonCount((count)=>count+18)} aria-label="말씀 18개 더 펼치기"><span>눌러서 말씀 더 보기</span></button></div>}
         {!sermonLoading && visibleSermons.length < filtered.length && <button className="sermon-more" type="button" onClick={()=>setVisibleSermonCount((count)=>count+18)}>말씀 18개 더 보기 <small>{visibleSermons.length} / {filtered.length}</small></button>}
@@ -668,7 +668,7 @@ export default function Home() {
         <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "↻ 다른 쇼츠 보기"}</button></div>
         <div className="shorts-grid">
           {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={(event)=>{shortTriggerRef.current=event.currentTarget;setShortMuted(true);setActiveShortIndex(index);}} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
-            <img className="shorts-thumb" src={short.thumbnailUrl} alt="" loading="lazy" decoding="async" fetchPriority="low" />
+            <img className="shorts-thumb" src={short.thumbnailUrl} alt="" width={180} height={320} loading="lazy" decoding="async" fetchPriority="low" />
             <span className="shorts-play-badge" aria-hidden="true">▶</span>
             <span className="shorts-card-meta"><strong>{short.church}</strong><small>{short.title}</small></span>
           </button>)}
