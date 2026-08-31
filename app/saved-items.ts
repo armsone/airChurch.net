@@ -7,7 +7,7 @@ export function isSavedItem(item:unknown):item is SavedItem{
   if(!item||typeof item!=="object")return false;
   const value=item as Record<string,unknown>;
   const kind=String(value.kind),url=typeof value.url==="string"?value.url:"";
-  const safeUrl=url.startsWith("/")||url.startsWith("#")||url.startsWith("https://www.youtube.com/")||url.startsWith("https://youtu.be/");
+  const safeUrl=(url.startsWith("/")&&!url.startsWith("//"))||url.startsWith("#")||url.startsWith("https://www.youtube.com/")||url.startsWith("https://youtu.be/");
   return typeof value.id==="string"&&["sermon","praise","church"].includes(kind)&&value.id.startsWith(`${kind}:`)&&typeof value.title==="string"&&typeof value.subtitle==="string"&&safeUrl&&value.id.length<=300&&value.title.length<=300&&value.subtitle.length<=500&&url.length<=1000;
 }
 
@@ -17,7 +17,7 @@ export function readSavedItems(){
 
 export function writeSavedItems(items:SavedItem[]){
   const safe=items.filter(isSavedItem).filter((item,index,all)=>all.findIndex((other)=>other.id===item.id)===index).slice(0,SAVED_ITEMS_LIMIT);
-  localStorage.setItem(SAVED_ITEMS_KEY,JSON.stringify(safe));
+  try{localStorage.setItem(SAVED_ITEMS_KEY,JSON.stringify(safe));}catch{/* 저장이 제한돼도 현재 화면의 기능은 유지합니다. */}
   window.dispatchEvent(new CustomEvent("airchurch:saved-change",{detail:safe.length}));
   return safe;
 }
