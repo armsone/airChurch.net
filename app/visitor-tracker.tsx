@@ -23,10 +23,11 @@ export default function VisitorTracker() {
         keepalive: true,
       }).catch(() => null);
     };
-    reportActivity();
-    const interval = window.setInterval(reportActivity, 120_000);
+    const initialReport = window.setTimeout(reportActivity, 1_500);
+    const interval = window.setInterval(reportActivity, 300_000);
     document.addEventListener("visibilitychange", reportActivity);
     return () => {
+      window.clearTimeout(initialReport);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", reportActivity);
     };
