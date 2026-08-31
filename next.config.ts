@@ -2,7 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{
+    return [
+    {
+      source: "/",
+      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+    },
+    {
+      source: "/:page(about|community-guidelines|privacy|copyright|terms|saved)",
+      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+    },
+    {
       source: "/(.*)",
       headers: [
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
