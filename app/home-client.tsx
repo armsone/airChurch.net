@@ -173,6 +173,7 @@ export default function Home() {
   const pullToRefreshStartRef=useRef<number|null>(null);
   const pullToRefreshDistanceRef=useRef(0);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
+  const shortViewerRef=useRef<HTMLDivElement>(null);
   const shortCloseButtonRef=useRef<HTMLButtonElement>(null);
   const shortTriggerRef=useRef<HTMLElement|null>(null);
   const shortPlayerInstanceRef=useRef<YouTubePlayer|null>(null);
@@ -362,6 +363,14 @@ export default function Home() {
     if(activeShortIndex===null) return;
     function onKeyDown(event:KeyboardEvent) {
       if(event.key==="Escape") { setActiveShortIndex(null); return; }
+      if(event.key==="Tab") {
+        const focusable=Array.from(shortViewerRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), iframe, [href], [tabindex]:not([tabindex="-1"])')??[]);
+        if(!focusable.length)return;
+        const first=focusable[0],last=focusable[focusable.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+        return;
+      }
       if(event.key==="ArrowUp") { event.preventDefault(); setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current); return; }
       if(event.key==="ArrowDown") { event.preventDefault(); setActiveShortIndex((current)=>current!==null && current<filteredShorts.length-1 ? current+1 : current); }
     }
@@ -677,7 +686,7 @@ export default function Home() {
       </section>
 
       {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`} onClick={()=>setActiveShortIndex(null)}>
-        <div className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
+        <div ref={shortViewerRef} className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
           <iframe
             ref={shortPlayerRef}
             className="shorts-viewer-frame"
