@@ -9,7 +9,7 @@ export async function POST(request:Request) {
   const password=typeof data.password==="string"?data.password:"";
   if(name.length<2||contact.length<5||!/^[a-z0-9._-]{4,40}$/.test(username)||password.length<10||password.length>128) return Response.json({error:"성함·연락처, 4자 이상의 영문 아이디와 10자 이상의 비밀번호를 확인해 주세요."},{status:400});
   const db=database();await ensureReviewerTables(db);
-  const requestFingerprint=await fingerprint(request);
+  const requestFingerprint=await fingerprint(request,"reviewer-signup");
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM reviewer_accounts WHERE fingerprint=? AND created_at>=datetime('now','-1 day')").bind(requestFingerprint).first<{count:number}>();
   if((recent?.count??0)>=3) return Response.json({error:"가입 신청 횟수를 초과했습니다. 내일 다시 시도해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"86400"}});
   const existing=await db.prepare("SELECT id FROM reviewer_accounts WHERE username=? LIMIT 1").bind(username).first();

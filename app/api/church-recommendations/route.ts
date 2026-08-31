@@ -18,7 +18,7 @@ export async function POST(request:Request) {
   await Promise.all([ensureChurchRecommendationTables(db),ensureSermonTables(db)]);
   const held=await db.prepare("SELECT id FROM churches WHERE name=? AND review_status='removed' LIMIT 1").bind(churchName).first();
   if(held) return Response.json({ok:true,status:"already_held"});
-  const fp=await fingerprint(request);
+  const fp=await fingerprint(request,"church-recommendation");
   const recent=await db.prepare("SELECT COUNT(*) AS count FROM church_recommendations WHERE fingerprint=? AND created_at>datetime('now','-10 minutes')").bind(fp).first<{count:number}>();
   if((recent?.count||0)>=2) return Response.json({error:"잠시 후 다시 추천해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":"600"}});
   const duplicate=await db.prepare("SELECT id FROM church_recommendations WHERE church_name=? AND region=? AND status IN ('pending','approved') LIMIT 1").bind(churchName,region).first();

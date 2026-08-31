@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   if (typeof data.username !== "string" || typeof data.password !== "string") {
     return Response.json({ error: "아이디 또는 비밀번호가 맞지 않습니다." }, { status: 403, headers: { "cache-control": "no-store" } });
   }
-  const db=database();await ensureAccessTables(db);const fp=await fingerprint(request);
+  const db=database();await ensureAccessTables(db);const fp=await fingerprint(request,"admin-login");
   const attempts=await db.prepare("SELECT attempt_count AS attemptCount,window_started AS windowStarted FROM admin_login_attempts WHERE fingerprint=?").bind(fp).first<{attemptCount:number;windowStarted:string}>();
   if(attempts&&Date.now()-Date.parse(`${attempts.windowStarted}Z`)<15*60*1000&&attempts.attemptCount>=10){const retryAfter=Math.max(1,Math.ceil((15*60*1000-(Date.now()-Date.parse(`${attempts.windowStarted}Z`)))/1000));return Response.json({error:"로그인 시도가 너무 많습니다. 15분 후 다시 시도해 주세요."},{status:429,headers:{"cache-control":"no-store","retry-after":String(retryAfter)}});}
   const session=await verifyCredentials(data.username,data.password);
