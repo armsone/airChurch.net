@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables } from "../../_shared";
+import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, requestBodyTooLarge } from "../../_shared";
 
 async function requestRole(request: Request) {
   const origin = request.headers.get("origin");
@@ -8,6 +8,7 @@ async function requestRole(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if(requestBodyTooLarge(request))return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});
   const session=await requestRole(request);
   if (!session) return Response.json({ error: "운영자 권한이 필요합니다." }, { status: 403 });
   const {role}=session;
