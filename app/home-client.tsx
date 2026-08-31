@@ -62,6 +62,19 @@ const dailyGuides = [
   { day:"토요일", theme:"감사와 준비", reference:"데살로니가전서 5:16-18", question:"이번 주에 발견한 감사 세 가지를 떠올려 보세요." },
 ] as const;
 
+function easterSunday(year:number){
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
+  return new Date(Date.UTC(year,month-1,day));
+}
+function seasonGuide(now:Date){
+  const date=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())),year=date.getUTCFullYear(),day=24*60*60*1000,easter=easterSunday(year),lentStart=new Date(easter.getTime()-46*day),pentecost=new Date(easter.getTime()+49*day),nov27=new Date(Date.UTC(year,10,27)),adventStart=new Date(nov27.getTime()+((7-nov27.getUTCDay())%7)*day),christmas=new Date(Date.UTC(year,11,25)),epiphanyEnd=new Date(Date.UTC(year+1,0,6));
+  if(date>=adventStart&&date<christmas)return {name:"대림절",copy:"기다림 속에서 오시는 주님을 바라보는 시간",reference:"이사야 9:6",accent:"기다림"};
+  if(date>=christmas&&date<=epiphanyEnd)return {name:"성탄절",copy:"우리 가운데 오신 예수님의 사랑을 기뻐하는 시간",reference:"누가복음 2:10-11",accent:"기쁨"};
+  if(date>=lentStart&&date<easter)return {name:"사순절",copy:"십자가를 바라보며 삶을 돌아보는 시간",reference:"마가복음 8:34",accent:"성찰"};
+  if(date>=easter&&date<=pentecost)return {name:"부활절기",copy:"부활의 소망을 일상에서 살아내는 시간",reference:"고린도전서 15:20",accent:"소망"};
+  return {name:"성령강림 후",copy:"말씀을 삶과 이웃 사랑으로 이어가는 성장의 시간",reference:"갈라디아서 5:22-23",accent:"성장"};
+}
+
 const regions = [
   "전체", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
   "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
@@ -124,8 +137,10 @@ function LoadingCards({ count = 3 }: { count?: number }) {
 }
 
 export default function Home() {
-  const todayGuide=dailyGuides[new Date(Date.now()+9*60*60*1000).getUTCDay()];
-  const todayKey=new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);
+  const koreanNow=new Date(Date.now()+9*60*60*1000);
+  const todayGuide=dailyGuides[koreanNow.getUTCDay()];
+  const currentSeason=seasonGuide(koreanNow);
+  const todayKey=koreanNow.toISOString().slice(0,10);
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("전체");
   const [denomination, setDenomination] = useState("전체 교단");
@@ -292,7 +307,7 @@ export default function Home() {
   },[churchQuery,query,region,denomination]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
-    const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination}`.toLowerCase();
+    const haystack = `${s.church} ${s.pastor} ${s.region} ${s.denomination} ${s.title} ${s.verse}`.toLowerCase();
     return haystack.includes(query.trim().toLowerCase()) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
   }), [query, region, denomination, sermonItems]);
   const visibleSermons = filtered.slice(0,visibleSermonCount);
@@ -591,6 +606,12 @@ export default function Home() {
         {savedItems.length?<div className="continue-list">{savedItems.slice(0,6).map((item)=><article key={item.id}><span>{item.kind==="sermon"?"말씀":item.kind==="praise"?"찬양":"교회"}</span><a href={item.url} target="_blank" rel="noopener noreferrer"><strong>{item.title}</strong><small>{item.subtitle}</small></a><button type="button" onClick={()=>toggleSaved(item)} aria-label={`${item.title} 찜에서 빼기`}>×</button></article>)}</div>:<div className="continue-empty" aria-hidden="true"><span>♡</span><small>로그인 없이 가볍게 저장됩니다</small></div>}
       </section>}
 
+      <section className="season-discovery" aria-labelledby="season-title">
+        <div className="season-symbol" aria-hidden="true"><span>{currentSeason.accent}</span></div>
+        <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} 읽기 ↗</a></div>
+        <div className="season-links"><a href="#sermons"><small>01</small><strong>이 절기의 말씀</strong><span>최근 설교에서 발견하기 →</span></a><a href="#praises"><small>02</small><strong>이 절기의 찬양</strong><span>공식 채널에서 듣기 →</span></a><a href="#church-news"><small>03</small><strong>교회의 오늘</strong><span>공식 소식 살펴보기 →</span></a></div>
+      </section>
+
       <section className="content-section" id="sermons">
         <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><span className="result-count">{sermonLoading ? "말씀을 불러오는 중…" : `검색한 교회 ${sermonChurchCount}개 · 설교말씀 ${filtered.length}개`}</span></div>
         <div className="sermon-grid">
@@ -691,7 +712,7 @@ export default function Home() {
           <span className="church-search-count" aria-live="polite">{churchLoading ? "불러오는 중…" : churchCountLabel}</span>
         </div>
         <div className="church-radar-results-heading"><div><strong>{hasActiveChurchFilter?"조건에 맞는 교회":"오늘 발견할 교회"}</strong><p>{hasActiveChurchFilter?"가장 관련 있는 교회부터 12곳씩 보여드립니다.":"관리자 추천을 먼저 보여드리고, 나머지는 방문할 때마다 새롭게 골라드립니다."}</p></div>{hasActiveChurchFilter?<span>{churchSearchPending?"검색 중…":`${churchSearchTotal.toLocaleString("ko-KR")}곳 중 ${visibleChurches.length}곳`}</span>:<button className="church-directory-refresh" type="button" onClick={()=>setChurchRadarRefresh((value)=>value+1)} disabled={churchLoading||filteredChurches.length<=12}><span aria-hidden="true">↻</span> 다른 교회 보기</button>}</div>
-        {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const churchPrimaryUrl=church.homepageUrl||(church.youtubeChannelId?`https://www.youtube.com/channel/${church.youtubeChannelId}`:null);const churchPrimaryLabel=`${church.name} ${church.homepageUrl?"공식 홈페이지":"공식 YouTube"} 열기`;const mark=denominationMark(church.denomination);const savedId=`church:${church.id}`;return <article key={church.id}><div className="church-directory-top"><span>{church.region}</span><div className="church-directory-top-actions">{!isAdmin&&mark&&<img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}<button className={`church-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"church",title:church.name,subtitle:`${church.pastor} · ${church.region}`,url:churchPrimaryUrl||"#church-directory"})} aria-label={`${church.name} ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button></div></div><h3>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.name}</a>:church.name}</h3><div className="church-directory-meta"><div className="church-directory-meta-copy"><p>{churchPrimaryUrl?<a className="church-primary-link" href={churchPrimaryUrl} target="_blank" rel="noreferrer" aria-label={churchPrimaryLabel}>{church.pastor}</a>:church.pastor}</p><small>{church.denomination}</small></div><div className="church-directory-links">{church.homepageUrl&&<a className="homepage-link" href={church.homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{church.channelImageUrl&&<img src={church.channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event)=>{event.currentTarget.hidden=true}} />}</span></a>}{church.youtubeChannelId&&<a className="youtube-link" href={`https://www.youtube.com/channel/${church.youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}</div></div>{isAdmin&&<Suspense fallback={null}><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status="approved" holdReason={null} holdNote={null} heldAt={null} priorityWeight={church.priorityWeight??1} markTrigger={{src:mark?.src??null,alt:mark?.alt??`${church.denomination} 교단 마크`}}/></Suspense>}</article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
+        {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const churchPrimaryUrl=church.homepageUrl||(church.youtubeChannelId?`https://www.youtube.com/channel/${church.youtubeChannelId}`:null);const mark=denominationMark(church.denomination);const savedId=`church:${church.id}`;return <article key={church.id}><div className="church-directory-top"><span>{church.region}</span><div className="church-directory-top-actions">{!isAdmin&&mark&&<img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}<button className={`church-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"church",title:church.name,subtitle:`${church.pastor} · ${church.region}`,url:`/church/${church.id}`})} aria-label={`${church.name} ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button></div></div><h3><a className="church-primary-link" href={`/church/${church.id}`}>{church.name}</a></h3><div className="church-directory-meta"><div className="church-directory-meta-copy"><p><a className="church-primary-link" href={`/church/${church.id}`}>{church.pastor}</a></p><small>{church.denomination}</small></div><div className="church-directory-links">{church.homepageUrl&&<a className="homepage-link" href={church.homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{church.channelImageUrl&&<img src={church.channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event)=>{event.currentTarget.hidden=true}} />}</span></a>}{church.youtubeChannelId&&<a className="youtube-link" href={`https://www.youtube.com/channel/${church.youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}</div></div>{isAdmin&&<Suspense fallback={null}><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status="approved" holdReason={null} holdNote={null} heldAt={null} priorityWeight={church.priorityWeight??1} markTrigger={{src:mark?.src??null,alt:mark?.alt??`${church.denomination} 교단 마크`}}/></Suspense>}</article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
         {!churchLoading&&hasActiveChurchFilter&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{churchDirectoryMoreLabel}</button>}
         <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
           <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>
