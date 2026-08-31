@@ -16,5 +16,6 @@ export function readSavedItems(){
 export function writeSavedItems(items:SavedItem[]){
   const safe=items.filter(isSavedItem).filter((item,index,all)=>all.findIndex((other)=>other.id===item.id)===index).slice(0,SAVED_ITEMS_LIMIT);
   localStorage.setItem(SAVED_ITEMS_KEY,JSON.stringify(safe));
+  window.dispatchEvent(new CustomEvent("airchurch:saved-change",{detail:safe.length}));
   return safe;
 }
