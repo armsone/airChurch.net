@@ -1,7 +1,7 @@
 import { database, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlNormalized } from "../../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
 
 type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
@@ -20,7 +20,7 @@ export async function GET(request:Request) {
   if((query||globalQuery)&&!searchGroups.length)return Response.json({items:[],total:0},{headers:responseHeaders});
   const db=database();
   await ensureSermonTables(db);
-  const haystack=sqlNormalized("name||pastor||region||denomination");
+  const haystack=sqlMetadataSearchValue("name","pastor","region","denomination");
   const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
   const bindings:Array<string>=searchGroups.flat();
   if(region&&region!=="전체") { conditions.push("substr(region,1,length(?))=?");bindings.push(region,region); }

@@ -2,7 +2,7 @@
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
-import { matchesSearchTerms, normalizeSearchValue } from "./search-domain";
+import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 import SkipLink from "./skip-link";
 
@@ -340,19 +340,19 @@ export default function Home() {
   },[churchQuery,query,region,denomination]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
-    const haystack = normalizeSearchText(`${s.church}${s.pastor}${s.region}${s.denomination}${s.title}${s.verse}`);
+    const haystack = metadataSearchValue(s.church,s.pastor,s.region,s.denomination,`${s.title}${s.verse}`);
     return matchesSearchTerms(haystack,query) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
   }), [query, region, denomination, sermonItems]);
   const visibleSermons = filtered.slice(0,visibleSermonCount);
   const previewSermons = filtered.slice(visibleSermonCount,visibleSermonCount+3);
   const sermonChurchCount = useMemo(() => new Set(filtered.map((sermon) => sermon.church)).size, [filtered]);
   const filteredPraises = useMemo(() => praiseItems.filter((praise) => {
-    const haystack = normalizeSearchText(`${praise.church}${praise.pastor}${praise.region}${praise.denomination}${praise.title}`);
+    const haystack = metadataSearchValue(praise.church,praise.pastor,praise.region,praise.denomination,praise.title);
     return matchesSearchTerms(haystack,query) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
   }), [praiseItems, query, region, denomination]);
   const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 6)).slice(0, 12);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
-    const haystack = normalizeSearchText(`${short.church}${short.pastor}${short.region}${short.denomination}${short.title}`);
+    const haystack = metadataSearchValue(short.church,short.pastor,short.region,short.denomination,short.title);
     return matchesSearchTerms(haystack,query) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
   }), [shortItems, query, region, denomination]);
   const visibleShorts = filteredShorts.slice(0, 12);
@@ -451,7 +451,7 @@ export default function Home() {
     const trimmedGlobal = query.trim();
     const source=hasActiveChurchFilter?(currentChurchSearch?.items??[]):churchItems;
     return source.filter((church) => {
-      const haystack = normalizeSearchText(`${church.name}${church.pastor}${church.region}${church.denomination}`);
+      const haystack = metadataSearchValue(church.name,church.pastor,church.region,church.denomination);
       const matchesGlobal = !trimmedGlobal || matchesSearchTerms(haystack,trimmedGlobal);
       return matchesGlobal && (region === "전체" || church.region.startsWith(region)) && (denomination === "전체 교단" || church.denomination === denomination);
     });

@@ -1,5 +1,5 @@
 import { database, ensureSermonTables } from "../_shared";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlNormalized, sqlRelevance } from "../../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlMetadataSearchValue, sqlRelevance } from "../../search-domain";
 
 type SuggestionRow={name:string;pastor:string;region:string;denomination:string;priorityWeight:number};
 const score=(row:SuggestionRow,terms:string[])=>{const fields=[[row.name,40],[row.pastor,25],[row.region,15],[row.denomination,12]] as const;return terms.reduce((total,term)=>{const candidates=expand(term);return total+Math.max(0,...fields.flatMap(([field,weight])=>{const value=normalize(field);return candidates.map((candidate)=>value===candidate?weight+70:value.startsWith(candidate)?weight+28:value.includes(candidate)?weight:0);}));},0);};
@@ -9,7 +9,7 @@ export async function GET(request:Request){
   const terms=query.split(/\s+/).map(normalize).filter(Boolean).slice(0,4);
   const headers={"cache-control":"public, max-age=180, s-maxage=180, stale-while-revalidate=900"};
   if(!terms.length||normalize(query).length<2)return Response.json({items:[]},{headers});
-  const groups=terms.map(expand),haystack=sqlNormalized("name||pastor||region||denomination");
+  const groups=terms.map(expand),haystack=sqlMetadataSearchValue("name","pastor","region","denomination");
   const conditions=groups.map((group)=>`(${group.map(()=>`instr(${haystack},?)>0`).join(" OR ")})`).join(" AND ");
   const relevance=sqlRelevance([["name",40],["pastor",25],["region",15],["denomination",12]],groups);
   const db=database();await ensureSermonTables(db);
