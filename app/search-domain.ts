@@ -11,3 +11,8 @@ export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
 export const matchesSearchTerms=(haystack:string,query:string)=>query.toLowerCase().split(/\s+/).map(normalizeSearchValue).filter(Boolean).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
 export const sqlNormalized=(value:string)=>`replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(lower(${value}),' ',''),'-',''),'·',''),'.',''),'(',''),')',''),'&',''),'\/',''),',',''),':',''),'_',''),char(39),''),'[',''),']','')`;
+export function sqlRelevance(fields:ReadonlyArray<readonly [string,number]>,groups:string[][]){
+  const bindings:string[]=[];
+  const sql=groups.length?groups.map((group)=>`max(${group.flatMap((candidate)=>fields.map(([field,weight])=>{const normalized=sqlNormalized(field);bindings.push(candidate,candidate,candidate);return `CASE WHEN ${normalized}=? THEN ${weight+70} WHEN instr(${normalized},?)=1 THEN ${weight+28} WHEN instr(${normalized},?)>0 THEN ${weight} ELSE 0 END`;})).join(",")})`).join("+"):"0";
+  return {sql,bindings};
+}

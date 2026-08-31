@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensurePraiseTables, ensureSermonTables } from "../api/_shared";
-import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlNormalized } from "../search-domain";
+import { expandSearchTerm as expand, normalizeSearchValue as normalize, sqlNormalized, sqlRelevance } from "../search-domain";
 import SearchForm from "./search-form";
 import SavedNavLink from "../saved-nav-link";
 import SkipLink from "../skip-link";
@@ -28,11 +28,12 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<Re
   const q=value("q",100),region=value("region",40),denomination=value("denomination",100),terms=q.toLowerCase().split(/\s+/).map(normalize).filter(Boolean).slice(0,5);
   const filters=(haystack:string)=>{const groups=terms.map(expand);const conditions=[...(q&&!terms.length?["0=1"]:[]),...groups.map((group)=>`(${group.map(()=>`instr(${haystack},?)>0`).join(" OR ")})`)];const bindings:string[]=groups.flat();if(region&&region!=="전체"){conditions.push("substr(c.region,1,length(?))=?");bindings.push(region,region);}if(denomination&&denomination!=="전체 교단"){conditions.push("c.denomination=?");bindings.push(denomination);}return {sql:conditions.length?` AND ${conditions.join(" AND ")}`:"",bindings};};
   const churchFilter=filters(sqlNormalized("c.name||c.pastor||c.region||c.denomination")),videoFilter=filters(sqlNormalized("c.name||c.pastor||c.region||c.denomination||v.title"));
+  const groups=terms.map(expand),churchSqlScore=sqlRelevance([["c.name",40],["c.pastor",25],["c.region",15],["c.denomination",12]],groups),videoSqlScore=sqlRelevance([["v.title",45],["c.name",35],["c.pastor",24],["c.region",14],["c.denomination",12]],groups);
   const db=database();await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
   const [churches,sermons,praises]=await Promise.all([
-    db.prepare(`SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.priority_weight FROM churches c WHERE c.review_status='approved'${churchFilter.sql} LIMIT 200`).bind(...churchFilter.bindings).all<ChurchResult>(),
-    db.prepare(`SELECT v.youtube_id,v.title,v.published_at,c.id AS church_id,c.name AS church,c.pastor,c.region,c.denomination FROM sermons v JOIN churches c ON c.id=v.church_id WHERE c.review_status='approved' AND v.status='published'${videoFilter.sql} ORDER BY v.published_at DESC LIMIT 120`).bind(...videoFilter.bindings).all<VideoResult>(),
-    db.prepare(`SELECT v.youtube_id,v.title,v.published_at,c.id AS church_id,c.name AS church,c.pastor,c.region,c.denomination FROM praise_videos v JOIN churches c ON c.id=v.church_id WHERE c.review_status='approved' AND v.status='published'${videoFilter.sql} ORDER BY v.published_at DESC LIMIT 80`).bind(...videoFilter.bindings).all<VideoResult>(),
+    db.prepare(`SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.priority_weight FROM churches c WHERE c.review_status='approved'${churchFilter.sql} ORDER BY (${churchSqlScore.sql}) DESC,c.priority_weight DESC,c.name LIMIT 200`).bind(...churchFilter.bindings,...churchSqlScore.bindings).all<ChurchResult>(),
+    db.prepare(`SELECT v.youtube_id,v.title,v.published_at,c.id AS church_id,c.name AS church,c.pastor,c.region,c.denomination FROM sermons v JOIN churches c ON c.id=v.church_id WHERE c.review_status='approved' AND v.status='published'${videoFilter.sql} ORDER BY (${videoSqlScore.sql}) DESC,v.published_at DESC LIMIT 120`).bind(...videoFilter.bindings,...videoSqlScore.bindings).all<VideoResult>(),
+    db.prepare(`SELECT v.youtube_id,v.title,v.published_at,c.id AS church_id,c.name AS church,c.pastor,c.region,c.denomination FROM praise_videos v JOIN churches c ON c.id=v.church_id WHERE c.review_status='approved' AND v.status='published'${videoFilter.sql} ORDER BY (${videoSqlScore.sql}) DESC,v.published_at DESC LIMIT 80`).bind(...videoFilter.bindings,...videoSqlScore.bindings).all<VideoResult>(),
   ]);
   churches.results.sort((a,b)=>relevance(b,terms)-relevance(a,terms)||b.priority_weight-a.priority_weight||a.name.localeCompare(b.name,"ko"));const hasMoreChurches=churches.results.length>churchLimit;churches.results=churches.results.slice(0,churchLimit);
   sermons.results.sort((a,b)=>videoRelevance(b,terms)-videoRelevance(a,terms)||Date.parse(b.published_at)-Date.parse(a.published_at));const hasMoreSermons=sermons.results.length>sermonLimit;sermons.results=sermons.results.slice(0,sermonLimit);
