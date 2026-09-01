@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const churches = sqliteTable("churches", {
   id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), pastor: text("pastor").notNull(), region: text("region").notNull(), denomination: text("denomination").notNull(), youtubeChannelId: text("youtube_channel_id").unique(), reviewStatus: text("review_status").notNull().default("pending"), holdReason: text("hold_reason"), holdNote: text("hold_note"), heldAt: text("held_at"), priorityWeight: integer("priority_weight").notNull().default(1), reviewerStatus: text("reviewer_status").notNull().default("unreviewed"), reviewerNote: text("reviewer_note"), reviewedAt: text("reviewed_at"), reviewResolutionToken:text("review_resolution_token"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -43,7 +43,7 @@ export const churchChangeRequests = sqliteTable("church_change_requests", {
 },(table)=>[index("idx_church_change_requests_status_created").on(table.status,table.createdAt),index("idx_church_change_requests_reviewer_created").on(table.reviewerId,table.createdAt)]);
 export const privateChurchContacts=sqliteTable("private_church_contacts",{
   id:integer("id").primaryKey({autoIncrement:true}),churchId:integer("church_id").notNull().references(()=>churches.id),contactType:text("contact_type").notNull(),encryptedValue:text("encrypted_value").notNull(),valueDigest:text("value_digest").notNull(),scope:text("scope").notNull().default("organization"),sourceUrl:text("source_url").notNull(),reviewStatus:text("review_status").notNull().default("approved"),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),updatedAt:text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
-},(table)=>[index("idx_private_church_contacts_church").on(table.churchId,table.reviewStatus,table.contactType)]);
+},(table)=>[index("idx_private_church_contacts_church").on(table.churchId,table.reviewStatus,table.contactType),uniqueIndex("idx_private_church_contacts_unique").on(table.churchId,table.contactType,table.valueDigest)]);
 export const privateContactAccessEvents=sqliteTable("private_contact_access_events",{
   id:integer("id").primaryKey({autoIncrement:true}),actorRole:text("actor_role").notNull(),actorId:integer("actor_id").notNull().default(0),recordCount:integer("record_count").notNull(),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 },(table)=>[index("idx_private_contact_access_created").on(table.createdAt)]);

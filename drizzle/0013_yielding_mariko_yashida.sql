@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `idx_private_church_contacts_unique` ON `private_church_contacts` (`church_id`,`contact_type`,`value_digest`);
