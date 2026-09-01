@@ -22,11 +22,15 @@ const profile=cache(async(id:number)=>{
 });
 const date=(value:string|null)=>value?new Date(value).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",year:"numeric",month:"long",day:"numeric"}):"기록 준비 중";
 
-export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
-  const {id}=await params;const church=await profile(Number(id));
+export async function generateMetadata({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{minister?:string}>}):Promise<Metadata>{
+  const [{id},{minister:ministerRaw}]=await Promise.all([params,searchParams]);const church=await profile(Number(id));
   if(!church)return {title:"공개되지 않은 목회 기록 | airChurch",robots:{index:false,follow:false}};
-  const description=`${church.name} ${church.pastor} 목사의 공개된 말씀 기록과 현재 확인된 교회·교단 정보를 봅니다.`;
-  return {title:`${church.pastor} 목사 | ${church.name} · airChurch`,description,alternates:{canonical:`/pastors/${church.id}`}};
+  const ministerId=Number(ministerRaw);let minister:Minister|null=null;
+  if(Number.isInteger(ministerId)&&ministerId>0){const db=database();await ensureMinistryProfileTables(db);minister=await db.prepare("SELECT id,name,role_title,role_status,source_url FROM church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved' LIMIT 1").bind(ministerId,church.id).first<Minister>();}
+  if(ministerRaw&&!minister)return {title:"공개되지 않은 교역자 기록 | airChurch",robots:{index:false,follow:false}};
+  const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=minister?.role_title??"목사",canonical=`/pastors/${church.id}${minister?`?minister=${minister.id}`:""}`;
+  const description=`${church.name} ${displayName} ${roleTitle}의 공식 공개 출처로 확인된 목회 정보를 봅니다.`;
+  return {title:`${displayName} ${roleTitle} | ${church.name} · airChurch`,description,alternates:{canonical}};
 }
 
 export default async function PastorProfilePage({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{minister?:string}>}){
