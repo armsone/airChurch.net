@@ -48,7 +48,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<Re
   ]);
   const personResults=[...new Map(personPastors.results.map((item)=>[item.person_id,item])).values()],personIdentities=new Set(personResults.map((item)=>`${normalize(item.name)}|${normalize(item.church??"")}`));
   const legacyPastors=[...primaryPastors.results,...ministryPastors.results].filter((item)=>!personIdentities.has(`${normalize(item.name)}|${normalize(item.church??"")}`));
-  const pastorResults=[...new Map([...personResults,...legacyPastors].map((item)=>[item.person_id?`person:${item.person_id}`:`legacy:${item.church_id}:${normalize(item.name)}:${item.role_title}`,item])).values()].sort((a,b)=>fieldScore(b.name,terms.flatMap(expand),40)-fieldScore(a.name,terms.flatMap(expand),40)||a.name.localeCompare(b.name,"ko")).slice(0,12);
+  const pastorResults=[...new Map([...personResults,...legacyPastors].map((item)=>[`${normalize(item.name)}|${item.church_id??-1}|${normalize(item.church??"")}`,item])).values()].sort((a,b)=>fieldScore(b.name,terms.flatMap(expand),40)-fieldScore(a.name,terms.flatMap(expand),40)||a.name.localeCompare(b.name,"ko"));
   const denominationOptions=["전체 교단",...denominationRows.results.map((row)=>row.denomination)];
   if(denomination&&denomination!=="전체 교단"&&!denominationOptions.includes(denomination))denominationOptions.push(denomination);
   const hasMoreChurches=churches.results.length>pageSize;churches.results=churches.results.slice(0,pageSize);
