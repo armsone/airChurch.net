@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+
+import {createHash} from "node:crypto";
+import {mkdir,readFile,rename,writeFile} from "node:fs/promises";
+import path from "node:path";
+
+const input=process.argv[2]??"out/pastor-history/pastor-people-import-plan.json";
+const outputDir=process.argv[3]??"out/pastor-history/d1-import";
+const batchSize=Math.max(50,Math.min(500,Number(process.argv[4]??200)));
+const plan=JSON.parse(await readFile(input,"utf8"));
+if(plan.metadata?.automaticApproval!==false)throw new Error("Refusing input without automaticApproval:false");
+const people=Array.isArray(plan.people)?plan.people:[],roles=Array.isArray(plan.roles)?plan.roles:[];
+const roleGroups=new Map();
+for(const role of roles){const group=roleGroups.get(role.personDirectoryId)??[];group.push(role);roleGroups.set(role.personDirectoryId,group);}
+const sql=(value)=>value==null?"NULL":`'${String(value).replaceAll("'","''")}'`;
+const integerOrNull=(value)=>Number.isInteger(Number(value))&&Number(value)>0?String(Number(value)):"NULL";
+const atomicWrite=async(file,content)=>{const temp=`${file}.${process.pid}.tmp`;await writeFile(temp,content);await rename(temp,file);};
+const chunks=[];
+await mkdir(outputDir,{recursive:true});
+for(let offset=0;offset<people.length;offset+=batchSize){
+  const selected=people.slice(offset,offset+batchSize),lines=["BEGIN TRANSACTION;"];
+  for(const person of selected){
+    lines.push(`INSERT INTO pastor_people (directory_id,name,public_summary,review_status) VALUES (${sql(person.directoryId)},${sql(person.name)},NULL,'pending') ON CONFLICT(directory_id) DO UPDATE SET name=excluded.name,updated_at=CURRENT_TIMESTAMP;`);
+    for(const role of roleGroups.get(person.directoryId)??[])lines.push(`INSERT OR IGNORE INTO pastor_church_roles (pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,start_date,end_date,source_url,review_status) SELECT id,${integerOrNull(role.existingChurchId)},${sql(role.churchName)},${sql(role.denomination)},${sql(role.region)},${sql(role.roleTitle)},${sql(role.roleCategory)},${sql(role.roleStatus)},${sql(role.startDate)},${sql(role.endDate)},${sql(role.sourceUrl)},'pending' FROM pastor_people WHERE directory_id=${sql(person.directoryId)};`);
+  }
+  lines.push("COMMIT;","");
+  const content=lines.join("\n"),name=`pastor-import-${String(chunks.length+1).padStart(4,"0")}.sql`,file=path.join(outputDir,name);
+  await atomicWrite(file,content);
+  chunks.push({file:name,people:selected.length,roles:selected.reduce((sum,person)=>sum+(roleGroups.get(person.directoryId)?.length??0),0),bytes:Buffer.byteLength(content),sha256:createHash("sha256").update(content).digest("hex")});
+}
+const manifest={generatedAt:new Date().toISOString(),sourceFile:input,automaticApproval:false,writeStatus:"pending",batchSize,people:people.length,roles:roles.length,chunks};
+await atomicWrite(path.join(outputDir,"manifest.json"),`${JSON.stringify(manifest,null,2)}\n`);
+console.log(JSON.stringify({outputDir,batchSize,people:people.length,roles:roles.length,chunks:chunks.length,totalBytes:chunks.reduce((sum,chunk)=>sum+chunk.bytes,0)}));
