@@ -7,20 +7,21 @@
     "automaticApproval": false,
     "privateDataIncluded": false,
     "people": 2,
-    "roles": 4,
+    "roles": 5,
     "nameBasedExclusions": 0,
-    "photosPrepared": 0,
-    "photosAutomaticallyPublishable": 0
+    "photosPrepared": 1,
+    "photosAutomaticallyPublishable": 1
   },
   "people": [
     {
       "directoryId": "person-b16564f403989379082b",
       "name": "정성진",
-      "publicSummary": null,
-      "photoUrl": null,
-      "photoSourceUrl": null,
-      "photoSha256": null,
-      "photoReviewStatus": "pending",
+      "publicSummary": "거룩한빛광성교회를 개척해 오랫동안 목회한 뒤 은퇴했으며, 현재 사단법인 크로스로드 대표로 사역하고 있습니다.",
+      "photoUrl": "https://data.dimode.co.kr/UserData/kwangsung/files/13/424/7KCV7ISx7KeEXeydgO2HtOuqqeyCrC5wbmdkaW1vZGVfOTc0ODc2OF9lbmMc.png",
+      "photoSourceUrl": "https://kwangsung.org/Page/Index/13",
+      "photoSha256": "dfd980b7e5fba374b506239dea09cf6a27d4441b5f1edc6458ee42f082dd44b1",
+      "photoUsageBasis": "official_public_clergy_profile",
+      "photoReviewStatus": "approved",
       "reviewStatus": "pending"
     },
     {
@@ -35,6 +36,22 @@
     }
   ],
   "roles": [
+    {
+      "directoryId": "role:person-b16564f403989379082b:crossroad:대표:current",
+      "personDirectoryId": "person-b16564f403989379082b",
+      "existingChurchId": null,
+      "directoryChurchId": "organization-crossroad",
+      "churchName": "사단법인 크로스로드",
+      "denomination": null,
+      "region": "경기 고양",
+      "roleTitle": "대표",
+      "roleCategory": "other",
+      "roleStatus": "current",
+      "startDate": null,
+      "endDate": null,
+      "sourceUrl": "https://www.crossroad.or.kr/",
+      "reviewStatus": "pending"
+    },
     {
       "directoryId": "role:person-b16564f403989379082b:church-3:개척목사:former",
       "personDirectoryId": "person-b16564f403989379082b",
