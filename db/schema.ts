@@ -47,6 +47,9 @@ export const privateChurchContacts=sqliteTable("private_church_contacts",{
 export const privateContactAccessEvents=sqliteTable("private_contact_access_events",{
   id:integer("id").primaryKey({autoIncrement:true}),actorRole:text("actor_role").notNull(),actorId:integer("actor_id").notNull().default(0),recordCount:integer("record_count").notNull(),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 },(table)=>[index("idx_private_contact_access_created").on(table.createdAt)]);
+export const encouragementMessages=sqliteTable("encouragement_messages",{
+  id:integer("id").primaryKey({autoIncrement:true}),churchId:integer("church_id").notNull().references(()=>churches.id),targetType:text("target_type").notNull(),nickname:text("nickname").notNull(),content:text("content").notNull(),status:text("status").notNull().default("approved"),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),moderatedAt:text("moderated_at"),
+},(table)=>[index("idx_encouragement_target_status_created").on(table.churchId,table.targetType,table.status,table.createdAt),index("idx_encouragement_status_created").on(table.status,table.createdAt)]);
 export const churchProfiles = sqliteTable("church_profiles", {
   churchId:integer("church_id").primaryKey().references(()=>churches.id), slogan:text("slogan"), vision:text("vision"), summary:text("summary"), address:text("address"), sourceUrl:text("source_url").notNull(), sourceText:text("source_text").notNull(), collectedAt:text("collected_at").notNull(), reviewStatus:text("review_status").notNull().default("pending"), reviewedAt:text("reviewed_at"), updatedAt:text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 },(table)=>[index("idx_church_profiles_review_church").on(table.reviewStatus,table.churchId)]);

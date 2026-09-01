@@ -185,13 +185,13 @@ export async function PATCH(request: Request) {
     const status = clean(data.status, 20);
     if (!["published", "hidden"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     await db.prepare("UPDATE sermons SET status=? WHERE id=?").bind(status, id).run();
-  } else if (kind === "post" || kind === "talent" || kind === "contact") {
+  } else if (kind === "post" || kind === "talent" || kind === "contact" || kind === "encouragement") {
     const status = clean(data.status, 20);
-    const table = kind === "post" ? "community_posts" : kind === "contact" ? "contact_requests" : "talent_offers";
+    const table = kind === "post" ? "community_posts" : kind === "contact" ? "contact_requests" : kind==="encouragement"?"encouragement_messages":"talent_offers";
     if (status === "deleted") await db.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
     else {
       if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
-      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : kind==="post"&&status==="approved" ? ",report_count=0" : "";
+      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : kind==="encouragement"?",moderated_at=CURRENT_TIMESTAMP":kind==="post"&&status==="approved" ? ",report_count=0" : "";
       await db.prepare(`UPDATE ${table} SET status=?${reviewed} WHERE id=?`).bind(status, id).run();
     }
   } else if (kind === "recommendation") {

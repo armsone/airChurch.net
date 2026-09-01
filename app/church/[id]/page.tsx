@@ -4,7 +4,7 @@ import HomeReloadLink from "../../home-reload-link";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { database, ensureMediaTables } from "../../api/_shared";
-import { ensureChurchDetailTables } from "../../api/_shared";
+import { ensureChurchDetailTables,ensureEncouragementTables } from "../../api/_shared";
 import ChurchSaveButton from "./church-save-button";
 import ChurchShareButton from "./church-share-button";
 import { safeHttpUrl } from "../../safe-url";
@@ -14,6 +14,7 @@ import DailyMediaLink from "../../daily-media-link";
 import { accessSession } from "../../admin-access";
 import { ensurePrivateContactTables } from "../../api/_shared";
 import { readChurchPrivateContacts } from "../../private-contact-vault";
+import EncouragementBoard,{type EncouragementItem} from "../../encouragement-board";
 
 export const dynamic="force-dynamic";
 
@@ -47,16 +48,17 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}):P
 
 export default async function ChurchPage({params}:{params:Promise<{id:string}>}){
   const {id:rawId}=await params;const id=Number(rawId);
-  const db=database();await Promise.all([ensureMediaTables(db),ensureChurchDetailTables(db)]);
+  const db=database();await Promise.all([ensureMediaTables(db),ensureChurchDetailTables(db),ensureEncouragementTables(db)]);
   const church=await publicChurch(id);
   if(!church)return <main className="church-detail-shell"><SkipLink/><header className="church-detail-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><a href="/#church-directory">교회 찾기로 돌아가기</a></header><section className="church-detail-missing" id="primary-content" tabIndex={-1}><span>CHURCH DIRECTORY</span><h1>현재 공개된 교회가 아닙니다</h1><p>정보가 변경되었거나 운영 기준에 따라 보류되었을 수 있습니다.</p><a href="/#church-directory">다른 교회 찾아보기 →</a></section></main>;
   const regionPrefix=`${church.region.split(/\s+/)[0]}%`;
-  const [sermons,praises,related,profile,schedules]=await Promise.all([
+  const [sermons,praises,related,profile,schedules,encouragements]=await Promise.all([
     db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 9").bind(id).all<VideoRow>(),
     db.prepare("SELECT youtube_id,title,published_at FROM praise_videos WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 6").bind(id).all<VideoRow>(),
     db.prepare("SELECT id,name,pastor,region,denomination FROM churches WHERE review_status='approved' AND id!=? AND (region LIKE ? OR denomination=?) ORDER BY RANDOM() LIMIT 6").bind(id,regionPrefix,church.denomination).all<RelatedChurch>(),
     db.prepare("SELECT slogan,vision,summary,address,source_url,reviewed_at FROM church_profiles WHERE church_id=? AND review_status='approved' LIMIT 1").bind(id).first<ChurchProfileRow>(),
     db.prepare("SELECT record_id,service_type,day_of_week,start_time,venue_audience,source_url FROM worship_schedules WHERE church_id=? AND review_status='approved' ORDER BY CASE WHEN instr(day_of_week,'SUN')>0 THEN 0 ELSE 1 END,day_of_week,start_time,service_type LIMIT 40").bind(id).all<WorshipScheduleRow>(),
+    db.prepare("SELECT id,nickname,content,created_at AS createdAt FROM encouragement_messages WHERE church_id=? AND target_type='church' AND status='approved' ORDER BY created_at DESC,id DESC LIMIT 30").bind(id).all<EncouragementItem>(),
   ]);
   const session=await accessSession();
   const privateContacts=session?(await ensurePrivateContactTables(db),await readChurchPrivateContacts(db,id,session)):[];
@@ -71,6 +73,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
     <section className="church-detail-content church-personalized"><div className="section-heading"><div><span className="section-kicker">공식 홈페이지에서 확인</span><h2>{church.name} 한눈에 보기</h2></div><span className="result-count">검토 승인 정보만 표시</span></div><div className="church-personalized-grid"><article className="church-profile-card"><span className="church-card-symbol" aria-hidden="true">안내</span><div><h3>교회 정보</h3>{profile?.slogan&&<blockquote>{profile.slogan}</blockquote>}{profile?.vision&&<p className="church-profile-vision"><b>비전</b>{profile.vision}</p>}{profile?.summary&&<p className="church-profile-summary">{profile.summary}</p>}<dl><div><dt>담임목사</dt><dd>{church.pastor}</dd></div><div><dt>교단</dt><dd>{church.denomination}</dd></div><div><dt>지역</dt><dd>{church.region}</dd></div>{profile?.address&&<div><dt>주소</dt><dd>{profile.address}</dd></div>}</dl>{profile?<a href={profile.source_url} target="_blank" rel="noopener noreferrer">공식 출처에서 확인 ↗</a>:<p className="church-detail-pending">표어·비전 등 추가 정보는 공식 출처 확인 후 표시됩니다.</p>}</div></article><article className="church-schedule-card"><span className="church-card-symbol" aria-hidden="true">시간</span><div><h3>예배시간</h3>{schedules.results.length?<ul>{schedules.results.map((schedule)=><li key={schedule.record_id}><span><b>{schedule.service_type}</b><small>{scheduleDays(schedule.day_of_week)} · {schedule.venue_audience||"장소는 공식 안내 확인"}</small></span><time>{scheduleTime(schedule.start_time)}</time></li>)}</ul>:<p className="church-detail-pending">검토가 끝난 예배시간이 아직 없습니다. 정확한 시간은 공식 홈페이지에서 확인해 주세요.</p>}{schedules.results[0]&&<a href={schedules.results[0].source_url} target="_blank" rel="noopener noreferrer">공식 예배안내 확인 ↗</a>}</div></article></div></section>
     <section className="church-detail-content"><div className="section-heading"><div><span className="section-kicker">최근 공식 채널</span><h2>말씀</h2></div><span className="result-count">최근 {sermons.results.length}편</span></div><div className="church-detail-video-grid">{sermons.results.map((video)=>videoCard(video,"말씀"))}{!sermons.results.length&&<p className="empty">현재 연결된 말씀이 없습니다.</p>}</div></section>
     <section className="church-detail-content"><div className="section-heading"><div><span className="section-kicker">함께 드리는 고백</span><h2>찬양</h2></div><span className="result-count">최근 {praises.results.length}편</span></div><div className="church-detail-video-grid">{praises.results.map((video)=>videoCard(video,"찬양"))}{!praises.results.length&&<p className="empty">현재 연결된 찬양이 없습니다.</p>}</div></section>
+    <EncouragementBoard churchId={id} targetType="church" title={`${church.name} 응원하기`} initialItems={encouragements.results}/>
     <section className="church-detail-content church-related"><div className="section-heading"><div><span className="section-kicker">다음 발견</span><h2>가까운 교회와 같은 교단</h2></div><a href="/#church-directory">전체 교회 찾기 →</a></div><div className="church-related-grid">{related.results.map((item)=>{const reasons=[item.region.split(/\s+/)[0]===church.region.split(/\s+/)[0]?"같은 지역":null,item.denomination===church.denomination?"같은 교단":null].filter(Boolean);return <a href={`/church/${item.id}`} key={item.id}><span>{item.region}</span><strong>{item.name}</strong><p>{item.pastor}</p><small>{item.denomination}</small><small className="church-related-reason">{reasons.join(" · ")}</small><em>상세 보기 →</em></a>})}{!related.results.length&&<p className="empty">연결해 보여드릴 다른 공개 교회가 없습니다.</p>}</div></section>
     <footer className="church-detail-footer"><a href="/">airChurch 홈</a><span>발견은 airChurch에서 · 소속과 돌봄은 지역교회와 함께</span></footer><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(churchJsonLd).replace(/</g,"\\u003c")}} />
   </main>;
