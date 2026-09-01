@@ -203,6 +203,7 @@ export default function Home() {
   const [pastorTotal,setPastorTotal]=useState(0);
   const [pastorLoading,setPastorLoading]=useState(true);
   const [pastorVisibleCount,setPastorVisibleCount]=useState(12);
+  const [pastorQuery,setPastorQuery]=useState("");
   const [searchSuggestions,setSearchSuggestions]=useState<SearchSuggestion[]>([]);
   const [churchLoading,setChurchLoading]=useState(true);
   const [churchRadarRefresh,setChurchRadarRefresh]=useState(0);
@@ -249,7 +250,7 @@ export default function Home() {
     });
     setJourneyWeek(days);
   },[dailyCompleted,personalStateReady,todayKey]);
-  useEffect(()=>{if(prefersLowData())return;const controller=new AbortController();fetch("/api/churches?countOnly=1",{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
+  useEffect(()=>{if(prefersLowData())return;const controller=new AbortController(),fresh=sessionStorage.getItem("airchurch:church-cache-bust"),params=new URLSearchParams({countOnly:"1"});if(fresh)params.set("adminFresh",fresh);fetch(`/api/churches?${params}`,{cache:fresh?"no-store":"default",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetchSearchSuggestions(term,controller.signal).then(setSearchSuggestions).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
@@ -300,15 +301,15 @@ export default function Home() {
       talent: ()=>loadItems("/api/talents").then((data)=>{
         if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
       }),
-      "church-directory": ()=>loadItems("/api/churches").then((data)=>{
+      "church-directory": ()=>{const fresh=sessionStorage.getItem("airchurch:church-cache-bust");return loadItems(`/api/churches${fresh?`?adminFresh=${encodeURIComponent(fresh)}`:""}`).then((data)=>{
         if(!alive) return;
         const result=data as {items?:ChurchItem[];total?:number};
         setChurchItems(result.items||[]);
         setChurchTotal(result.total??result.items?.length??0);
         setChurchLoading(false);
         fetch("/api/admin/session",{cache:"no-store",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((session)=>{if(alive)setIsAdmin(session?.role==="admin");}).catch(()=>{});
-      }),
-      "pastor-directory": ()=>loadItems(`/api/pastors?limit=${lowData?8:12}`).then((data)=>{
+      })},
+      "pastor-directory": ()=>loadItems(`/api/pastors?limit=${lowData?8:12}&sample=${Math.floor(Math.random()*32)}`).then((data)=>{
         if(!alive) return;
         const result=data as {items?:PastorItem[];total?:number};
         setPastorItems(result.items||[]);
@@ -343,8 +344,9 @@ export default function Home() {
       if(global) params.set("global",global);
       if(region!=="전체") params.set("region",region);
       if(denomination!=="전체 교단") params.set("denomination",denomination);
+      const fresh=sessionStorage.getItem("airchurch:church-cache-bust");if(fresh)params.set("adminFresh",fresh);
       try {
-        const response=await fetch(`/api/churches?${params}`,{signal:controller.signal});
+        const response=await fetch(`/api/churches?${params}`,{cache:fresh?"no-store":"default",signal:controller.signal});
         if(!response.ok) throw new Error();
         const data=await response.json() as {items?:ChurchItem[];total?:number};
         setChurchSearch({query:searchKey,items:data.items??[],total:data.total??data.items?.length??0});
@@ -357,18 +359,19 @@ export default function Home() {
     return()=>{window.clearTimeout(timer);controller.abort();};
   },[churchQuery,query,region,denomination]);
   useEffect(()=>{
-    const active=Boolean(query.trim()||region!=="전체"||denomination!=="전체 교단");
+    const active=Boolean(pastorQuery.trim()||query.trim()||region!=="전체"||denomination!=="전체 교단");
     if(!active){setPastorItems(pastorBrowseItems);setPastorVisibleCount(12);return;}
     const controller=new AbortController(),timer=window.setTimeout(async()=>{
       setPastorLoading(true);setPastorVisibleCount(12);
       const params=new URLSearchParams({limit:"120"});
+      if(pastorQuery.trim()) params.set("q",pastorQuery.trim());
       if(query.trim()) params.set("global",query.trim());
       if(region!=="전체") params.set("region",region);
       if(denomination!=="전체 교단") params.set("denomination",denomination);
       try{const response=await fetch(`/api/pastors?${params}`,{signal:controller.signal});if(!response.ok)throw new Error();const result=await response.json() as {items?:PastorItem[];total?:number};setPastorItems(result.items||[]);setPastorTotal(result.total??result.items?.length??0);}catch(error){if((error as {name?:string}).name!=="AbortError"){setPastorItems([]);setPastorTotal(0);}}finally{if(!controller.signal.aborted)setPastorLoading(false);}
     },300);
     return()=>{window.clearTimeout(timer);controller.abort();};
-  },[query,region,denomination,pastorBrowseItems]);
+  },[pastorQuery,query,region,denomination,pastorBrowseItems]);
   useEffect(()=>{ if(location.hash==="#sermons-end") requestAnimationFrame(()=>document.querySelector("#sermons-end")?.scrollIntoView({block:"start"})); },[sermonItems]);
   const filtered = useMemo(() => sermonItems.filter((s) => {
     const haystack = metadataSearchValue(s.church,s.pastor,s.region,s.denomination,`${s.title}${s.verse}`);
@@ -395,6 +398,10 @@ export default function Home() {
       const pool=unseen.length>=9?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
       return shuffled(pool).slice(0,9);
     });
+  }
+  async function showDifferentPastors(){
+    setPastorLoading(true);setPastorVisibleCount(12);
+    try{const response=await fetch(`/api/pastors?limit=12&sample=${Math.floor(Math.random()*32)}`);if(!response.ok)throw new Error();const result=await response.json() as {items?:PastorItem[];total?:number};const items=result.items||[];setPastorBrowseItems(items);setPastorItems(items);setPastorTotal(result.total??items.length);}catch{setNotice("다른 목회자를 불러오지 못했습니다. 잠시 후 다시 눌러 주세요.");}finally{setPastorLoading(false);}
   }
   const activeShort = activeShortIndex !== null ? filteredShorts[activeShortIndex] : undefined;
   activeShortIdRef.current=activeShort?.youtubeId;
@@ -820,8 +827,9 @@ export default function Home() {
       <section className="church-directory-section pastor-home-directory" id="pastor-directory">
         <div className="section-heading"><div><span className="section-kicker">목회자</span><h2>목사님의 근황을 찾아보세요</h2></div><span className="result-count">{pastorLoading?"목회자를 확인하는 중…":`${pastorTotal.toLocaleString("ko-KR")}명`}</span></div>
         <div className="church-radar-intro pastor-home-intro"><span aria-hidden="true">사람</span><div><strong>이름이나 교회, 지역, 교단으로 목회자를 찾아보세요.</strong><p>담임·부교역자·협동·원로·은퇴 목회자의 현재 사역과 지나온 발자취를 확인하고 응원할 수 있습니다. 위 통합 검색의 조건이 이 목록에도 그대로 적용됩니다.</p></div></div>
-        <div className="church-radar-results-heading"><div><strong>{query.trim()||region!=="전체"||denomination!=="전체 교단"?"조건에 맞는 목회자":"목회자 둘러보기"}</strong><p>카드를 누르면 목사님의 사역 이력과 말씀, 응원글을 볼 수 있습니다.</p></div><span>{pastorLoading?"검색 중…":`${pastorTotal.toLocaleString("ko-KR")}명 중 ${Math.min(pastorVisibleCount,pastorItems.length)}명`}</span></div>
-        {pastorLoading?<div className="pastor-directory-grid"><LoadingCards count={8}/></div>:<div className="pastor-directory-grid">{pastorItems.slice(0,pastorVisibleCount).map((pastor)=>{const name=pastor.name.replace(/\s*목사(?:님)?$/u,""),href=pastor.person_id?`/pastors/p/${pastor.person_id}`:`/pastors/${pastor.church_id}${pastor.minister_id?`?minister=${pastor.minister_id}`:""}`,photo=pastor.photo_url||"/pastor-silhouette.webp",roles=(pastor.role_titles||pastor.role_title).split(",").filter(Boolean),savedId=`pastor:${pastor.person_id??`${pastor.church_id}-${pastor.minister_id??"primary"}`}`;return <article className="pastor-home-card" key={savedId}><a href={href} className="pastor-directory-card"><span className={`pastor-directory-photo${pastor.photo_url?" has-photo":" is-placeholder"}`}><img src={photo} alt={pastor.photo_url?`${name} 목회자`:""} width={92} height={116} loading="lazy" decoding="async" referrerPolicy="no-referrer"/></span><span className="pastor-directory-copy"><span className="pastor-directory-status">{pastor.role_status==="former"?"사역 이력":"현재 사역"}</span><strong>{name}</strong><span className="pastor-directory-roles">{roles.map((role)=><b key={role}>{role}</b>)}</span>{pastor.church_name&&<p>{pastor.church_name}</p>}{(pastor.region||pastor.denomination)&&<small>{[pastor.region,pastor.denomination].filter(Boolean).join(" · ")}</small>}<em>목회 기록과 응원글 보기 →</em></span></a><button className={`church-save pastor-home-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"pastor",title:name,subtitle:[pastor.church_name,pastor.role_title].filter(Boolean).join(" · "),url:href})} aria-label={`${name} 목회자 ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button></article>})}{!pastorItems.length&&<div className="empty">조건에 맞는 목회자가 없습니다. 이름이나 교회명을 짧게 다시 입력해 보세요.</div>}</div>}
+        <form className="church-directory-search" role="search" onSubmit={(event)=>event.preventDefault()}><label className="sr-only" htmlFor="pastor-directory-search-input">등록 목회자 검색</label><span aria-hidden="true">⌕</span><input id="pastor-directory-search-input" type="search" value={pastorQuery} onChange={(event)=>{setPastorQuery(event.target.value);setPastorVisibleCount(12);}} placeholder="목회자 이름, 교회, 지역, 교단으로 찾아보세요" aria-controls="pastor-directory-grid"/>{pastorQuery&&<button className="church-search-clear" type="button" onClick={()=>{setPastorQuery("");setPastorVisibleCount(12);}} aria-label="목회자 검색어 지우기">✕</button>}<span className="church-search-count" aria-live="polite">{pastorLoading?"검색 중…":`${pastorTotal.toLocaleString("ko-KR")}명`}</span></form>
+        <div className="church-radar-results-heading"><div><strong>{pastorQuery.trim()||query.trim()||region!=="전체"||denomination!=="전체 교단"?"조건에 맞는 목회자":"목회자 둘러보기"}</strong><p>카드를 누르면 목사님의 사역 이력과 말씀, 응원글을 볼 수 있습니다.</p></div>{pastorQuery.trim()||query.trim()||region!=="전체"||denomination!=="전체 교단"?<span>{pastorLoading?"검색 중…":`${pastorTotal.toLocaleString("ko-KR")}명 중 ${Math.min(pastorVisibleCount,pastorItems.length)}명`}</span>:<button className="church-directory-refresh" type="button" onClick={()=>void showDifferentPastors()} disabled={pastorLoading}><span aria-hidden="true">↻</span> 다른 목회자 보기</button>}</div>
+        {pastorLoading?<div className="pastor-directory-grid" id="pastor-directory-grid"><LoadingCards count={8}/></div>:<div className="pastor-directory-grid" id="pastor-directory-grid">{pastorItems.slice(0,pastorVisibleCount).map((pastor)=>{const name=pastor.name.replace(/\s*목사(?:님)?$/u,""),href=pastor.person_id?`/pastors/p/${pastor.person_id}`:`/pastors/${pastor.church_id}${pastor.minister_id?`?minister=${pastor.minister_id}`:""}`,photo=pastor.photo_url||"/pastor-silhouette.webp",roles=(pastor.role_titles||pastor.role_title).split(",").filter(Boolean),savedId=`pastor:${pastor.person_id??`${pastor.church_id}-${pastor.minister_id??"primary"}`}`;return <article className="pastor-home-card" key={savedId}><a href={href} className="pastor-directory-card"><span className={`pastor-directory-photo${pastor.photo_url?" has-photo":" is-placeholder"}`}><img src={photo} alt={pastor.photo_url?`${name} 목회자`:""} width={92} height={116} loading="lazy" decoding="async" referrerPolicy="no-referrer"/></span><span className="pastor-directory-copy"><span className="pastor-directory-status">{pastor.role_status==="former"?"사역 이력":"현재 사역"}</span><strong>{name}</strong><span className="pastor-directory-roles">{roles.map((role)=><b key={role}>{role}</b>)}</span>{pastor.church_name&&<p>{pastor.church_name}</p>}{(pastor.region||pastor.denomination)&&<small>{[pastor.region,pastor.denomination].filter(Boolean).join(" · ")}</small>}<em>목회 기록과 응원글 보기 →</em></span></a><button className={`church-save pastor-home-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"pastor",title:name,subtitle:[pastor.church_name,pastor.role_title].filter(Boolean).join(" · "),url:href})} aria-label={`${name} 목회자 ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button></article>})}{!pastorItems.length&&<div className="empty">조건에 맞는 목회자가 없습니다. 이름이나 교회명을 짧게 다시 입력해 보세요.</div>}</div>}
         {!pastorLoading&&pastorItems.length>pastorVisibleCount&&<button className="church-directory-more" type="button" onClick={()=>setPastorVisibleCount((count)=>Math.min(count+12,pastorItems.length))}>목회자 12명 더 보기</button>}
       </section>
 

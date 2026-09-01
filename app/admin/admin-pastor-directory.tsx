@@ -1,0 +1,24 @@
+"use client";
+
+import {FormEvent,useEffect,useRef,useState} from "react";
+import {ReviewControls} from "./admin-controls";
+
+export type AdminPastorItem={id:number;name:string;review_status:string;photo_url:string|null;photo_review_status:string;role_title:string|null;role_status:string|null;church_name:string|null;region:string|null;denomination:string|null;source_url:string|null};
+type Props={initialItems:AdminPastorItem[];total:number};
+
+function stateLabel(status:string){return status==="approved"?"공개":status==="pending"?"검토 중":status==="removed"?"보류":"비공개";}
+
+export default function AdminPastorDirectory({initialItems,total}:Props){
+  const [items,setItems]=useState(initialItems),[query,setQuery]=useState(""),[appliedQuery,setAppliedQuery]=useState(""),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(initialItems.length||1),[resultTotal,setResultTotal]=useState(total),[loading,setLoading]=useState(false),[error,setError]=useState("");
+  const requestRef=useRef<AbortController|null>(null),pages=Math.max(1,Math.ceil(resultTotal/pageSize));
+  async function load(nextQuery:string,nextPage:number){requestRef.current?.abort();const controller=new AbortController();requestRef.current=controller;setLoading(true);setError("");const params=new URLSearchParams({page:String(nextPage)});if(nextQuery.trim())params.set("q",nextQuery.trim());try{const response=await fetch(`/api/admin/pastors?${params}`,{cache:"no-store",signal:controller.signal}),data=await response.json() as {items?:AdminPastorItem[];total?:number;page?:number;pageSize?:number;error?:string};if(!response.ok)throw new Error(data.error||"목회자 목록을 불러오지 못했습니다.");setItems(data.items??[]);setResultTotal(data.total??0);setPageSize(data.pageSize??24);setPage(data.page??nextPage);setAppliedQuery(nextQuery.trim());}catch(reason){if((reason as {name?:string}).name!=="AbortError")setError((reason as Error).message);}finally{if(!controller.signal.aborted)setLoading(false);}}
+  useEffect(()=>()=>requestRef.current?.abort(),[]);
+  function submit(event:FormEvent){event.preventDefault();void load(query,1);}
+  function reset(){requestRef.current?.abort();setQuery("");setAppliedQuery("");setItems(initialItems);setResultTotal(total);setPageSize(initialItems.length||1);setPage(1);setLoading(false);setError("");}
+  return <>
+    <form className="admin-list-search" role="search" onSubmit={submit}><label><span className="sr-only">목회자 검색</span><input type="search" value={query} onChange={(event)=>setQuery(event.target.value)} aria-controls="admin-pastor-list" placeholder="이름, 교회, 직분, 지역, 교단"/></label><span className="admin-search-count" aria-live="polite">{loading?"검색 중":`${items.length}/${resultTotal}`}</span><button type="submit" disabled={loading}>검색</button>{(query||appliedQuery)&&<button type="button" onClick={reset}>초기화</button>}{!query&&!appliedQuery&&<button className="admin-random-refresh" type="button" disabled={loading} onClick={()=>void load("",1)}>↻ 다른 목회자 보기</button>}</form>
+    {error&&<p className="admin-error" role="alert">{error}</p>}
+    <div className="admin-pastor-manage-list" id="admin-pastor-list" aria-busy={loading}>{items.length?items.map((item)=><article key={item.id}><a className="admin-pastor-profile-link" href={`/pastors/p/${item.id}`} target="_blank" rel="noreferrer"><img src={item.photo_url||"/pastor-silhouette.webp"} alt={item.photo_url?`${item.name} 목회자`:""} width={64} height={80} loading="lazy" decoding="async" referrerPolicy="no-referrer"/><span><small>{item.role_title??"직분 확인 중"} · {item.role_status==="former"?"사역 이력":"현재 사역"}</small><strong>{item.name}</strong><em>{item.church_name??"소속 교회 확인 중"}</em><i>{[item.region,item.denomination].filter(Boolean).join(" · ")}</i></span></a><div className="admin-pastor-card-state"><span className={`status-${item.review_status}`}>{stateLabel(item.review_status)}</span><small>사진 {item.photo_url?stateLabel(item.photo_review_status):"없음"}</small></div>{item.source_url?<a className="admin-review-link" href={item.source_url} target="_blank" rel="noreferrer">공식 출처 확인 ↗</a>:<span className="admin-reference-missing">공식 출처 없음</span>}<ReviewControls kind="pastor-person" id={item.id} status={item.review_status}/></article>):<p className="admin-empty">{loading?"목회자를 찾고 있습니다.":"검색 결과가 없습니다."}</p>}</div>
+    {appliedQuery&&pages>1&&<nav className="admin-directory-pagination" aria-label="목회자 검색 페이지"><button type="button" disabled={loading||page<=1} onClick={()=>void load(appliedQuery,page-1)}>이전</button><span>{page}/{pages}</span><button type="button" disabled={loading||page>=pages} onClick={()=>void load(appliedQuery,page+1)}>다음</button></nav>}
+  </>;
+}

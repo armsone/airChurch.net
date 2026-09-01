@@ -2,10 +2,12 @@
 
 import { FormEvent, useRef, useState, type ReactNode } from "react";
 
-async function updateAdmin(body: Record<string, unknown>, reload=true) {
+async function updateAdmin(body: Record<string, unknown>, reload=true, successMessage="") {
   const response = await fetch("/api/admin/manage", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(result.error || "처리하지 못했습니다.");
+  if(body.kind==="church"||body.kind==="church-info")sessionStorage.setItem("airchurch:church-cache-bust",String(Date.now()));
+  if(successMessage)window.alert(successMessage);
   if(reload)window.location.reload();
 }
 
@@ -83,7 +85,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    try { await updateAdmin({ kind: "church", id: church.id, ...values }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
+    try { await updateAdmin({ kind: "church", id: church.id, ...values },true,"교회 정보를 저장했습니다."); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
 
   async function changeStatus(next: "approved" | "removed" | "deleted") {
@@ -303,7 +305,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError("");
     const values = Object.fromEntries(new FormData(event.currentTarget));
-    try { await updateAdmin({ kind: "church", id: props.id, ...values }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
+    try { await updateAdmin({ kind: "church", id: props.id, ...values },true,"교회 정보를 저장했습니다."); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
   async function changeStatus(next: "approved" | "removed" | "deleted") {
     if (next === "removed" && (!holdReason || holdNote.trim().length < 3)) {
@@ -333,7 +335,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
 
 export function ChurchInfoEditControls(props:{id:number;name:string;pastor:string;region:string;denomination:string;iconOnly?:boolean}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
-  async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"church-info",id:props.id,...values});}catch(reason){setError((reason as Error).message);setBusy(false);}}
+  async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"church-info",id:props.id,...values},true,"교회 정보를 저장했습니다.");}catch(reason){setError((reason as Error).message);setBusy(false);}}
   return <details className={`admin-church-details admin-church-info-edit${props.iconOnly?" is-icon-editor":""}`}><summary aria-label="교회 정보 수정">{props.iconOnly?<span aria-hidden="true">✎</span>:"교회 정보 수정"}</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required/><input name="pastor" defaultValue={props.pastor} aria-label="담임목사" required/><input name="region" defaultValue={props.region} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination} aria-label="교단" required/></div><div className="admin-action-row"><button disabled={busy} type="submit">수정 내용 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form></details>;
 }
 

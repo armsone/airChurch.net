@@ -15,7 +15,7 @@ export async function GET(request:Request) {
   const denomination=url.searchParams.get("denomination")?.trim().slice(0,80)??"";
   const terms=tokenizeSearchQuery(query),globalTerms=tokenizeSearchQuery(globalQuery);
   const searchGroups=[...terms,...globalTerms].map(expand);
-  const responseHeaders={"cache-control":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
+  const responseHeaders={"cache-control":url.searchParams.has("adminFresh")?"private, no-store":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
   const db=database();
   await ensureSermonTables(db);
   await maybeRunDataRetention(db);
