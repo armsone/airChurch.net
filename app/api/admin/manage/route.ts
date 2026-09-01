@@ -191,13 +191,13 @@ export async function PATCH(request: Request) {
     if(status==="deleted")await db.prepare("DELETE FROM ministry_profile_suggestions WHERE id=?").bind(id).run();
     else if(status==="rejected")await db.prepare("UPDATE ministry_profile_suggestions SET status='rejected',fingerprint='',reviewed_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending'").bind(id).run();
     else {const suggestion=await db.prepare("SELECT church_id,name,role_title,source_url FROM ministry_profile_suggestions WHERE id=? AND status='pending' LIMIT 1").bind(id).first<{church_id:number;name:string;role_title:string;source_url:string|null}>();if(!suggestion||!suggestion.source_url)return Response.json({error:"공식 출처가 있는 대기 제보만 반영할 수 있습니다."},{status:409});const primary=["담임목사","위임목사","대표목사"].includes(suggestion.role_title),associate=["수석부목사","부목사","행정목사","목양목사"].includes(suggestion.role_title),education=["교육목사","강도사","전임전도사","교육전도사","전도사"].includes(suggestion.role_title),roleCategory=primary?"current_primary":associate?"associate":education?"education":suggestion.role_title==="협동목사"?"cooperating":suggestion.role_title==="원로목사"?"emeritus":"retired";await db.batch([db.prepare("INSERT INTO church_ministry_profiles (church_id,name,role_title,role_category,role_status,source_url,source_checked_at,review_status) VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP,'approved') ON CONFLICT(church_id,name,role_title,role_status) DO UPDATE SET source_url=excluded.source_url,source_checked_at=CURRENT_TIMESTAMP,review_status='approved',updated_at=CURRENT_TIMESTAMP").bind(suggestion.church_id,suggestion.name,suggestion.role_title,roleCategory,["원로목사","은퇴목사"].includes(suggestion.role_title)?"former":"current",suggestion.source_url),db.prepare("UPDATE ministry_profile_suggestions SET status='approved',fingerprint='',reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(id)]);}
-  } else if (kind === "post" || kind === "talent" || kind === "contact" || kind === "encouragement") {
+  } else if (kind === "post" || kind === "talent" || kind === "contact" || kind === "encouragement" || kind === "pastor-encouragement") {
     const status = clean(data.status, 20);
-    const table = kind === "post" ? "community_posts" : kind === "contact" ? "contact_requests" : kind==="encouragement"?"encouragement_messages":"talent_offers";
+    const table = kind === "post" ? "community_posts" : kind === "contact" ? "contact_requests" : kind==="encouragement"?"encouragement_messages":kind==="pastor-encouragement"?"pastor_encouragement_messages":"talent_offers";
     if (status === "deleted") await db.prepare(`DELETE FROM ${table} WHERE id=?`).bind(id).run();
     else {
       if (!["pending", "approved", "rejected"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
-      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : kind==="encouragement"?",moderated_at=CURRENT_TIMESTAMP":kind==="post"&&status==="approved" ? ",report_count=0" : "";
+      const reviewed=kind === "contact" ? ",reviewed_at=CURRENT_TIMESTAMP" : kind==="encouragement"||kind==="pastor-encouragement"?",moderated_at=CURRENT_TIMESTAMP":kind==="post"&&status==="approved" ? ",report_count=0" : "";
       await db.prepare(`UPDATE ${table} SET status=?${reviewed} WHERE id=?`).bind(status, id).run();
     }
   } else if (kind === "recommendation") {

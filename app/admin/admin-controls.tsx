@@ -348,20 +348,21 @@ export function SermonControls({ id, status }: { id: number; status: string }) {
   return <div className="admin-inline-control"><button type="button" disabled={busy} className={status === "published" ? "danger" : "restore"} onClick={() => void toggle()}>{status === "published" ? "즉시 내리기" : "다시 공개"}</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
-export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" | "recommendation" | "contact" | "encouragement" | "ministry-suggestion"; id: number; status: string }) {
+export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" | "recommendation" | "contact" | "encouragement" | "pastor-encouragement" | "ministry-suggestion"; id: number; status: string }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   async function setStatus(next: "pending" | "approved" | "rejected" | "deleted") {
     if (next === "rejected" && !window.confirm("공개하지 않고 반려할까요?")) return;
     if (next === "deleted") {
-      const label=kind === "recommendation" ? "교회 추천" : kind === "post" ? "익명 글" : kind === "contact" ? "문의" : kind==="encouragement"?"응원글":kind==="ministry-suggestion"?"교역자 제보":"달란트";
+      const label=kind === "recommendation" ? "교회 추천" : kind === "post" ? "익명 글" : kind === "contact" ? "문의" : kind==="encouragement"||kind==="pastor-encouragement"?"응원글":kind==="ministry-suggestion"?"교역자 제보":"달란트";
       if (!window.confirm(`이 ${label} 기록을 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`)) return;
     }
     setBusy(true); setError("");
     try { await updateAdmin({ kind, id, status: next }); } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
-  const approveLabel=kind === "recommendation" ? "교회 등록 승인" : kind === "contact" ? "처리 완료" : kind==="encouragement"?"공개로 복원":kind==="ministry-suggestion"?"확인 후 반영":"공개 승인";
+  const encouragement=kind==="encouragement"||kind==="pastor-encouragement";
+  const approveLabel=kind === "recommendation" ? "교회 등록 승인" : kind === "contact" ? "처리 완료" : encouragement?"공개로 복원":kind==="ministry-suggestion"?"확인 후 반영":"공개 승인";
   const rejectLabel=kind === "recommendation" ? "등록하지 않음" : kind === "contact" ? "처리하지 않음" : kind==="ministry-suggestion"?"반영하지 않음":"비공개";
-  return <div className="admin-action-row"><button type="button" disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{approveLabel}</button>{kind!=="encouragement"&&<button type="button" disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{rejectLabel}</button>}{status !== "pending"&&kind!=="ministry-suggestion"&&<button type="button" disabled={busy} onClick={() => void setStatus("pending")}>{kind==="encouragement"?"보류":"재검토"}</button>}<button type="button" disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
+  return <div className="admin-action-row"><button type="button" disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{approveLabel}</button>{!encouragement&&<button type="button" disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{rejectLabel}</button>}{status !== "pending"&&kind!=="ministry-suggestion"&&<button type="button" disabled={busy} onClick={() => void setStatus("pending")}>{encouragement?"보류":"재검토"}</button>}<button type="button" disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
