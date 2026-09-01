@@ -209,11 +209,20 @@ export async function PATCH(request: Request) {
     else await db.prepare("UPDATE pastor_people SET photo_usage_basis=CASE WHEN ?<>'' THEN ? ELSE photo_usage_basis END,photo_review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND photo_url IS NOT NULL AND photo_source_url IS NOT NULL").bind(usageBasis,usageBasis,status,id).run();
   } else if(kind==="pastor-person"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 처리할 수 있습니다."},{status:403});
-    const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;
-    if(!["pending","approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
     const person=await db.prepare("SELECT id FROM pastor_people WHERE id=? LIMIT 1").bind(id).first();if(!person)return Response.json({error:"목회자를 찾을 수 없습니다."},{status:404});
-    if(status==="deleted")await db.batch([db.prepare("DELETE FROM pastor_encouragement_messages WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_private_contact_values WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_church_roles WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_people WHERE id=?").bind(id)]);
-    else await db.batch([db.prepare("UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id),db.prepare("UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id=?").bind(status,id)]);
+    const requested=clean(data.status,20);
+    if(requested){
+      const status=requested==="rejected"?"removed":requested;
+      if(!["pending","approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
+      if(status==="deleted")await db.batch([db.prepare("DELETE FROM pastor_encouragement_messages WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_private_contact_values WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_church_roles WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_people WHERE id=?").bind(id)]);
+      else await db.batch([db.prepare("UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id),db.prepare("UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id=?").bind(status,id)]);
+    }else{
+      const roleId=Number(data.roleId),name=clean(data.name,80),roleTitle=clean(data.roleTitle,80),churchName=clean(data.churchName,120),region=clean(data.region,80),denomination=clean(data.denomination,120),roleStatus=clean(data.roleStatus,20);
+      if(!name||!roleTitle||!churchName||!region||!denomination||!["current","former"].includes(roleStatus))return Response.json({error:"이름·직분·소속 교회·지역·교단을 모두 확인해 주세요."},{status:400});
+      if(!Number.isInteger(roleId)||roleId<1)return Response.json({error:"수정할 사역 관계를 찾을 수 없습니다."},{status:400});
+      const result=await db.batch([db.prepare("UPDATE pastor_people SET name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,id),db.prepare("UPDATE pastor_church_roles SET role_title=?,church_name=?,region=?,denomination=?,role_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND pastor_id=?").bind(roleTitle,churchName,region,denomination,roleStatus,roleId,id)]);
+      if(Number(result[1]?.meta?.changes??0)!==1)return Response.json({error:"수정할 사역 관계를 찾을 수 없습니다."},{status:404});
+    }
   } else if(kind==="ministry-suggestion"){
     if(role!=="admin")return Response.json({error:"관리자만 교역자 제보를 처리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);if(!["approved","rejected","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});

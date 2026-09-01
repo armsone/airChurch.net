@@ -7,6 +7,7 @@ async function updateAdmin(body: Record<string, unknown>, reload=true, successMe
   const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(result.error || "처리하지 못했습니다.");
   if(body.kind==="church"||body.kind==="church-info")sessionStorage.setItem("airchurch:church-cache-bust",String(Date.now()));
+  if(body.kind==="pastor-person")sessionStorage.setItem("airchurch:pastor-cache-bust",String(Date.now()));
   if(successMessage)window.alert(successMessage);
   if(reload)window.location.reload();
 }
@@ -337,6 +338,12 @@ export function ChurchInfoEditControls(props:{id:number;name:string;pastor:strin
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"church-info",id:props.id,...values},true,"교회 정보를 저장했습니다.");}catch(reason){setError((reason as Error).message);setBusy(false);}}
   return <details className={`admin-church-details admin-church-info-edit${props.iconOnly?" is-icon-editor":""}`}><summary aria-label="교회 정보 수정">{props.iconOnly?<span aria-hidden="true">✎</span>:"교회 정보 수정"}</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required/><input name="pastor" defaultValue={props.pastor} aria-label="담임목사" required/><input name="region" defaultValue={props.region} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination} aria-label="교단" required/></div><div className="admin-action-row"><button disabled={busy} type="submit">수정 내용 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form></details>;
+}
+
+export function PastorControls(props:{id:number;roleId:number|null;name:string;roleTitle:string;churchName:string|null;region:string|null;denomination:string|null;roleStatus:string;status:string}){
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"pastor-person",id:props.id,roleId:props.roleId,...values},true,"목회자 정보를 저장했습니다.");}catch(reason){setError((reason as Error).message);setBusy(false);}}
+  return <details className="admin-pastor-details"><summary className="sr-only">목회자 정보와 공개 상태 관리</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="목회자 이름" required/><input name="roleTitle" defaultValue={props.roleTitle} aria-label="직분" required/><input name="churchName" defaultValue={props.churchName??""} aria-label="소속 교회" required/><input name="region" defaultValue={props.region??""} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination??""} aria-label="교단" required/></div><div className="admin-preference-fields"><label><span>사역 상태</span><select name="roleStatus" defaultValue={props.roleStatus==="former"?"former":"current"}><option value="current">현재 사역</option><option value="former">이전 사역</option></select></label></div><div className="admin-action-row"><button type="submit" disabled={busy||!props.roleId}>정보 저장</button><a href="/admin/pastor-photos">사진 검토 열기 →</a></div>{!props.roleId&&<p className="admin-error">연결된 사역 관계가 없어 이 카드에서는 정보를 수정할 수 없습니다.</p>}{error&&<p className="admin-error" role="alert">{error}</p>}</form><div className="admin-pastor-status-actions"><span>공개 상태</span><ReviewControls kind="pastor-person" id={props.id} status={props.status}/></div></details>;
 }
 
 export function SermonControls({ id, status }: { id: number; status: string }) {

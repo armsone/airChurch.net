@@ -1,6 +1,7 @@
 import { accessSession } from "../../../../admin-access";
 import { clean,database,ensureChurchDetailTables,ensureMinistryProfileTables,ensureSermonTables,readLimitedJson,requestOriginIsInvalid } from "../../../_shared";
 import { safeHttpUrl } from "../../../../safe-url";
+import { isValidPastorName } from "../../../../pastor-name";
 
 type Operation={action?:unknown;key?:unknown;values?:Record<string,unknown>};
 const SENSITIVE=/(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:헌금|후원|입금)\s*계좌|(?:휴대폰|핸드폰)\s*[:：]?\s*01[016789][\d-]{7,})/i;
@@ -33,11 +34,11 @@ export async function POST(request:Request){
       parsed.push({action:"profile",churchId,values:{slogan,vision,summary,address,sourceUrl,collectedAt,reviewedAt}});
     }else if(operation.action==="upsert_reviewed_ministry_profile"){
       const name=clean(values.name,60).replace(/\s*목사(?:님)?$/u,""),roleTitle=clean(values.role_title,40),roleCategory=clean(values.role_category,30),roleStatus=clean(values.role_status,20),sourceCheckedAt=clean(values.source_checked_at,40);
-      if(name.length<2||!ROLE_TITLES.has(roleTitle)||!ROLE_CATEGORIES.has(roleCategory)||!["current","former"].includes(roleStatus)||!iso(sourceCheckedAt)||SENSITIVE.test(name))return Response.json({error:"목회자 이력의 신원·직분·출처를 확인해 주세요."},{status:400});
+      if(name.length<2||!isValidPastorName(name)||!ROLE_TITLES.has(roleTitle)||!ROLE_CATEGORIES.has(roleCategory)||!["current","former"].includes(roleStatus)||!iso(sourceCheckedAt)||SENSITIVE.test(name))return Response.json({error:"목회자 이력의 신원·직분·출처를 확인해 주세요."},{status:400});
       parsed.push({action:"minister",churchId,values:{name,roleTitle,roleCategory,roleStatus,sourceUrl,sourceCheckedAt,reviewedAt}});
     }else if(operation.action==="upsert_reviewed_ministry_appearance"){
       const ministerName=clean(values.minister_name,60).replace(/\s*목사(?:님)?$/u,""),roleTitle=clean(values.role_title,40),hostChurchName=clean(values.host_church_name,100),eventTitle=clean(values.event_title,200),videoId=clean(values.video_id,20)||null,occurredAt=clean(values.occurred_at,40),sourceCheckedAt=clean(values.source_checked_at,40);
-      if(ministerName.length<2||!ROLE_TITLES.has(roleTitle)||!hostChurchName||!eventTitle||videoId&&!/^[\w-]{11}$/.test(videoId)||!dateLike(occurredAt)||!iso(sourceCheckedAt)||[ministerName,hostChurchName,eventTitle].some((value)=>SENSITIVE.test(value)))return Response.json({error:"초청 설교·외부 사역의 인물·날짜·공식 출처를 확인해 주세요."},{status:400});
+      if(ministerName.length<2||!isValidPastorName(ministerName)||!ROLE_TITLES.has(roleTitle)||!hostChurchName||!eventTitle||videoId&&!/^[\w-]{11}$/.test(videoId)||!dateLike(occurredAt)||!iso(sourceCheckedAt)||[ministerName,hostChurchName,eventTitle].some((value)=>SENSITIVE.test(value)))return Response.json({error:"초청 설교·외부 사역의 인물·날짜·공식 출처를 확인해 주세요."},{status:400});
       parsed.push({action:"appearance",churchId,values:{ministerName,roleTitle,hostChurchName,eventTitle,sourceUrl,videoId,occurredAt,sourceCheckedAt,reviewedAt}});
     }else return Response.json({error:"지원하지 않는 반영 작업입니다."},{status:400});
   }
