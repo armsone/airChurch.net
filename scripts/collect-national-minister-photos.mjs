@@ -13,8 +13,9 @@ const IMAGE_ATTR = /(?:src|data-src|data-original|data-lazy-src|data-lazy|data-e
 const IMAGE_TAG = /<img\b[^>]*>/gi;
 const BACKGROUND = /background(?:-image)?\s*:\s*url\(["']?([^"')]+)["']?\)/gi;
 const BAD_IMAGE = /(?:logo|icon|sub[_-]?top|header|title[_-]?bg|sprite|loading|spinner|blank|spacer|default|placeholder|avatar-default|favicon|button|btn_|arrow|bullet|pixel|qr|map)/i;
-const DISCOVERY_VERSION = 4;
+const DISCOVERY_VERSION = 5;
 const PAGE_HINT = /프로필|약력|인사말|대표|소개|교역자|목회자|사역자|섬기는|원로|은퇴|담임|부목사|설교|말씀|영상|profile|bio(?:graphy)?|staff|pastor|minister|servant|leadership|clergy|sermon|preach|video/i;
+const DISCOVERY_HINT = /프로필|약력|인사말|대표|소개|교역자|목회자|사역자|섬기는|원로|은퇴|추대|개척|담임|부목사|전도사|노회|총회|동문|임직|부임|연감|주소록|profile|bio(?:graphy)?|staff|pastor|minister|servant|leadership|clergy|member|directory/i;
 
 function parseArgs(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -93,18 +94,21 @@ function relatedPageUrls(html, baseUrl, people = []) {
       const exactPerson = people.find((person) => person?.name && label.includes(person.name));
       const sameHost = url.hostname === base.hostname;
       const sameOfficialFamily = officialSiteFamily(url.hostname) === officialSiteFamily(base.hostname);
-      if ((!sameHost && !(exactPerson && sameOfficialFamily)) || (!exactPerson && !PAGE_HINT.test(`${label} ${decodeURIComponent(url.pathname)}`))) continue;
+      const clue = `${label} ${decodeURIComponent(url.pathname)}`;
+      if ((!sameHost && !(exactPerson && sameOfficialFamily)) || (!exactPerson && !DISCOVERY_HINT.test(clue))) continue;
       url.hash = "";
-      urls.push(url.toString());
+      const priority = exactPerson ? 100 : /프로필|약력|교역자|목회자|섬기는|원로|은퇴|추대|profile|bio|staff|pastor|minister|clergy/i.test(clue) ? 50 : 20;
+      urls.push({ url: url.toString(), priority });
     } catch {}
   }
   for (const match of html.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi)) {
     try {
       const url = new URL(decodeEntities(match[1]), baseUrl);
-      if (url.hostname === new URL(baseUrl).hostname && PAGE_HINT.test(url.pathname)) urls.push(url.toString());
+      const clue = decodeURIComponent(url.pathname);
+      if (url.hostname === new URL(baseUrl).hostname && DISCOVERY_HINT.test(clue)) urls.push({ url: url.toString(), priority: /profile|bio|staff|pastor|minister|clergy/i.test(clue) ? 45 : 15 });
     } catch {}
   }
-  return [...new Set(urls)];
+  return [...new Map(urls.toSorted((left, right) => right.priority - left.priority).map((item) => [item.url, item])).values()].map((item) => item.url);
 }
 
 function labeledPhoto(html, person, pageUrl, pagePeople) {
