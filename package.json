@@ -25,6 +25,7 @@
     "worship:validate-all": "node scripts/worship-schedules/validate.mjs --input data/worship-schedules/all-output.json --output data/worship-schedules/all-validated-dry-run.json",
     "worship:plan-all": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/all-validated-dry-run.json --output data/worship-schedules/all-import-plan.json",
     "worship:report-all": "node scripts/worship-schedules/report.mjs",
+    "ministry:verify-release": "node scripts/verify-ministry-release.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
