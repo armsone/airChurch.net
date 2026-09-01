@@ -185,6 +185,10 @@ export async function PATCH(request: Request) {
     const status = clean(data.status, 20);
     if (!["published", "hidden"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     await db.prepare("UPDATE sermons SET status=? WHERE id=?").bind(status, id).run();
+  } else if(kind==="pastor-identity"){
+    if(role!=="admin")return Response.json({error:"관리자만 동일인 연결을 판정할 수 있습니다."},{status:403});
+    const status=clean(data.status,30);if(!["pending","confirmed_same","distinct"].includes(status))return Response.json({error:"판정 상태를 확인해 주세요."},{status:400});
+    await db.prepare("UPDATE pastor_identity_candidates SET status=?,reviewed_at=CASE WHEN ?='pending' THEN NULL ELSE CURRENT_TIMESTAMP END WHERE id=?").bind(status,status,id).run();
   } else if(kind==="pastor-photo"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 사진을 처리할 수 있습니다."},{status:403});
     const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;

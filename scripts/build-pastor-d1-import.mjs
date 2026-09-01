@@ -26,8 +26,10 @@ for(let offset=0;offset<people.length;offset+=batchSize){
   lines.push("COMMIT;","");
   const content=lines.join("\n"),name=`pastor-import-${String(chunks.length+1).padStart(4,"0")}.sql`,file=path.join(outputDir,name);
   await atomicWrite(file,content);
-  chunks.push({file:name,people:selected.length,roles:selected.reduce((sum,person)=>sum+(roleGroups.get(person.directoryId)?.length??0),0),bytes:Buffer.byteLength(content),sha256:createHash("sha256").update(content).digest("hex")});
+  chunks.push({file:name,type:"people_and_roles",people:selected.length,roles:selected.reduce((sum,person)=>sum+(roleGroups.get(person.directoryId)?.length??0),0),identityLinks:0,bytes:Buffer.byteLength(content),sha256:createHash("sha256").update(content).digest("hex")});
 }
-const manifest={generatedAt:new Date().toISOString(),sourceFile:input,automaticApproval:false,writeStatus:"pending",batchSize,people:people.length,roles:roles.length,chunks};
+const identityLinks=Array.isArray(plan.identityLinks)?plan.identityLinks:[];
+for(let offset=0;offset<identityLinks.length;offset+=batchSize){const selected=identityLinks.slice(offset,offset+batchSize),lines=["BEGIN TRANSACTION;"];for(const link of selected)lines.push(`INSERT OR IGNORE INTO pastor_identity_candidates (left_pastor_id,right_pastor_id,evidence_type,evidence_value,status) SELECT CASE WHEN l.id<r.id THEN l.id ELSE r.id END,CASE WHEN l.id<r.id THEN r.id ELSE l.id END,${sql(link.evidenceType)},${sql(link.evidenceValue)},'pending' FROM pastor_people l,pastor_people r WHERE l.directory_id=${sql(link.leftPersonDirectoryId)} AND r.directory_id=${sql(link.rightPersonDirectoryId)} AND l.id<>r.id;`);lines.push("COMMIT;","");const content=lines.join("\n"),name=`pastor-import-${String(chunks.length+1).padStart(4,"0")}-identity.sql`,file=path.join(outputDir,name);await atomicWrite(file,content);chunks.push({file:name,type:"identity_links",people:0,roles:0,identityLinks:selected.length,bytes:Buffer.byteLength(content),sha256:createHash("sha256").update(content).digest("hex")});}
+const manifest={generatedAt:new Date().toISOString(),sourceFile:input,automaticApproval:false,writeStatus:"pending",batchSize,people:people.length,roles:roles.length,identityLinks:identityLinks.length,chunks};
 await atomicWrite(path.join(outputDir,"manifest.json"),`${JSON.stringify(manifest,null,2)}\n`);
-console.log(JSON.stringify({outputDir,batchSize,people:people.length,roles:roles.length,chunks:chunks.length,totalBytes:chunks.reduce((sum,chunk)=>sum+chunk.bytes,0)}));
+console.log(JSON.stringify({outputDir,batchSize,people:people.length,roles:roles.length,identityLinks:identityLinks.length,chunks:chunks.length,totalBytes:chunks.reduce((sum,chunk)=>sum+chunk.bytes,0)}));

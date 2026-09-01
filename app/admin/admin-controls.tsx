@@ -375,6 +375,12 @@ export function PastorPhotoControls({id}:{id:number}){
   return <div className="admin-action-row"><label><span className="sr-only">사진 사용 권리 근거</span><select value={usageBasis} onChange={(event)=>setUsageBasis(event.target.value)}><option value="">권리 근거 선택</option><option value="permission">사용 허락 확인</option><option value="open_license">오픈 라이선스 확인</option><option value="owned">airChurch 보유 사진</option></select></label><button type="button" className="restore" disabled={busy||!usageBasis} onClick={()=>void act("approved")}>권리 확인 후 승인</button><button type="button" disabled={busy} onClick={()=>void act("rejected")}>보류</button><button type="button" className="danger" disabled={busy} onClick={()=>void act("deleted")}>사진만 삭제</button>{error&&<span className="admin-error">{error}</span>}</div>;
 }
 
+export function PastorIdentityControls({id}:{id:number}){
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function decide(status:"confirmed_same"|"distinct") {if(!window.confirm(status==="confirmed_same"?"두 기록을 같은 사람의 사역 이력으로 연결할까요? 원본 인물은 삭제하지 않습니다.":"두 기록을 서로 다른 사람으로 확정할까요?"))return;setBusy(true);setError("");try{await updateAdmin({kind:"pastor-identity",id,status});}catch(reason){setError((reason as Error).message);setBusy(false);}}
+  return <div className="admin-action-row"><button type="button" className="restore" disabled={busy} onClick={()=>void decide("confirmed_same")}>같은 사람으로 연결</button><button type="button" disabled={busy} onClick={()=>void decide("distinct")}>서로 다른 사람</button>{error&&<span className="admin-error">{error}</span>}</div>;
+}
+
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function setStatus(next:"pending"|"approved"|"rejected"|"deleted") {

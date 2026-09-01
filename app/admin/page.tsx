@@ -105,7 +105,7 @@ export default async function AdminPage() {
   return <main className="admin-shell">
     <AdminLiveRefresh />
     <header className="admin-header">
-      <HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><div><span>관리자</span><a href="/admin/pastor-photos">목회자 사진</a><a href="/pastor">목사님 페이지</a><form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div>
+      <HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><div><span>관리자</span><a href="/admin/pastor-identities">동일인 검토</a><a href="/admin/pastor-photos">목회자 사진</a><a href="/pastor">목사님 페이지</a><form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div>
     </header>
     <section className="admin-title"><div><span>ADMIN ACTION CENTER</span><h1>오늘 처리할 운영 업무</h1><p>목사님이 확인을 요청한 교회부터 결정하고, 나머지 운영 현황은 아래에서 확인하세요.</p></div>
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>

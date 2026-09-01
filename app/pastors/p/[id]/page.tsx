@@ -23,7 +23,7 @@ export default async function PastorPersonPage({params}:{params:Promise<{id:stri
   const person=await getPerson(Number((await params).id));
   if(!person)return <main className="church-detail-shell"><SkipLink/><section className="church-detail-missing" id="primary-content"><h1>현재 공개된 목회자 기록이 아닙니다</h1><a href="/pastors">목회자 찾기로 돌아가기 →</a></section></main>;
   const db=database(),session=await accessSession();const [roles,messages]=await Promise.all([
-    db.prepare("SELECT id,church_id,church_name,denomination,region,role_title,role_status,start_date,end_date,source_url FROM pastor_church_roles WHERE pastor_id=? AND review_status='approved' ORDER BY CASE role_status WHEN 'current' THEN 0 ELSE 1 END,COALESCE(end_date,start_date,'') DESC,id DESC").bind(person.id).all<Role>(),
+    db.prepare("WITH RECURSIVE linked(id) AS (SELECT ? UNION SELECT CASE WHEN i.left_pastor_id=linked.id THEN i.right_pastor_id ELSE i.left_pastor_id END FROM pastor_identity_candidates i JOIN linked ON (i.left_pastor_id=linked.id OR i.right_pastor_id=linked.id) WHERE i.status='confirmed_same') SELECT r.id,r.church_id,r.church_name,r.denomination,r.region,r.role_title,r.role_status,r.start_date,r.end_date,r.source_url FROM pastor_church_roles r WHERE r.pastor_id IN (SELECT id FROM linked) AND r.review_status='approved' ORDER BY CASE r.role_status WHEN 'current' THEN 0 ELSE 1 END,COALESCE(r.end_date,r.start_date,'') DESC,r.id DESC").bind(person.id).all<Role>(),
     db.prepare("SELECT id,nickname,content,created_at AS createdAt FROM pastor_encouragement_messages WHERE pastor_id=? AND status='approved' ORDER BY created_at DESC,id DESC LIMIT 30").bind(person.id).all<EncouragementItem>(),
   ]);
   let privateContacts:Awaited<ReturnType<typeof readPastorPrivateContacts>>=[];

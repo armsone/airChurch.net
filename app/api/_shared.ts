@@ -243,7 +243,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v4' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v5' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -257,6 +257,9 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_private_contact_values (id INTEGER PRIMARY KEY AUTOINCREMENT,pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),contact_type TEXT NOT NULL,encrypted_value TEXT NOT NULL,value_digest TEXT NOT NULL,scope TEXT NOT NULL DEFAULT 'pastoral_support',source_url TEXT,review_status TEXT NOT NULL DEFAULT 'approved',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_pastor_private_contact_identity ON pastor_private_contact_values(pastor_id,contact_type,value_digest)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_private_contact_person_review ON pastor_private_contact_values(pastor_id,review_status,contact_type)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_identity_candidates (id INTEGER PRIMARY KEY AUTOINCREMENT,left_pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),right_pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),evidence_type TEXT NOT NULL,evidence_value TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TEXT)"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_pastor_identity_pair_evidence ON pastor_identity_candidates(left_pastor_id,right_pastor_id,evidence_type,evidence_value)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_identity_status ON pastor_identity_candidates(status,created_at,id)"),
   ]);
   const personColumns=await db.prepare("PRAGMA table_info(pastor_people)").all<{name:string}>();
   await addColumnIfMissing(db,personColumns.results,"photo_url","ALTER TABLE pastor_people ADD COLUMN photo_url TEXT");
@@ -264,7 +267,7 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await addColumnIfMissing(db,personColumns.results,"photo_sha256","ALTER TABLE pastor_people ADD COLUMN photo_sha256 TEXT");
   await addColumnIfMissing(db,personColumns.results,"photo_usage_basis","ALTER TABLE pastor_people ADD COLUMN photo_usage_basis TEXT");
   await addColumnIfMissing(db,personColumns.results,"photo_review_status","ALTER TABLE pastor_people ADD COLUMN photo_review_status TEXT NOT NULL DEFAULT 'pending'");
-  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v4',CURRENT_TIMESTAMP)").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v5',CURRENT_TIMESTAMP)").run();
 });
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
   await ensureMaintenanceState(db);
@@ -283,7 +286,7 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v3","schema-pastor-people-v4"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v3","schema-pastor-people-v5"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
 });
