@@ -44,6 +44,20 @@ export function buildImportPlan(collected, approval = null) {
     else if (JSON.stringify(approvedIds) !== JSON.stringify(candidateIds)) approvalReason = "approved_event_set_mismatch";
     else { approvalVerified = true; approvalReason = null; }
   }
+  const reviewedAt=approvalVerified?new Date(approval.approvedAt).toISOString():collected.metadata.generatedAt;
+  const profileMap=new Map(),appearanceMap=new Map();
+  for(const record of records){
+    if(!Number.isInteger(record.churchId)||record.churchId<1)continue;
+    const profileKey=[record.churchId,record.pastorName,record.role,record.roleStatus].join("|");
+    if(!profileMap.has(profileKey))profileMap.set(profileKey,{action:"upsert_reviewed_ministry_profile",key:`ministry-profile:${record.eventId}`,values:{church_id:record.churchId,name:record.pastorName,role_title:record.role,role_category:record.roleCategory,role_status:record.roleStatus,source_url:record.sourceUrl,source_checked_at:record.checkedAt,review_status:approvalVerified?"approved":"pending",reviewed_at:reviewedAt}});
+    if(["guest_sermon","guest_preaching","special_service","seminar","ministry_appearance"].includes(record.eventType)){
+      const occurredAt=/^\d{4}-\d{2}-\d{2}$/.test(record.startDate??"")?record.startDate:record.checkedAt.slice(0,10),appearanceKey=[record.sourceUrl,record.pastorName,record.factSummary].join("|");
+      if(!appearanceMap.has(appearanceKey))appearanceMap.set(appearanceKey,{action:"upsert_reviewed_ministry_appearance",key:`ministry-appearance:${record.eventId}`,values:{church_id:record.churchId,minister_name:record.pastorName,role_title:record.role,host_church_name:record.organization,event_title:record.factSummary,source_url:record.sourceUrl,video_id:record.videoId??null,occurred_at:occurredAt,source_checked_at:record.checkedAt,review_status:approvalVerified?"approved":"pending",reviewed_at:reviewedAt}});
+    }
+  }
+  const operations=[...profileMap.values(),...appearanceMap.values()].sort((a,b)=>a.key.localeCompare(b.key));
+  if(approvalVerified&&operations.length===0&&records.length)throw new Error("church_id_required_for_release");
+  const operationSha256=importArtifactDigest(operations);
   const plan = {
     version: 1,
     metadata: {
@@ -54,6 +68,9 @@ export function buildImportPlan(collected, approval = null) {
       artifactSha256,
       approvalVerified,
       approvalReason,
+      requires_separate_apply_authorization: true,
+      sha256: operationSha256,
+      operation_count: operations.length,
       candidateCount: records.length,
       adminContactArtifactIncluded: false,
       httpSourceCount,
@@ -71,6 +88,7 @@ export function buildImportPlan(collected, approval = null) {
         publicContactFields: 0
       },
     },
+    operations,
     actions: records.map((record) => ({
       action: "preview_staged_upsert",
       publicationEligible: approvalVerified,

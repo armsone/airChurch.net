@@ -443,6 +443,9 @@ test("dry-run importer requires an exact human approval artifact and never write
   assert.equal(unapproved.metadata.privacyScan.sensitiveFindings, 0);
   assert.equal(unapproved.metadata.httpSourceCount, 0);
   assert.equal(unapproved.metadata.adminContactArtifactIncluded, false);
+  assert.equal(unapproved.metadata.requires_separate_apply_authorization,true);
+  assert.equal(unapproved.operations[0].action,"upsert_reviewed_ministry_profile");
+  assert.equal(unapproved.operations[0].values.review_status,"pending");
   assert.equal(unapproved.actions[0].publicationEligible, false);
 
   const approval = buildApprovalTemplate(unapproved);
@@ -453,6 +456,9 @@ test("dry-run importer requires an exact human approval artifact and never write
   assert.equal(approvedPreview.metadata.approvalVerified, true);
   assert.equal(approvedPreview.metadata.databaseWrites, 0);
   assert.equal(approvedPreview.metadata.published, false);
+  assert.match(approvedPreview.metadata.sha256,/^[0-9a-f]{64}$/);
+  assert.equal(approvedPreview.operations[0].values.review_status,"approved");
+  assert.equal(approvedPreview.operations[0].values.church_id,10);
   assert.equal(approvedPreview.actions[0].publicationEligible, true);
 });
 

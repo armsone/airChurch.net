@@ -127,6 +127,13 @@
       "when": 1788227692357,
       "tag": "0017_fast_yellow_claw",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1788228454164,
+      "tag": "0018_glamorous_captain_flint",
+      "breakpoints": true
     }
   ]
 }

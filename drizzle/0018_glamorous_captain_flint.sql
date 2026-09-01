@@ -1,0 +1,2 @@
+DROP INDEX `idx_ministry_appearances_source`;--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_ministry_appearances_source_person_event` ON `ministry_appearances` (`source_url`,`minister_name`,`event_title`);

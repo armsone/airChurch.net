@@ -219,18 +219,19 @@ export const ensureEncouragementTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-ministry-profiles-v2' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-ministry-profiles-v3' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS church_ministry_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),name TEXT NOT NULL,role_title TEXT NOT NULL,role_category TEXT NOT NULL,role_status TEXT NOT NULL DEFAULT 'current',source_url TEXT NOT NULL,source_checked_at TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_profiles_church_review ON church_ministry_profiles(church_id,review_status,role_category,name)"),
     db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ministry_profiles_identity ON church_ministry_profiles(church_id,name,role_title,role_status)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ministry_appearances (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),minister_name TEXT NOT NULL,role_title TEXT NOT NULL,host_church_name TEXT NOT NULL,event_title TEXT NOT NULL,source_url TEXT NOT NULL,video_id TEXT,occurred_at TEXT NOT NULL,source_checked_at TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_appearances_person_review ON ministry_appearances(church_id,minister_name,review_status,occurred_at DESC)"),
-    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ministry_appearances_source ON ministry_appearances(source_url)"),
+    db.prepare("DROP INDEX IF EXISTS idx_ministry_appearances_source"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ministry_appearances_source_person_event ON ministry_appearances(source_url,minister_name,event_title)"),
     db.prepare("CREATE TABLE IF NOT EXISTS ministry_profile_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),name TEXT NOT NULL,role_title TEXT NOT NULL,source_url TEXT,note TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',fingerprint TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TEXT)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_suggestions_status_created ON ministry_profile_suggestions(status,created_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_suggestions_church_created ON ministry_profile_suggestions(church_id,created_at DESC)"),
-    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-ministry-profiles-v2',CURRENT_TIMESTAMP)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-ministry-profiles-v3',CURRENT_TIMESTAMP)"),
   ]);
 });
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
@@ -250,7 +251,7 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v2"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v3"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db)]);
 });

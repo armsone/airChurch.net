@@ -12,7 +12,7 @@ test("reviewed church detail import is admin-only, digest-bound, bounded, and id
   assert.match(route,/upsert_reviewed_ministry_profile/);
   assert.match(route,/upsert_reviewed_ministry_appearance/);
   assert.match(route,/ON CONFLICT\(church_id,name,role_title,role_status\) DO UPDATE/);
-  assert.match(route,/ON CONFLICT\(source_url\) DO UPDATE/);
+  assert.match(route,/ON CONFLICT\(source_url,minister_name,event_title\) DO UPDATE/);
   assert.match(route,/review_status='approved'/);
   assert.match(route,/offset\+=50/);
 });
