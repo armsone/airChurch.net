@@ -8,7 +8,7 @@ const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
 const COLLECTOR_VERSION = 2;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
-const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
+const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
 const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
 const LINK_HINT = /교역자|목회자|사역자|섬기는|섬김|교회소개|인사말|목사|약력|소개|연혁|조직|staff|pastor|ministry|servant|history|greeting|about|intro/i;
 const BLOCKED_PATH = /(?:login|logout|admin|mypage|signup|register|privacy|contact|donation|offering)/i;
@@ -28,7 +28,8 @@ function args(argv) {
     offset: Math.max(0, Number(value("--offset", 0))),
     timeoutMs: Math.max(2_000, Number(value("--timeout-ms", 8_000))),
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
-    pagesPerChurch: Math.max(1, Math.min(4, Number(value("--pages-per-church", 3)))),
+    pagesPerChurch: Math.max(1, Math.min(8, Number(value("--pages-per-church", 3)))),
+    sourceHost: clean(value("--source-host", "")).toLowerCase(),
     retryStatuses: new Set(clean(value("--retry-statuses", "")).split(",").filter(Boolean)),
     retryFailureTypes: new Set(clean(value("--retry-failure-types", "")).split(",").filter(Boolean)),
   };
@@ -64,6 +65,7 @@ function decodeEntities(value) {
 
 function htmlText(html) {
   return clean(decodeEntities(html
+    .replace(/<!--\s*([^<>]{0,30}(?:목사|전도사|강도사))\s*-->/g, " $1 ")
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(script|style|svg|noscript|template)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<(?:br|\/p|\/li|\/div|\/tr|\/h[1-6])\s*>/gi, " \n ")
@@ -81,17 +83,21 @@ function candidateLinks(html, baseUrl) {
       if (!new Set(["http:", "https:"]).has(url.protocol) || url.hostname !== base.hostname) continue;
       if (BLOCKED_PATH.test(url.pathname) || !LINK_HINT.test(`${label} ${url.pathname}`)) continue;
       url.hash = "";
-      found.push({ url: url.toString(), label });
+      const clue = `${label} ${decodeURIComponent(url.pathname)}`;
+      const priority = /교역자|목회자|사역자|섬기는|staff|pastor|minister|servant/i.test(clue) ? 100
+        : /원로|은퇴|역대|개척|연혁|history/i.test(clue) ? 80
+          : /인사말|약력|소개|greeting|profile|bio/i.test(clue) ? 60 : 20;
+      found.push({ url: url.toString(), label, priority });
     } catch {}
   }
-  return [...new Map(found.map((item) => [item.url, item])).values()];
+  return [...new Map(found.toSorted((left, right) => right.priority - left.priority).map((item) => [item.url, item])).values()];
 }
 
 function normalizeRole(title) {
   if (/^(?:수석|교육|행정|목양)부목사$/.test(title)) return { roleTitle: title, roleCategory: title === "교육부목사" ? "education" : "associate" };
   if (/^(?:설립|창립|개척|초대|초대담임)목사$/.test(title)) return { roleTitle: title, roleCategory: "founding" };
   if (/^(?:담임|위임|대표)목사$/.test(title)) return { roleTitle: title, roleCategory: "current_primary" };
-  if (/^(?:수석부목사|부담임목사|부목사|부교역자|행정목사|목양목사|선교목사|찬양목사)$/.test(title)) return { roleTitle: title, roleCategory: "associate" };
+  if (/^(?:수석부목사|부담임목사|담당목사|부목사|부교역자|행정목사|목양목사|선교목사|찬양목사)$/.test(title)) return { roleTitle: title, roleCategory: "associate" };
   if (/^(?:교육목사|강도사|전임전도사|교육전도사|전도사)$/.test(title)) return { roleTitle: title, roleCategory: "education" };
   if (title === "협동목사") return { roleTitle: title, roleCategory: "cooperating" };
   if (title === "원로목사") return { roleTitle: title, roleCategory: "emeritus" };
@@ -176,6 +182,30 @@ async function fetchPage(url, timeoutMs) {
   return { html: body, finalUrl: response.url, status: response.status, charset };
 }
 
+async function wordpressStaffFragments(html, pageUrl, timeoutMs, delayMs) {
+  const ajaxMatch = html.match(/\bwa_ajax\s*=\s*\{[\s\S]{0,800}?["']url["']\s*:\s*["']([^"']+)["']/i);
+  if (!ajaxMatch) return "";
+  let ajaxUrl;
+  try { ajaxUrl = new URL(decodeEntities(ajaxMatch[1].replace(/\\\//g, "/")), pageUrl); }
+  catch { return ""; }
+  const categories = [];
+  for (const match of html.matchAll(/<[^>]+>/g)) {
+    if (!/\bstaffs\b/i.test(match[0])) continue;
+    const category = match[0].match(/\bid\s*=\s*["']cattabs-(\d+)["']/i)?.[1];
+    if (category && !categories.includes(category)) categories.push(category);
+  }
+  const fragments = [];
+  for (const category of categories.slice(0, 12)) {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      ajaxUrl.search = new URLSearchParams({ action: "load_staffs", cat: category }).toString();
+      const page = await fetchPage(ajaxUrl.toString(), timeoutMs);
+      fragments.push(page.html);
+    } catch {}
+  }
+  return fragments.join("\n");
+}
+
 function robotsAllows(body, url) {
   const pathName = new URL(url).pathname;
   let applies = false;
@@ -225,7 +255,8 @@ async function crawlChurch(church, options) {
   if (robotsStatus === "disallowed") return { church, checkedAt, status: "failed", failureType: "robots_disallowed", robotsStatus, failures, pages, ministers: [] };
 
   pages.push({ url: root.finalUrl, status: root.status, contentSha256: digest(root.html, 64) });
-  let ministers = extractMinisters(root.html, church, root.finalUrl, checkedAt);
+  const rootDynamic = await wordpressStaffFragments(root.html, root.finalUrl, options.timeoutMs, options.delayMs);
+  let ministers = extractMinisters(rootDynamic ? `${root.html}\n${rootDynamic}` : root.html, church, root.finalUrl, checkedAt);
   const links = candidateLinks(root.html, root.finalUrl).filter((item) => item.url !== root.finalUrl).slice(0, options.pagesPerChurch - 1);
   for (const link of links) {
     await new Promise((resolve) => setTimeout(resolve, options.delayMs));
@@ -233,7 +264,8 @@ async function crawlChurch(church, options) {
       if (robotsStatus === "allowed" && !robotsAllows(robotsBody, link.url)) { failures.push({ url: link.url, type: "robots_disallowed", detail: null }); continue; }
       const page = await fetchPage(link.url, options.timeoutMs);
       pages.push({ url: page.finalUrl, status: page.status, contentSha256: digest(page.html, 64) });
-      ministers.push(...extractMinisters(page.html, church, page.finalUrl, checkedAt));
+      const dynamic = await wordpressStaffFragments(page.html, page.finalUrl, options.timeoutMs, options.delayMs);
+      ministers.push(...extractMinisters(dynamic ? `${page.html}\n${dynamic}` : page.html, church, page.finalUrl, checkedAt));
     } catch (error) { failures.push({ url: link.url, type: error.message, detail: error.detail ?? null }); }
   }
   ministers = [...new Map(ministers.map((person) => [person.directoryPersonId, person])).values()];
@@ -366,7 +398,12 @@ async function main() {
   for (const [churchId, result] of Object.entries(checkpoint.results)) {
     if (options.retryStatuses.has(result.status) || (result.failureType && options.retryFailureTypes.has(result.failureType))) delete checkpoint.results[churchId];
   }
-  let churches = baseline.churches.filter((church) => church.homepageUrl).slice(options.offset);
+  let churches = baseline.churches.filter((church) => {
+    if (!church.homepageUrl) return false;
+    if (!options.sourceHost) return true;
+    try { return new URL(church.homepageUrl).hostname.toLowerCase() === options.sourceHost; }
+    catch { return false; }
+  }).slice(options.offset);
   if (options.limit) churches = churches.slice(0, options.limit);
   churches = churches.filter((church) => !checkpoint.results[church.directoryChurchId]);
   let cursor = 0;

@@ -27,6 +27,7 @@ function parseArgs(argv) {
     concurrency: Math.max(1, Number(value("--concurrency", 12))),
     timeoutMs: Math.max(2_000, Number(value("--timeout-ms", 8_000))),
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
+    sourceHost: clean(value("--source-host", "")).toLowerCase(),
     discoverRelatedPages: argv.includes("--discover-related-pages"),
   };
 }
@@ -169,14 +170,41 @@ function labeledPhoto(html, person, pageUrl, pagePeople) {
   return scored.sort((a, b) => b.score - a.score || a.distance - b.distance).find((image) => image.matchMethod && image.score >= 100) ?? null;
 }
 
-async function fetchLimited(url, timeoutMs, maximum, accept) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), redirect: "follow", headers: { "user-agent": USER_AGENT, accept } });
+async function fetchLimited(url, timeoutMs, maximum, accept, init = {}) {
+  const response = await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs), redirect: "follow", headers: { "user-agent": USER_AGENT, accept, ...(init.headers ?? {}) } });
   if (!response.ok) throw new Error(`http_${response.status}`);
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maximum) throw new Error("source_too_large");
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.byteLength > maximum) throw new Error("source_too_large");
   return { response, bytes };
+}
+
+async function wordpressStaffFragments(html, pageUrl, options, paced) {
+  const ajaxMatch = html.match(/\bwa_ajax\s*=\s*\{[\s\S]{0,800}?["']url["']\s*:\s*["']([^"']+)["']/i);
+  if (!ajaxMatch) return "";
+  let ajaxUrl;
+  try { ajaxUrl = new URL(decodeEntities(ajaxMatch[1].replace(/\\\//g, "/")), pageUrl).toString(); }
+  catch { return ""; }
+  const categories = [];
+  for (const match of html.matchAll(/<[^>]+>/g)) {
+    if (!/\bstaffs\b/i.test(match[0])) continue;
+    const category = match[0].match(/\bid\s*=\s*["']cattabs-(\d+)["']/i)?.[1];
+    if (category && !categories.includes(category)) categories.push(category);
+  }
+  const fragments = [];
+  for (const category of categories.slice(0, 12)) {
+    try {
+      const url = new URL(ajaxUrl);
+      url.search = new URLSearchParams({ action: "load_staffs", cat: category }).toString();
+      await paced(url.toString());
+      const { bytes } = await fetchLimited(url.toString(), options.timeoutMs, 1_500_000, "text/html,application/xhtml+xml", {
+        headers: { referer: pageUrl, "x-requested-with": "XMLHttpRequest" },
+      });
+      fragments.push(new TextDecoder().decode(bytes));
+    } catch {}
+  }
+  return fragments.join("\n");
 }
 
 async function main() {
@@ -194,6 +222,10 @@ async function main() {
   const personMap = new Map(people.map((person) => [person.directoryPersonId, person]));
   const sourceGroups = new Map();
   for (const relationship of relationships) {
+    if (options.sourceHost) {
+      try { if (new URL(relationship.sourceUrl).hostname.toLowerCase() !== options.sourceHost) continue; }
+      catch { continue; }
+    }
     if (!sourceGroups.has(relationship.sourceUrl)) sourceGroups.set(relationship.sourceUrl, []);
     sourceGroups.get(relationship.sourceUrl).push({ ...personMap.get(relationship.directoryPersonId), ...relationship });
   }
@@ -260,6 +292,8 @@ async function main() {
         const type = response.headers.get("content-type") ?? "";
         if (!/html|xhtml/i.test(type)) throw new Error("unsupported_content_type");
         const html = new TextDecoder().decode(bytes);
+        const dynamicHtml = await wordpressStaffFragments(html, response.url, options, paced);
+        const searchableHtml = dynamicHtml ? `${html}\n${dynamicHtml}` : html;
         if (depth < 2) {
           const currentUrl = new URL(response.url), mayDiscoverProfiles = depth > 0 || currentUrl.pathname === "/" || currentUrl.pathname === "";
           if (mayDiscoverProfiles) for (const discoveredUrl of relatedPageUrls(html, response.url, sourcePeople).slice(0, 10)) enqueue(discoveredUrl, sourcePeople, depth + 1);
@@ -267,7 +301,7 @@ async function main() {
         }
         const matches = [];
         for (const person of sourcePeople) {
-          const candidate = labeledPhoto(html, person, response.url, sourcePeople);
+          const candidate = labeledPhoto(searchableHtml, person, response.url, sourcePeople);
           if (candidate) matches.push({ directoryPersonId: person.directoryPersonId, sourceUrl, imageUrl: candidate.imageUrl, checkedAt, labelEvidence: candidate.alt || `${person.name} ${person.roleTitle}`, matchScore: candidate.score, matchMethod: candidate.matchMethod });
         }
         checkpoint.sources[sourceUrl] = { checkedAt, finalUrl: response.url, contentSha256: sha256(bytes), status: matches.length ? "photo_candidates_found" : "no_labeled_photo", matches };
