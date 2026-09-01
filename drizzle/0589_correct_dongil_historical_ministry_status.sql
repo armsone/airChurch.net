@@ -13,7 +13,6 @@ WHERE current_role.role_status = 'current'
       AND COALESCE(former_role.church_id, -1) = COALESCE(current_role.church_id, -1)
       AND former_role.church_name = current_role.church_name
       AND former_role.role_title = current_role.role_title
-      AND former_role.source_url = current_role.source_url
       AND former_role.role_status = 'former'
   );
 

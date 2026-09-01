@@ -1227,7 +1227,6 @@ WHERE current_role.role_status = 'current'
       ON former_role.pastor_id = current_role.pastor_id
      AND former_role.church_name = current_role.church_name
      AND former_role.role_title = current_role.role_title
-     AND former_role.source_url = current_role.source_url
      AND former_role.role_status = 'former'
     WHERE person.id = current_role.pastor_id
   );
