@@ -4,13 +4,13 @@ import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
 
 const read=async(file)=>JSON.parse(await readFile(file,"utf8")),hash=(value)=>createHash("sha256").update(value).digest("hex");
-const baselineFile="out/pastor-history/pastor-people-import-plan.json",additionalFile="out/pastor-history/collected-pastor-import-plan.json",combinedFile="out/pastor-history/combined-pastor-import-plan.json",manifestFile="out/pastor-history/d1-import-combined/manifest.json";
-const [baseline,additional,combined,manifest]=await Promise.all([read(baselineFile),read(additionalFile),read(combinedFile),read(manifestFile)]),people=combined.people??[],roles=combined.roles??[],links=combined.identityLinks??[],ids=new Set(people.map((item)=>item.directoryId));
+const baselineFile="out/pastor-history/pastor-people-import-plan.json",additionalFile="out/pastor-history/collected-pastor-import-plan.json",curatedFile="data/pastor-history/curated-pastor-people.json",combinedFile="out/pastor-history/combined-pastor-import-plan.json",manifestFile="out/pastor-history/d1-import-combined/manifest.json";
+const [baseline,additional,curated,combined,manifest]=await Promise.all([read(baselineFile),read(additionalFile),read(curatedFile),read(combinedFile),read(manifestFile)]),sources=[baseline,additional,curated],people=combined.people??[],roles=combined.roles??[],links=combined.identityLinks??[],ids=new Set(people.map((item)=>item.directoryId));
 const roleKeys=roles.map((item)=>[item.personDirectoryId,item.existingChurchId??item.directoryChurchId??item.churchName,item.roleTitle,item.roleStatus,item.startDate??"",item.endDate??""].join("|")),manifestDir=manifestFile.slice(0,manifestFile.lastIndexOf("/"));
 const chunks=await Promise.all((manifest.chunks??[]).map(async(item)=>{const content=await readFile(`${manifestDir}/${item.file}`);return {hashMatches:hash(content)===item.sha256,withinBatch:Number(item.people??item.identityLinks??0)<=100};}));
 const checks={
-  source_plans_are_pending:[baseline,additional].every((plan)=>plan.metadata?.automaticApproval===false&&Number(plan.metadata?.databaseWrites)===0&&plan.metadata?.privateDataIncluded===false),
-  combined_counts_match_sources:people.length===Number(baseline.metadata?.people??0)+Number(additional.metadata?.people??0)&&roles.length===Number(baseline.metadata?.roles??0)+Number(additional.metadata?.roles??0)&&links.length===Number(additional.metadata?.identityLinks??0),
+  source_plans_are_pending:sources.every((plan)=>plan.metadata?.automaticApproval===false&&Number(plan.metadata?.databaseWrites)===0&&plan.metadata?.privateDataIncluded===false),
+  combined_counts_match_sources:people.length===sources.reduce((sum,plan)=>sum+Number(plan.metadata?.people??0),0)&&roles.length===sources.reduce((sum,plan)=>sum+Number(plan.metadata?.roles??0),0)&&links.length===sources.reduce((sum,plan)=>sum+Number(plan.metadata?.identityLinks??0),0),
   people_are_unique:new Set(people.map((item)=>item.directoryId)).size===people.length,
   roles_are_unique:new Set(roleKeys).size===roleKeys.length,
   every_role_has_person:roles.every((item)=>ids.has(item.personDirectoryId)),

@@ -1,0 +1,64 @@
+{
+  "metadata": {
+    "generatedAt": "2026-09-01T09:08:00.000Z",
+    "source": "user-confirmed ministry history with official church retirement page",
+    "published": false,
+    "databaseWrites": 0,
+    "automaticApproval": false,
+    "privateDataIncluded": false,
+    "people": 1,
+    "roles": 2,
+    "identityLinks": 0,
+    "photosPrepared": 0,
+    "photosAutomaticallyPublishable": 0,
+    "homonymRecordsExcluded": 0,
+    "identityLinksAutomaticallyMerged": 0
+  },
+  "people": [
+    {
+      "directoryId": "person-b16564f403989379082b",
+      "name": "정성진",
+      "publicSummary": null,
+      "photoUrl": null,
+      "photoSourceUrl": null,
+      "photoSha256": null,
+      "photoReviewStatus": "pending",
+      "reviewStatus": "pending"
+    }
+  ],
+  "roles": [
+    {
+      "directoryId": "role:person-b16564f403989379082b:church-3:개척목사:former",
+      "personDirectoryId": "person-b16564f403989379082b",
+      "existingChurchId": 3,
+      "directoryChurchId": "church-3",
+      "churchName": "거룩한빛광성교회",
+      "denomination": "대한예수교장로회 통합",
+      "region": "경기 고양",
+      "roleTitle": "개척목사",
+      "roleCategory": "founding",
+      "roleStatus": "former",
+      "startDate": null,
+      "endDate": null,
+      "sourceUrl": "https://kwangsung.org/Page/Index/13",
+      "reviewStatus": "pending"
+    },
+    {
+      "directoryId": "role:person-b16564f403989379082b:church-3:은퇴목사:former",
+      "personDirectoryId": "person-b16564f403989379082b",
+      "existingChurchId": 3,
+      "directoryChurchId": "church-3",
+      "churchName": "거룩한빛광성교회",
+      "denomination": "대한예수교장로회 통합",
+      "region": "경기 고양",
+      "roleTitle": "은퇴목사",
+      "roleCategory": "retired",
+      "roleStatus": "former",
+      "startDate": null,
+      "endDate": null,
+      "sourceUrl": "https://kwangsung.org/Page/Index/13",
+      "reviewStatus": "pending"
+    }
+  ],
+  "identityLinks": []
+}
