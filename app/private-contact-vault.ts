@@ -19,3 +19,20 @@ async function decryptRows(db:D1Database,rows:StoredContact[],actor:{role:"admin
 }
 export async function readPrivateContacts(db:D1Database,actor:{role:"admin"|"reviewer";reviewerId:number}){const rows=await db.prepare("SELECT p.id,c.name AS church_name,p.contact_type,p.encrypted_value,p.scope,p.source_url FROM private_church_contacts p JOIN churches c ON c.id=p.church_id WHERE p.review_status='approved' ORDER BY c.name,p.contact_type,p.id LIMIT 1000").all<StoredContact>();return decryptRows(db,rows.results,actor);}
 export async function readChurchPrivateContacts(db:D1Database,churchId:number,actor:{role:"admin"|"reviewer";reviewerId:number}){const rows=await db.prepare("SELECT p.id,c.name AS church_name,p.contact_type,p.encrypted_value,p.scope,p.source_url FROM private_church_contacts p JOIN churches c ON c.id=p.church_id WHERE p.church_id=? AND p.review_status='approved' ORDER BY p.contact_type,p.id LIMIT 30").bind(churchId).all<StoredContact>();return decryptRows(db,rows.results,actor);}
+
+type StoredPastorContact={id:number;pastor_name:string;contact_type:string;encrypted_value:string;scope:string;source_url:string|null};
+export type PastorPrivateContactView={id:number;pastorName:string;type:string;value:string;scope:string;sourceUrl:string|null};
+export async function readPastorPrivateContacts(db:D1Database,pastorId:number,actor:{role:"admin"|"reviewer";reviewerId:number}){
+  const rows=await db.prepare("SELECT v.id,p.name AS pastor_name,v.contact_type,v.encrypted_value,v.scope,v.source_url FROM pastor_private_contact_values v JOIN pastor_people p ON p.id=v.pastor_id WHERE v.pastor_id=? AND v.review_status='approved' AND p.review_status='approved' ORDER BY v.contact_type,v.id LIMIT 30").bind(pastorId).all<StoredPastorContact>();
+  const items:PastorPrivateContactView[]=[];
+  for(const row of rows.results)try{items.push({id:row.id,pastorName:row.pastor_name,type:row.contact_type,value:await decryptPrivateContact(row.encrypted_value),scope:row.scope,sourceUrl:row.source_url});}catch{}
+  if(items.length)await db.prepare("INSERT INTO private_contact_access_events (actor_role,actor_id,record_count) VALUES (?,?,?)").bind(actor.role,actor.reviewerId,items.length).run();
+  return items;
+}
+export async function readAllPastorPrivateContacts(db:D1Database,actor:{role:"admin"|"reviewer";reviewerId:number}){
+  const rows=await db.prepare("SELECT v.id,p.name AS pastor_name,v.contact_type,v.encrypted_value,v.scope,v.source_url FROM pastor_private_contact_values v JOIN pastor_people p ON p.id=v.pastor_id WHERE v.review_status='approved' AND p.review_status='approved' ORDER BY p.name,v.contact_type,v.id LIMIT 1000").all<StoredPastorContact>();
+  const items:PastorPrivateContactView[]=[];
+  for(const row of rows.results)try{items.push({id:row.id,pastorName:row.pastor_name,type:row.contact_type,value:await decryptPrivateContact(row.encrypted_value),scope:row.scope,sourceUrl:row.source_url});}catch{}
+  if(items.length)await db.prepare("INSERT INTO private_contact_access_events (actor_role,actor_id,record_count) VALUES (?,?,?)").bind(actor.role,actor.reviewerId,items.length).run();
+  return items;
+}
