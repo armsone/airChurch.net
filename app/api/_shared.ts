@@ -244,7 +244,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v6' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v7' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -261,6 +261,9 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_identity_candidates (id INTEGER PRIMARY KEY AUTOINCREMENT,left_pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),right_pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),evidence_type TEXT NOT NULL,evidence_value TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TEXT)"),
     db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_pastor_identity_pair_evidence ON pastor_identity_candidates(left_pastor_id,right_pastor_id,evidence_type,evidence_value)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_identity_status ON pastor_identity_candidates(status,created_at,id)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_admin_buckets (bucket_index INTEGER NOT NULL,position INTEGER NOT NULL,pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),revision INTEGER NOT NULL,PRIMARY KEY(bucket_index,position))"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_admin_buckets_person ON pastor_admin_buckets(pastor_id)"),
+    db.prepare("INSERT OR IGNORE INTO maintenance_state (key,completed_at) VALUES ('pastor-admin-buckets-revision','1')"),
   ]);
   const personColumns=await db.prepare("PRAGMA table_info(pastor_people)").all<{name:string}>();
   await addColumnIfMissing(db,personColumns.results,"photo_url","ALTER TABLE pastor_people ADD COLUMN photo_url TEXT");
@@ -276,9 +279,21 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare(`DELETE FROM pastor_church_roles WHERE pastor_id IN (${invalidPeople})`),
     db.prepare(`DELETE FROM pastor_people WHERE id IN (${invalidPeople})`),
     db.prepare("UPDATE churches SET pastor='' WHERE REPLACE(TRIM(COALESCE(pastor,'')),' ','') IN ('확인필요','이름확인필요','성명확인필요','목회자확인필요','담임목사확인필요','미상','없음','공석','청빙중','-','?')"),
-    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v6',CURRENT_TIMESTAMP)"),
+    db.prepare("DELETE FROM pastor_admin_buckets"),
+    db.prepare("INSERT INTO pastor_admin_buckets (bucket_index,position,pastor_id,revision) SELECT CAST((rank_no-1)/24 AS INTEGER),(rank_no-1)%24,id,1 FROM (SELECT id,ROW_NUMBER() OVER (ORDER BY ((id*1103515245+12345)&2147483647),id) AS rank_no FROM pastor_people WHERE REPLACE(TRIM(COALESCE(name,'')),' ','') NOT IN ('','확인필요','이름확인필요','성명확인필요','목회자확인필요','담임목사확인필요','미상','없음','공석','청빙중','-','?')) WHERE rank_no<=1200"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v7',CURRENT_TIMESTAMP)"),
   ]);
 });
+export async function rebuildPastorAdminBuckets(db:D1Database){
+  await ensurePastorPeopleTables(db);
+  const current=await db.prepare("SELECT CAST(completed_at AS INTEGER) AS revision FROM maintenance_state WHERE key='pastor-admin-buckets-revision'").first<{revision:number}>(),revision=Math.max(1,Number(current?.revision??1)+1);
+  await db.batch([
+    db.prepare("DELETE FROM pastor_admin_buckets"),
+    db.prepare("INSERT INTO pastor_admin_buckets (bucket_index,position,pastor_id,revision) SELECT CAST((rank_no-1)/24 AS INTEGER),(rank_no-1)%24,id,? FROM (SELECT id,ROW_NUMBER() OVER (ORDER BY ((id*1103515245+?*12345)&2147483647),id) AS rank_no FROM pastor_people WHERE REPLACE(TRIM(COALESCE(name,'')),' ','') NOT IN ('','확인필요','이름확인필요','성명확인필요','목회자확인필요','담임목사확인필요','미상','없음','공석','청빙중','-','?')) WHERE rank_no<=1200").bind(revision,revision),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('pastor-admin-buckets-revision',?)").bind(String(revision)),
+  ]);
+  return revision;
+}
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
   await ensureMaintenanceState(db);
   const placeholders=keys.map(()=>"?").join(",");
@@ -296,7 +311,7 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v6"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v7"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
 });

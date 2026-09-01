@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureAdminTables, readLimitedJson } from "../../_shared";
+import { clean, database, ensureAdminTables, readLimitedJson, rebuildPastorAdminBuckets } from "../../_shared";
 import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 
 async function requestRole(request: Request) {
@@ -24,14 +24,31 @@ export async function PATCH(request: Request) {
 
   if(kind==="pastor-batch"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 묶음 처리할 수 있습니다."},{status:403});
-    const status=clean(data.status,20);if(!["approved","removed"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
-    const ids=[...new Set((Array.isArray(data.ids)?data.ids:[]).map(Number).filter((value)=>Number.isInteger(value)&&value>0))];if(!ids.length||ids.length>100)return Response.json({error:"한 번에 1명 이상 100명 이하만 처리할 수 있습니다."},{status:400});
+    const status=clean(data.status,20);if(!["approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
+    const ids=[...new Set((Array.isArray(data.ids)?data.ids:[]).map(Number).filter((value)=>Number.isInteger(value)&&value>0))];if(!ids.length||ids.length>500)return Response.json({error:"한 번에 1명 이상 500명 이하만 처리할 수 있습니다."},{status:400});
     const placeholders=ids.map(()=>"?").join(",");
-    if(status==="approved"){
-      const sourced=await db.prepare(`SELECT COUNT(*) AS count FROM pastor_people p WHERE p.id IN (${placeholders}) AND p.review_status='pending' AND EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=p.id AND TRIM(COALESCE(r.source_url,''))<>'')`).bind(...ids).first<{count:number}>();
-      if(Number(sourced?.count??0)!==ids.length)return Response.json({error:"공식 출처가 없는 목회자가 포함되어 있어 묶음 승인하지 않았습니다."},{status:409,headers:{"cache-control":"no-store"}});
+    if(status==="deleted"){
+      const existing=await db.prepare(`SELECT id FROM pastor_people WHERE id IN (${placeholders})`).bind(...ids).all<{id:number}>(),updated=existing.results.map((item)=>item.id),updatedPlaceholders=updated.map(()=>"?").join(",");
+      if(updated.length)await db.batch([
+        db.prepare(`DELETE FROM pastor_identity_candidates WHERE left_pastor_id IN (${updatedPlaceholders}) OR right_pastor_id IN (${updatedPlaceholders})`).bind(...updated,...updated),
+        db.prepare(`DELETE FROM pastor_encouragement_messages WHERE pastor_id IN (${updatedPlaceholders})`).bind(...updated),
+        db.prepare(`DELETE FROM pastor_private_contact_values WHERE pastor_id IN (${updatedPlaceholders})`).bind(...updated),
+        db.prepare(`DELETE FROM pastor_church_roles WHERE pastor_id IN (${updatedPlaceholders})`).bind(...updated),
+        db.prepare(`DELETE FROM pastor_admin_buckets WHERE pastor_id IN (${updatedPlaceholders})`).bind(...updated),
+        db.prepare(`DELETE FROM pastor_people WHERE id IN (${updatedPlaceholders})`).bind(...updated),
+      ]);
+      if(updated.length)await rebuildPastorAdminBuckets(db);
+      return Response.json({ok:true,updated,failed:ids.filter((id)=>!updated.includes(id))},{headers:{"cache-control":"no-store"}});
     }
-    await db.batch([db.prepare(`UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id IN (${placeholders}) AND review_status='pending'`).bind(status,...ids),db.prepare(`UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (${placeholders}) AND review_status='pending'`).bind(status,...ids)]);
+    if(status==="approved"){
+      const sourced=await db.prepare(`SELECT COUNT(*) AS count FROM pastor_people p WHERE p.id IN (${placeholders}) AND p.review_status<>'approved' AND EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=p.id AND TRIM(COALESCE(r.source_url,''))<>'')`).bind(...ids).first<{count:number}>();
+      const alreadyApproved=await db.prepare(`SELECT COUNT(*) AS count FROM pastor_people WHERE id IN (${placeholders}) AND review_status='approved'`).bind(...ids).first<{count:number}>();
+      if(Number(sourced?.count??0)+Number(alreadyApproved?.count??0)!==ids.length)return Response.json({error:"공식 출처가 없는 목회자가 포함되어 있어 묶음 공개하지 않았습니다."},{status:409,headers:{"cache-control":"no-store"}});
+    }
+    const targetStatus=status==="approved"?"approved":"removed",before=await db.prepare(`SELECT id FROM pastor_people WHERE id IN (${placeholders}) AND review_status<>?`).bind(...ids,targetStatus).all<{id:number}>(),updated=before.results.map((item)=>item.id);
+    await db.batch([db.prepare(`UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id IN (${placeholders})`).bind(targetStatus,...ids),db.prepare(`UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (${placeholders})`).bind(targetStatus,...ids)]);
+    if(updated.length)await rebuildPastorAdminBuckets(db);
+    return Response.json({ok:true,updated,failed:ids.filter((id)=>!updated.includes(id))},{headers:{"cache-control":"no-store"}});
   } else if(kind==="church-batch") {
     if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);
@@ -214,7 +231,7 @@ export async function PATCH(request: Request) {
     if(requested){
       const status=requested==="rejected"?"removed":requested;
       if(!["pending","approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
-      if(status==="deleted")await db.batch([db.prepare("DELETE FROM pastor_encouragement_messages WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_private_contact_values WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_church_roles WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_people WHERE id=?").bind(id)]);
+      if(status==="deleted")await db.batch([db.prepare("DELETE FROM pastor_identity_candidates WHERE left_pastor_id=? OR right_pastor_id=?").bind(id,id),db.prepare("DELETE FROM pastor_encouragement_messages WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_private_contact_values WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_church_roles WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_admin_buckets WHERE pastor_id=?").bind(id),db.prepare("DELETE FROM pastor_people WHERE id=?").bind(id)]);
       else await db.batch([db.prepare("UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(status,id),db.prepare("UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id=?").bind(status,id)]);
     }else{
       const roleId=Number(data.roleId),name=clean(data.name,80),roleTitle=clean(data.roleTitle,80),churchName=clean(data.churchName,120),region=clean(data.region,80),denomination=clean(data.denomination,120),roleStatus=clean(data.roleStatus,20);
@@ -223,6 +240,7 @@ export async function PATCH(request: Request) {
       const result=await db.batch([db.prepare("UPDATE pastor_people SET name=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(name,id),db.prepare("UPDATE pastor_church_roles SET role_title=?,church_name=?,region=?,denomination=?,role_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND pastor_id=?").bind(roleTitle,churchName,region,denomination,roleStatus,roleId,id)]);
       if(Number(result[1]?.meta?.changes??0)!==1)return Response.json({error:"수정할 사역 관계를 찾을 수 없습니다."},{status:404});
     }
+    await rebuildPastorAdminBuckets(db);
   } else if(kind==="ministry-suggestion"){
     if(role!=="admin")return Response.json({error:"관리자만 교역자 제보를 처리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);if(!["approved","rejected","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
