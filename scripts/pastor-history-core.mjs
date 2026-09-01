@@ -57,10 +57,11 @@ function decodeEntities(value) {
 
 export function visibleText(html) {
   const decodedUnicode=String(html??"").replace(/\\u([0-9a-f]{4})/gi,(_,hex)=>String.fromCharCode(Number.parseInt(hex,16)));
-  return decodeEntities(decodedUnicode
+  const sanitized=decodedUnicode
     .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<(?:script|style|noscript|template)\b[^>]*>[\s\S]*?<\/(?:script|style|noscript|template)>/gi, " ")
-    .replace(/<[^>]+>/g, " "))
+    .replace(/<(?:script|style|noscript|template)\b[^>]*>[\s\S]*?<\/(?:script|style|noscript|template)>/gi, " ");
+  const semanticAttributes=[...sanitized.matchAll(/<(?:img|meta)\b[^>]*>/gi)].flatMap(([tag])=>[...tag.matchAll(/\b(?:alt|content)\s*=\s*["']([^"']+)["']/gi)].map((match)=>match[1]));
+  return decodeEntities(`${semanticAttributes.join(" ")} ${sanitized.replace(/<[^>]+>/g, " ")}`)
     .replace(/\s+/g, " ")
     .trim();
 }

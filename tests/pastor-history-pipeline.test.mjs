@@ -11,12 +11,18 @@ import {
   parseRobots,
   validateNoSensitiveData,
   validateSourceUrl,
+  visibleText,
 } from "../scripts/pastor-history-core.mjs";
 
 test("accepts bounded JSON from an explicitly approved official source",()=>{
   assert.equal(isSupportedOfficialContentType("application/json; charset=utf-8"),true);
   assert.equal(isSupportedOfficialContentType("application/problem+json"),true);
   assert.equal(isSupportedOfficialContentType("application/octet-stream"),false);
+});
+
+test("keeps public image alt and meta descriptions as semantic identity evidence",()=>{
+  const text=visibleText('<meta name="description" content="공식교단 소속"><img alt="길윤구프로필" src="pastor.jpg"><script>비공개오염</script><h1>담임목사</h1>');
+  assert.match(text,/공식교단 소속/);assert.match(text,/길윤구프로필/);assert.match(text,/담임목사/);assert.doesNotMatch(text,/비공개오염/);
 });
 
 const subject = {
