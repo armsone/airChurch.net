@@ -1,0 +1,16 @@
+{
+  "reviews": [
+    {
+      "record_id": "검토할 후보의 record_id",
+      "decision": "approve",
+      "reviewed_at": "2026-09-01T00:00:00.000Z",
+      "note": "공식 예배안내 원문과 대조함"
+    },
+    {
+      "record_id": "church-profile-교회ID",
+      "decision": "approve",
+      "reviewed_at": "2026-09-01T00:00:00.000Z",
+      "note": "공식 홈페이지의 표어·비전·주소·대표 연락처와 대조함"
+    }
+  ]
+}

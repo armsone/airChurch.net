@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "review_ttl_days": 180,
+  "domains": [
+    {
+      "host": "www.onnuri.org",
+      "decision": "allow",
+      "allowed_urls": ["https://www.onnuri.org/", "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/"],
+      "terms_url": null,
+      "reviewed_at": "2026-09-01T00:00:00.000Z",
+      "note": "공개 홈페이지와 robots.txt에서 허용된 공식 예배시간 페이지의 사실 정보만 읽음. 별도 수집 금지 조건은 확인되지 않았으며 로그인·개인정보·원문 전체는 수집하지 않음."
+    },
+    {
+      "host": "www.saemoonan.org",
+      "decision": "allow",
+      "allowed_urls": ["https://www.saemoonan.org/", "https://www.saemoonan.org/church/Sub_03_01.aspx"],
+      "terms_url": "https://www.saemoonan.org/siteLaw.aspx?showLaw=1",
+      "reviewed_at": "2026-09-01T00:00:00.000Z",
+      "note": "공개 예배안내의 사실 정보만 저부하로 읽음. 로그인·회원 영역·개인정보·저작물 본문은 수집하지 않음. 실행 때 robots.txt를 다시 확인함."
+    }
+  ]
+}

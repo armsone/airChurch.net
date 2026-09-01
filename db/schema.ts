@@ -47,3 +47,9 @@ export const privateChurchContacts=sqliteTable("private_church_contacts",{
 export const privateContactAccessEvents=sqliteTable("private_contact_access_events",{
   id:integer("id").primaryKey({autoIncrement:true}),actorRole:text("actor_role").notNull(),actorId:integer("actor_id").notNull().default(0),recordCount:integer("record_count").notNull(),createdAt:text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 },(table)=>[index("idx_private_contact_access_created").on(table.createdAt)]);
+export const churchProfiles = sqliteTable("church_profiles", {
+  churchId:integer("church_id").primaryKey().references(()=>churches.id), slogan:text("slogan"), vision:text("vision"), summary:text("summary"), address:text("address"), sourceUrl:text("source_url").notNull(), sourceText:text("source_text").notNull(), collectedAt:text("collected_at").notNull(), reviewStatus:text("review_status").notNull().default("pending"), reviewedAt:text("reviewed_at"), updatedAt:text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+},(table)=>[index("idx_church_profiles_review_church").on(table.reviewStatus,table.churchId)]);
+export const worshipSchedules = sqliteTable("worship_schedules", {
+  recordId:text("record_id").primaryKey(), churchId:integer("church_id").notNull().references(()=>churches.id), serviceType:text("service_type").notNull(), dayOfWeek:text("day_of_week").notNull(), startTime:text("start_time").notNull(), venueAudience:text("venue_audience"), sourceText:text("source_text").notNull(), sourceUrl:text("source_url").notNull(), collectedAt:text("collected_at").notNull(), confidence:text("confidence").notNull(), reviewStatus:text("review_status").notNull().default("pending"), reviewedAt:text("reviewed_at"), updatedAt:text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+},(table)=>[index("idx_worship_schedules_church_review").on(table.churchId,table.reviewStatus,table.dayOfWeek,table.startTime)]);

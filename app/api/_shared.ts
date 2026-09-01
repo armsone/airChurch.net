@@ -71,6 +71,18 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_church_status_published ON sermons(church_id, status, published_at DESC)").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v5',CURRENT_TIMESTAMP)").run();
 });
+export const ensureChurchDetailTables = memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-church-details-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS church_profiles (church_id INTEGER PRIMARY KEY NOT NULL REFERENCES churches(id),slogan TEXT,vision TEXT,summary TEXT,address TEXT,source_url TEXT NOT NULL,source_text TEXT NOT NULL,collected_at TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'pending',reviewed_at TEXT,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_church_profiles_review_church ON church_profiles(review_status,church_id)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS worship_schedules (record_id TEXT PRIMARY KEY NOT NULL,church_id INTEGER NOT NULL REFERENCES churches(id),service_type TEXT NOT NULL,day_of_week TEXT NOT NULL,start_time TEXT NOT NULL,venue_audience TEXT,source_text TEXT NOT NULL,source_url TEXT NOT NULL,collected_at TEXT NOT NULL,confidence TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'pending',reviewed_at TEXT,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_worship_schedules_church_review ON worship_schedules(church_id,review_status,day_of_week,start_time)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-church-details-v1',CURRENT_TIMESTAMP)"),
+  ]);
+});
 export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
   const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-praises-v1' LIMIT 1").first<{key:string}>();

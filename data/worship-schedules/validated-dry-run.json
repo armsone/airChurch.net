@@ -1,0 +1,782 @@
+{
+  "metadata": {
+    "schema_version": 2,
+    "generated_at": "2026-09-01T01:11:45.719Z",
+    "source": "data/worship-schedules/pilot-output.json",
+    "dry_run": true,
+    "automatic_publication": false
+  },
+  "approved": [],
+  "held": [
+    {
+      "record_id": "89f5f6c45da1288665945066",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "토요주일예배1부",
+      "day_of_week": [
+        "SAT"
+      ],
+      "start_time": "09:00",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "예배영상 | 토요주일예배1부 | 토요일 09:00 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "1a5a241b0f1b17b4a4e0a0c7",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "토요주일예배2부",
+      "day_of_week": [
+        "SAT"
+      ],
+      "start_time": "11:00",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "본관 3층 본당, 선교관 3층 비전홀 | 토요주일예배2부 | 토요일 11:00 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "e1a95f18c5d13fde16c0e721",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "토요주일예배3부",
+      "day_of_week": [
+        "SAT"
+      ],
+      "start_time": "13:00",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "본관 3층 본당, 선교관 3층 비전홀 | 토요주일예배3부 | 토요일 13:00 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "0bfa87eb20941851196a1ffd",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "토요주일예배4부",
+      "day_of_week": [
+        "SAT"
+      ],
+      "start_time": "16:00",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "본관 3층 본당, 선교관 3층 비전홀 | 토요주일예배4부 | 토요일 16:00 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "e7ea98b2293cf41c81913bf3",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배1부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "06:50",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "본관 3층 본당, 선교관 3층 비전홀 | 일요주일예배1부 전체 예배를 섬기는 사역자들이 함께 드리는 예배입니다.\" > | 주일 06:50 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "0f2c07876b9c73ee71e614ba",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배2부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "09:00",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "video 예배영상 | 일요주일예배2부 온누리 영성을 한껏 느낄 수 있는 깊이 있는 예배입니다. \" > | 주일 09:00 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "dbcd0059b785d6cbeab0a68d",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배3부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:30",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀, 선교관 지하1층 두란노홀, 선교관 5층 경찬홀",
+      "source_text": "video 예배영상 | 일요주일예배3부 온누리 영성을 한껏 느낄 수 있는 깊이 있는 예배입니다. \" > | 주일 11:30 | 본관 3층 본당, 선교관 3층 비전홀, 선교관 지하1",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "bb944e8e4752f66e90d3b63b",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배4부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "13:50",
+      "venue_audience": "본관 3층 본당, 선교관 3층 비전홀",
+      "source_text": "video 예배영상 | 일요주일예배4부 | 주일 13:50 | 본관 3층 본당, 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "d6bbfaadea773a463de7f487",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배5부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "16:00",
+      "venue_audience": "본관 선교관 3층 비전홀",
+      "source_text": "video 예배영상 | 일요주일예배5부 | 주일 16:00 | 본관 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "8c36979a528dea4197452c41",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요주일예배6부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "19:00",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "본관 선교관 3층 비전홀 | 일요주일예배6부(열린 새신자 예배) | 주일 19:00 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "e6cf6ae5107c63bde98d2f9a",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "영어예배1부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:30",
+      "venue_audience": "온누리청소년센터 B1 체육관",
+      "source_text": "video 예배영상 | 영어예배1부 | 주일 주일 11:30 | 온누리청소년센터 B1 체육관",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "bcee239c1027c2a0e0d0a498",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "영어예배2부",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "16:00",
+      "venue_audience": "선교관 5층 경찬홀",
+      "source_text": "온누리청소년센터 B1 체육관 | 영어예배2부 | 주일 16:00 | 선교관 5층 경찬홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "1ac36be5ed4efcaa54b9e231",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "일요S브릿지 예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "14:00",
+      "venue_audience": "선교관 지하1층 두란노홀",
+      "source_text": "선교관 5층 경찬홀 | 일요S브릿지 예배 | 주일 14:00 | 선교관 지하1층 두란노홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "5f13e769f4ddc635b6446e34",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "새벽기도회",
+      "day_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "start_time": "05:30",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "예배영상 | 새벽기도회 | 월~금 05:30 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "ce44d7b1c047561542ecde47",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "새벽기도회 2부",
+      "day_of_week": [
+        "MON",
+        "TUE",
+        "WED",
+        "THU",
+        "FRI"
+      ],
+      "start_time": "06:30",
+      "venue_audience": "선교관 3층 비전홀",
+      "source_text": "video 예배영상 | 새벽기도회 2부 | 월~금 06:30 | 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "d1767b25aa10865a3b1ac38f",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "월요치유집회",
+      "day_of_week": [
+        "MON"
+      ],
+      "start_time": "19:30",
+      "venue_audience": "선교관 3층 비전홀",
+      "source_text": "선교관 3층 비전홀 | 월요치유집회 | 월 19:30 | 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "327f3e5a752d2749533879a0",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "수요오전여성예배",
+      "day_of_week": [
+        "WED"
+      ],
+      "start_time": "10:20",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "video 예배영상 | 수요오전여성예배 | 수 10:20 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "c08d22247a1aeab831cca542",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "수요목양예배",
+      "day_of_week": [
+        "WED"
+      ],
+      "start_time": "19:30",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "video 예배영상 | 수요목양예배 | 수 19:30 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "58a5e5b89e8869de970ae13e",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "video 예배",
+      "day_of_week": [
+        "THU"
+      ],
+      "start_time": "19:00",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "video 예배영상 | 목요경배와찬양 | 목 19:00 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "24c8474671f99a65bca5f021",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "목요선교집회",
+      "day_of_week": [
+        "THU"
+      ],
+      "start_time": "19:30",
+      "venue_audience": "선교관 3층 비전홀",
+      "source_text": "본관 3층 본당 | 목요선교집회 | 목 19:30 | 선교관 3층 비전홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "f49b7882220e16704dd08fcd",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "회복예배",
+      "day_of_week": [
+        "FRI"
+      ],
+      "start_time": "19:20",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "예배 후에는 회복 주제별 지원그룹이 진행됩니다. | 회복예배는 별도의 새가족반이 구성됩니다\" > | 금 19:20 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "30c3332585eae02fe3f35947",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "FRI"
+      ],
+      "start_time": "21:50",
+      "venue_audience": "본관 3층 본당",
+      "source_text": "예수님만이 우리 인생의 주인 되심과 목적임을 고백하며 나아가는 시간입니다. | 기도의 능력을 체험하는 시간입니다.\" > | 금 21:50 | 본관 3층 본당",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "15fd8e0a325dd90f9f0fd000",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "예배 시간 장소 예배",
+      "day_of_week": [
+        "SAT"
+      ],
+      "start_time": "16:00",
+      "venue_audience": "요셉 토요일서빙고 온누리교회 본당 video 예배영상",
+      "source_text": "대학청년부 | 예배 시간 장소 예배영상 | 요셉 토요일 16:00 서빙고 온누리교회 본당 video 예배영상 | W 1부 주일 10:30 여의도 정곡빌딩 4층 video 예배영상",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "4b719b7b5c44e1d489060754",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "예배 시간 장소 예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "10:30",
+      "venue_audience": "W 1부 주일여의도 정곡빌딩 4층 video 예배영상",
+      "source_text": "예배 시간 장소 예배영상 | 요셉 토요일 16:00 서빙고 온누리교회 본당 video 예배영상 | W 1부 주일 10:30 여의도 정곡빌딩 4층 video 예배영상 | W 2부 주",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "59f3dc5577fe4c066e0caf47",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "예배 시간 장소 예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "14:00",
+      "venue_audience": "W 2부 주일여의도 정곡빌딩 4층 video 예배영상",
+      "source_text": "요셉 토요일 16:00 서빙고 온누리교회 본당 video 예배영상 | W 1부 주일 10:30 여의도 정곡빌딩 4층 video 예배영상 | W 2부 주일 14:00 여의도 정곡빌딩",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "cf8dd6032958073bc60e3138",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "14:00",
+      "venue_audience": "길 주일한성대 에듀센터 2층 안디옥홀 video 예배영상",
+      "source_text": "W 1부 주일 10:30 여의도 정곡빌딩 4층 video 예배영상 | W 2부 주일 14:00 여의도 정곡빌딩 4층 video 예배영상 | 길 주일 14:00 한성대 에듀센터 2층",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "252b82d22346a6f02770dc64",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "13:30",
+      "venue_audience": "SNS CROSS 주일온누리청소년센터 B1 체육관 video 예배영상",
+      "source_text": "W 2부 주일 14:00 여의도 정곡빌딩 4층 video 예배영상 | 길 주일 14:00 한성대 에듀센터 2층 안디옥홀 video 예배영상 | SNS CROSS 주일 13:30 온",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "50a63da989eac1657af5edf9",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "16:00",
+      "venue_audience": "SNS 주일서빙고 온누리교회 본당 video 예배영상",
+      "source_text": "길 주일 14:00 한성대 에듀센터 2층 안디옥홀 video 예배영상 | SNS CROSS 주일 13:30 온누리청소년센터 B1 체육관 video 예배영상 | SNS 주일 16:0",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "aa5dfa861a5ca4fa37443e1f",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "17:30",
+      "venue_audience": "CHPLUS 주일한성대 에듀센터 2층 안디옥홀 video 예배영상",
+      "source_text": "SNS CROSS 주일 13:30 온누리청소년센터 B1 체육관 video 예배영상 | SNS 주일 16:00 서빙고 온누리교회 본당 video 예배영상 | CHPLUS 주일 17:",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "06e33fb42b698565a7d96c18",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:00",
+      "venue_audience": "Pole2 주일한성대 에듀센터 2층 안디옥홀 video 예배영상",
+      "source_text": "SNS 주일 16:00 서빙고 온누리교회 본당 video 예배영상 | CHPLUS 주일 17:30 한성대 에듀센터 2층 안디옥홀 video 예배영상 | Pole2 주일 11:00 ",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "f4094defa138923a48e5c87b",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "금요심야예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "16:30",
+      "venue_audience": "하늘 주일온누리청소년센터 B1 체육관 video 예배영상",
+      "source_text": "CHPLUS 주일 17:30 한성대 에듀센터 2층 안디옥홀 video 예배영상 | Pole2 주일 11:00 한성대 에듀센터 2층 안디옥홀 video 예배영상 | 하늘 주일 16:",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "1d9b4ec0b064587cc22a908c",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "꿈사랑부예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "09:00",
+      "venue_audience": "선교관 202호",
+      "source_text": "꿈사랑부예배(장애아동) | 6세~초등학교 지적장애 학생 | 주일 09:00 | 선교관 202호",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "2836089ef6ae01e41a6526d2",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "사랑부예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "09:00",
+      "venue_audience": "선교관 1층 사랑홀",
+      "source_text": "사랑부예배(중고등학생) | 중고등학교 지적장애 학생 | 주일 09:00 | 선교관 1층 사랑홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "c44b8b99e935b7dfd93122a8",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "예수사랑부예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:30",
+      "venue_audience": "선교관 지하1층",
+      "source_text": "예수사랑부예배 | 18세 이상 지적장애 청년 | 주일 11:30 | 선교관 지하1층",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "9cc7fca7b344a942ebb22e50",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "누리사랑부예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:00",
+      "venue_audience": "선교관 1층 사랑홀",
+      "source_text": "누리사랑부예배 | 성인 지체 장애인 | 주일 11:00 | 선교관 1층 사랑홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    },
+    {
+      "record_id": "df572b1d2bdd5fbe3100ce19",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "service_type": "한마음정신회복예배",
+      "day_of_week": [
+        "SUN"
+      ],
+      "start_time": "11:20",
+      "venue_audience": "선교관 1층 믿음홀",
+      "source_text": "한마음정신회복예배 | 정신질환 환우들과 가족들 | 주일 11:20 | 선교관 1층 믿음홀",
+      "source_url": "https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/",
+      "collected_at": "2026-09-01T01:11:39.273Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    }
+  ],
+  "errors": [],
+  "approved_profiles": [],
+  "held_profiles": [
+    {
+      "profile_id": "church-profile-1",
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "slogan": null,
+      "vision": null,
+      "summary": null,
+      "address": "서울특별시 용산구 이촌로 347-11",
+      "source_url": "https://www.onnuri.org/",
+      "source_text": "주소: 서울특별시 용산구 이촌로 347-11",
+      "collected_at": "2026-09-01T01:11:42.434Z",
+      "source_last_modified": null,
+      "confidence": "medium",
+      "review_status": "hold",
+      "flags": [
+        "freshness_unknown"
+      ]
+    }
+  ],
+  "profile_errors": [],
+  "collection_held": [
+    {
+      "church_id": 206,
+      "church_name": "새문안교회",
+      "source_url": "https://www.saemoonan.org/church/Sub_03_01.aspx",
+      "purpose": "schedule",
+      "code": "robots_unavailable",
+      "status": 999
+    },
+    {
+      "church_id": 206,
+      "church_name": "새문안교회",
+      "source_url": "https://www.saemoonan.org/",
+      "purpose": "profile",
+      "code": "robots_unavailable",
+      "status": 999
+    }
+  ],
+  "collection_errors": []
+}

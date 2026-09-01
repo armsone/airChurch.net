@@ -40,4 +40,6 @@ yarn-error.log*
 /outputs/
 /work/
 /backups/
+/data/worship-schedules/all-checkpoint.json
+/data/worship-schedules/all-contact-candidates.review.json
 /tools/AirChurchRegistrar/build/

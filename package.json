@@ -12,6 +12,18 @@
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "media:backfill": "node scripts/backfill-church-media.mjs",
+    "test:pastor-history": "node --test tests/pastor-history-pipeline.test.mjs",
+    "pastor-history:roster": "node scripts/build-pastor-history-roster.mjs",
+    "pastor-history:collect": "node scripts/collect-pastor-history.mjs",
+    "pastor-history:import:dry-run": "node scripts/dry-run-pastor-history-import.mjs",
+    "worship:collect": "node scripts/worship-schedules/collect.mjs --input data/worship-schedules/pilot-churches.json --policy data/worship-schedules/policies.json --output data/worship-schedules/pilot-output.json",
+    "worship:validate": "node scripts/worship-schedules/validate.mjs --input data/worship-schedules/pilot-output.json --output data/worship-schedules/validated-dry-run.json",
+    "worship:plan": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/validated-dry-run.json --output data/worship-schedules/import-plan.json",
+    "worship:export-all": "node scripts/worship-schedules/export-registered-churches.mjs",
+    "worship:collect-all": "node scripts/worship-schedules/collect-all.mjs",
+    "worship:validate-all": "node scripts/worship-schedules/validate.mjs --input data/worship-schedules/all-output.json --output data/worship-schedules/all-validated-dry-run.json",
+    "worship:plan-all": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/all-validated-dry-run.json --output data/worship-schedules/all-import-plan.json",
+    "worship:report-all": "node scripts/worship-schedules/report.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

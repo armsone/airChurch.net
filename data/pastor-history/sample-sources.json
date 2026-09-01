@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "policy": {
+    "pilotOnly": true,
+    "minimumDelayMs": 2500,
+    "defaultRecrawlDays": 30
+  },
+  "sites": [
+    {
+      "host": "www.saemoonan.org",
+      "collectionAllowed": true,
+      "sourceTypes": ["official_church"],
+      "allowedPathPrefixes": ["/church/", "/Board/"],
+      "minimumDelayMs": 2500,
+      "policyReviewedAt": "2026-09-01",
+      "policyUrl": "https://www.saemoonan.org/",
+      "note": "공개 교회 소개·설교 목록만 확인하며 robots.txt 판정을 우선한다."
+    },
+    {
+      "host": "somang.net",
+      "collectionAllowed": true,
+      "sourceTypes": ["official_church"],
+      "allowedPathPrefixes": ["/church/"],
+      "minimumDelayMs": 2500,
+      "policyReviewedAt": "2026-09-01",
+      "policyUrl": "https://somang.net/",
+      "note": "공개 교회 소개·연혁만 확인하며 robots.txt 판정을 우선한다."
+    }
+  ],
+  "subjects": [
+    {
+      "id": "saemoonan-lee-sanghak",
+      "identity": {
+        "pastorName": "이상학",
+        "churchName": "새문안교회",
+        "denomination": "대한예수교장로회 통합",
+        "region": "서울 종로구"
+      },
+      "role": {
+        "category": "current_primary",
+        "title": "담임목사",
+        "status": "current"
+      },
+      "minimumIdentitySources": 2,
+      "sources": [
+        {
+          "type": "official_church",
+          "url": "https://www.saemoonan.org/church/Sub_01_09.aspx",
+          "recrawlDays": 30,
+          "identityEvidence": {
+            "pastor": ["이상학"],
+            "church": ["새문안교회"],
+            "denomination": ["대한예수교장로회"],
+            "region": ["서울", "종로구"],
+            "role": ["담임목사"]
+          },
+          "assertions": [
+            {
+              "eventType": "position",
+              "role": "담임목사",
+              "roleCategory": "current_primary",
+              "roleStatus": "current",
+              "organization": "새문안교회",
+              "startDate": null,
+              "endDate": null,
+              "factSummary": "새문안교회 담임목사로 공식 소개되어 있다.",
+              "evidenceAll": ["이상학", "현 새문안교회 담임목사"],
+              "isPrimaryRole": true
+            },
+            {
+              "eventType": "position",
+              "role": "담임목사",
+              "roleCategory": "current_primary",
+              "roleStatus": "former",
+              "organization": "포항제일교회",
+              "startDate": null,
+              "endDate": null,
+              "factSummary": "공식 약력에 포항제일교회 담임목사 경력이 기재되어 있다.",
+              "evidenceAll": ["이상학", "포항제일교회 담임목사"]
+            }
+          ]
+        },
+        {
+          "type": "official_church",
+          "url": "https://www.saemoonan.org/Board/ListTV.aspx?vodType=1",
+          "recrawlDays": 14,
+          "identityEvidence": {
+            "pastor": ["이상학", "담임목사"],
+            "church": ["새문안교회"],
+            "denomination": ["대한예수교장로회"],
+            "region": ["서울", "종로구"],
+            "role": ["담임목사"]
+          },
+          "assertions": []
+        }
+      ]
+    },
+    {
+      "id": "somang-kim-kyungjin",
+      "identity": {
+        "pastorName": "김경진",
+        "churchName": "소망교회",
+        "denomination": "대한예수교장로회 통합",
+        "region": "서울 강남구"
+      },
+      "role": {
+        "category": "current_primary",
+        "title": "담임목사",
+        "status": "current"
+      },
+      "minimumIdentitySources": 2,
+      "sources": [
+        {
+          "type": "official_church",
+          "url": "https://somang.net/church/pastor/present-pastor",
+          "recrawlDays": 30,
+          "identityEvidence": {
+            "pastor": ["김경진"],
+            "church": ["소망교회"],
+            "denomination": ["대한예수교장로회"],
+            "region": ["서울", "강남구"],
+            "role": ["담임목사"]
+          },
+          "assertions": [
+            {
+              "eventType": "position",
+              "role": "담임목사",
+              "roleCategory": "current_primary",
+              "roleStatus": "current",
+              "organization": "소망교회",
+              "startDate": null,
+              "endDate": null,
+              "factSummary": "소망교회 담임목사로 공식 소개되어 있다.",
+              "evidenceAll": ["김경진", "담임목사"],
+              "isPrimaryRole": true
+            }
+          ]
+        },
+        {
+          "type": "official_church",
+          "url": "https://somang.net/church/somang/history",
+          "recrawlDays": 90,
+          "identityEvidence": {
+            "pastor": ["김경진"],
+            "church": ["소망교회"],
+            "denomination": ["대한예수교장로회"],
+            "region": ["서울", "강남구"],
+            "role": ["담임목사"]
+          },
+          "assertions": [
+            {
+              "eventType": "appointment",
+              "role": "담임목사",
+              "roleCategory": "current_primary",
+              "roleStatus": "current",
+              "organization": "소망교회",
+              "startDate": "2019-01-13",
+              "endDate": null,
+              "factSummary": "2019년 1월 13일 소망교회 담임목사 위임예배가 열렸다.",
+              "evidenceAll": ["2019.01.13", "김경진", "담임목사 위임예배"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

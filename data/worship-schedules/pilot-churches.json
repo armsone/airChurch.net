@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "churches": [
+    {
+      "church_id": 1,
+      "church_name": "온누리교회",
+      "homepage_url": "https://www.onnuri.org/",
+      "profile_source_url": "https://www.onnuri.org/",
+      "source_urls": ["https://www.onnuri.org/about-onnuri/service-times/seobinggo-campus/"]
+    },
+    {
+      "church_id": 206,
+      "church_name": "새문안교회",
+      "homepage_url": "https://www.saemoonan.org/",
+      "profile_source_url": "https://www.saemoonan.org/",
+      "source_urls": ["https://www.saemoonan.org/church/Sub_03_01.aspx"]
+    }
+  ]
+}

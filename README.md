@@ -93,6 +93,13 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run build`: verify the vinext build output
 - `npm test`: build the starter and verify its rendered loading skeleton
 - `npm run db:generate`: generate Drizzle migrations after schema changes
+- `npm run pastor-history:collect`: collect review-only public pastor history and write official-role contact candidates to a separate admin-input artifact
+- `npm run pastor-history:roster -- --input <approved-church-export.json>`: build a non-public, equal-priority curation queue for every supported official pastor role
+- `npm run pastor-history:import:dry-run`: create a no-write import preview that requires a matching human approval artifact for eligibility
+- `npm run test:pastor-history`: verify source boundaries, robots handling, identity matching, deduplication, and approval gating
+- `npm run db:generate`: generate Drizzle migrations after schema changes
+
+The pastor-history workflow is intentionally disconnected from the production database, encryption keys, and public pages. Contact values never enter the public history artifact. See [the collection and approval policy](docs/pastor-history-pipeline.md).
 
 ## Learn More
 

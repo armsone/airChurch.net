@@ -1,0 +1,71 @@
+{
+  "generated_at": "2026-09-01T01:08:03.505Z",
+  "complete": true,
+  "registered_churches": 1782,
+  "attempted_churches": 1782,
+  "church_statuses": {
+    "no_homepage": 1152,
+    "held": 416,
+    "collected": 214
+  },
+  "churches_with_schedule_candidates": 171,
+  "schedule_candidates_pending_review": 1461,
+  "churches_with_profile_candidates": 209,
+  "profile_candidates_pending_review": 209,
+  "collection_holds": 2107,
+  "collection_errors": 0,
+  "hold_reasons": {
+    "missing_homepage": 1152,
+    "ambiguous_extraction": 471,
+    "robots_unavailable": 244,
+    "robots_disallowed": 142,
+    "no_schedule_candidates": 59,
+    "no_profile_candidate": 24,
+    "unusable_response": 6,
+    "empty_after_contact_redaction": 3,
+    "response_too_large": 2,
+    "terms_prohibit_automated_collection": 2,
+    "fetch_error": 1,
+    "privacy_review_required": 1
+  },
+  "policy_results": {
+    "not_applicable": 1543,
+    "not_found": 154,
+    "no_prohibition_found": 78,
+    "unavailable": 5,
+    "prohibited": 2
+  },
+  "security": {
+    "http_source_count": 287,
+    "privacy_profiles_held": 1,
+    "privacy_schedule_candidates_held": 0,
+    "privacy_redactions": 20,
+    "detected": {
+      "email": 9,
+      "mobile_phone": 12,
+      "account_number": 1,
+      "residential_address": 1
+    },
+    "transport_review": {
+      "policy": "public_read_only_allowed_with_warning",
+      "warning_count": 287,
+      "login_or_form_submission_allowed": false
+    }
+  },
+  "http_source_count": 287,
+  "transport_review": {
+    "policy": "public_read_only_allowed_with_warning",
+    "warning_count": 287,
+    "login_or_form_submission_allowed": false
+  },
+  "admin_contact_candidates": {
+    "phone": 66,
+    "email": 31,
+    "account": 4
+  },
+  "contact_visibility": "admin_only",
+  "general_contact_value_leaks": 0,
+  "contact_schema_errors": 0,
+  "duplicate_contact_candidate_ids": 0,
+  "automatic_publication": false
+}
