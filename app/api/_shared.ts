@@ -244,7 +244,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v17' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v18' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -362,6 +362,17 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("INSERT INTO pastor_admin_buckets (bucket_index,position,pastor_id,revision) SELECT CAST((rank_no-1)/24 AS INTEGER),(rank_no-1)%24,id,17 FROM (SELECT id,ROW_NUMBER() OVER (ORDER BY ((id*1103515245+209865)&2147483647),id) AS rank_no FROM pastor_people WHERE review_status='approved') WHERE rank_no<=1200"),
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('pastor-admin-buckets-revision','17')"),
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v17',CURRENT_TIMESTAMP)"),
+  ]);
+  const removedPastorPeople="SELECT id FROM pastor_people WHERE review_status='removed'";
+  await db.batch([
+    db.prepare(`DELETE FROM pastor_identity_candidates WHERE left_pastor_id IN (${removedPastorPeople}) OR right_pastor_id IN (${removedPastorPeople})`),
+    db.prepare(`DELETE FROM pastor_encouragement_messages WHERE pastor_id IN (${removedPastorPeople})`),
+    db.prepare(`DELETE FROM pastor_private_contact_values WHERE pastor_id IN (${removedPastorPeople})`),
+    db.prepare(`DELETE FROM pastor_admin_buckets WHERE pastor_id IN (${removedPastorPeople})`),
+    db.prepare(`DELETE FROM pastor_church_roles WHERE pastor_id IN (${removedPastorPeople})`),
+    db.prepare(`DELETE FROM pastor_people WHERE id IN (${removedPastorPeople})`),
+    db.prepare("DELETE FROM pastor_church_roles WHERE review_status='removed'"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v18',CURRENT_TIMESTAMP)"),
   ]);
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
