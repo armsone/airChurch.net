@@ -7,6 +7,8 @@ import path from "node:path";
 const sensitivePattern=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?<!\d)01[016789][- .]?\d{3,4}[- .]?\d{4}(?!\d)|(?:계좌|account)\s*[:：]?\s*\d[\d -]{7,})/gi;
 const safeText=(value,max)=>String(value??"").trim().slice(0,max);
 const digest=(value)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
+export const immutableWorshipReviewRecord=(review)=>({record_id:review.record_id,candidate_type:review.candidate_type,church_id:review.church_id,church_name:review.church_name,service_type:review.service_type,day_of_week:review.day_of_week,start_time:review.start_time,venue_audience:review.venue_audience,slogan:review.slogan,vision:review.vision,summary:review.summary,source_url:review.source_url,confidence:review.confidence,flags:review.flags});
+export const worshipReviewCandidateDigest=(reviews)=>digest(reviews.map(immutableWorshipReviewRecord));
 
 export function buildWorshipReviewBatches(bundle,batchChurchLimit=25){
   if(bundle?.metadata?.complete!==true||bundle?.metadata?.automatic_publication!==false)throw new Error("unsafe_collection_bundle");
@@ -27,7 +29,7 @@ export function buildWorshipReviewBatches(bundle,batchChurchLimit=25){
   const batches=[];
   for(let offset=0;offset<churches.length;offset+=batchChurchLimit){
     const selected=churches.slice(offset,offset+batchChurchLimit),reviews=selected.flatMap((item)=>item.records);
-    batches.push({metadata:{schema_version:1,mode:"human_review_only",automatic_approval:false,church_count:selected.length,review_count:reviews.length,http_source_count:reviews.filter((item)=>item.source_url.startsWith("http://")).length,sha256:digest(reviews),privacy_scan:{status:"passed",sensitive_findings:0,raw_html_stored:false}},reviews});
+    batches.push({metadata:{schema_version:1,mode:"human_review_only",automatic_approval:false,church_count:selected.length,review_count:reviews.length,http_source_count:reviews.filter((item)=>item.source_url.startsWith("http://")).length,candidate_sha256:worshipReviewCandidateDigest(reviews),privacy_scan:{status:"passed",sensitive_findings:0,raw_html_stored:false}},reviews});
   }
   return {summary:{candidate_records:records.length,candidate_churches:churches.length,batch_count:batches.length,duplicate_candidates:0,automatic_approval:false},batches};
 }

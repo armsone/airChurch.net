@@ -38,11 +38,24 @@ npm run worship:fairness-all
 npm run worship:validate-all
 npm run worship:plan-all
 npm run worship:report-all
+npm run worship:prepare-review-batches
 ```
 
 `export-all`은 교단·지역 분할 건수의 합과 공개된 전체 승인 교회 수를 대조하고, ID 중복 제거 후에도 건수가 같을 때만 완료됩니다. `collect-all`은 체크포인트로 재개할 수 있으며 교회별 공식 홈페이지에서 같은 출처의 예배 안내 링크 하나만 추가로 확인합니다. 홈페이지가 없는 교회도 `missing_homepage` 결과를 남겨 모든 등록 ID가 산출물에 존재합니다.
 
 `fairness-all`은 홈페이지 없음·HTTP 사용·자료 부족을 제외 또는 감점 사유로 쓰지 않도록 1,782곳 모두에 `inclusion_status=included`, `collection_priority=equal`을 부여합니다. 공식 교회·교단·노회 공개 페이지 한 곳이면 검토 후보 근거로 충분하며, 모호하거나 서로 충돌할 때만 추가 출처를 요구합니다. 정보를 찾지 못한 교회는 `information_tip_pending`, 자동 판단이 어려운 교회는 `human_review_required`로 유지합니다. 정보 제보와 응원 메시지는 보강 단서로 연결할 수 있지만 공식 출처 확인 전에는 사실 후보가 되지 않습니다.
+
+`prepare-review-batches`는 예배시간·교회 소개 후보를 교회별로 묶어 `out/worship-review-batches/`에 최대 25개 교회 단위 검토 파일을 만듭니다. 검토자는 `decision`을 `approve` 또는 `reject`로 바꾸고, `reviewed_at`과 3자 이상의 근거 메모를 적습니다. 후보의 교회·시간·출처·요약 필드는 바꾸지 않습니다. 후보 해시는 결정 필드를 제외한 원자료만 고정하므로 정상적인 검토 결정은 허용하지만 출처나 시간을 바꾸면 병합이 거부됩니다.
+
+모든 묶음 검토가 끝나면 다음처럼 하나의 리뷰 파일로 합칩니다.
+
+```bash
+npm run worship:merge-review-batches
+node scripts/worship-schedules/validate.mjs --input data/worship-schedules/all-output.json --reviews out/worship-reviews.merged.json --output out/worship-validated.reviewed.json
+node scripts/worship-schedules/import-plan.mjs --input out/worship-validated.reviewed.json --output out/worship-import-plan.reviewed.json
+```
+
+병합기는 1,670개 후보 ID의 누락·중복·추가, 후보 해시 변경, 미결정 항목, 잘못된 결정값, 검토시각·메모 누락을 모두 차단합니다. 진행 상황만 확인할 때는 `npm run worship:merge-review-batches -- --allow-pending`을 사용할 수 있지만 이 파일은 완료 상태가 아니며 승인 계획으로 취급하지 않습니다.
 
 도메인별 요청 간격은 기본 3초이고 서로 다른 도메인만 최대 4개 병렬 처리합니다. robots가 금지하거나 정상 확인되지 않으면 보류합니다. 같은 출처에서 발견한 이용약관에 자동 수집 금지 문구가 있으면 해당 출처는 보류합니다. 이용약관 링크가 없거나 읽지 못한 경우에는 플래그를 붙이고 사람 검토 전 공개하지 않습니다.
 
