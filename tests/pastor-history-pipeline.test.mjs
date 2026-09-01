@@ -135,6 +135,11 @@ test("creates separate equal-priority candidates for every supported official pa
   assert.deepEqual(new Set(roster.candidates.map((candidate) => candidate.searchPriorityWeight)), new Set([1]));
   assert.deepEqual(new Set(roster.candidates.map((candidate) => candidate.publicationPriorityWeight)), new Set([1]));
   assert.ok(roster.candidates.every((candidate) => candidate.fairnessPolicy === "equal_across_role_categories"));
+  const retired=roster.candidates.find((candidate)=>candidate.identity.pastorName==="정은퇴");
+  assert.deepEqual(retired.discoveryQueries.map((item)=>item.purpose),["official_identity","ministry_transition","guest_ministry","denomination_history"]);
+  assert.match(retired.discoveryQueries[1].query,/은퇴 원로 이임 설립 개척/);
+  assert.match(retired.discoveryQueries[2].query,/초청설교 특별집회 세미나/);
+  assert.ok(retired.discoveryQueries.every((item)=>item.acceptedSources.every((source)=>source.startsWith("official_"))));
 });
 
 test("does not trust a status-free church list unless the export declares approved-only scope", () => {

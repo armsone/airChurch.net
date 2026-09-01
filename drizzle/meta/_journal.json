@@ -120,6 +120,13 @@
       "when": 1788226801529,
       "tag": "0016_narrow_ogun",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1788227692357,
+      "tag": "0017_fast_yellow_claw",
+      "breakpoints": true
     }
   ]
 }

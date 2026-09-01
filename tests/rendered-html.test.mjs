@@ -287,7 +287,7 @@ test("applies every migration to a fresh database including reviewer workflow ta
   try {
     const migrated=spawnSync("sqlite3",[databasePath],{input:sql,encoding:"utf8"});
     assert.equal(migrated.status,0,migrated.stderr);
-    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests','church_shorts','church_profiles','worship_schedules','encouragement_messages','church_ministry_profiles','ministry_profile_suggestions') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches); PRAGMA table_info(church_shorts); PRAGMA table_info(church_profiles); PRAGMA table_info(worship_schedules); PRAGMA table_info(encouragement_messages); PRAGMA table_info(church_ministry_profiles); PRAGMA table_info(ministry_profile_suggestions);"],{encoding:"utf8"});
+    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests','church_shorts','church_profiles','worship_schedules','encouragement_messages','church_ministry_profiles','ministry_profile_suggestions','ministry_appearances') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches); PRAGMA table_info(church_shorts); PRAGMA table_info(church_profiles); PRAGMA table_info(worship_schedules); PRAGMA table_info(encouragement_messages); PRAGMA table_info(church_ministry_profiles); PRAGMA table_info(ministry_profile_suggestions); PRAGMA table_info(ministry_appearances);"],{encoding:"utf8"});
     assert.equal(checked.status,0,checked.stderr);
     assert.match(checked.stdout,/reviewer_accounts/);
     assert.match(checked.stdout,/reviewer_church_reviews/);
@@ -298,6 +298,7 @@ test("applies every migration to a fresh database including reviewer workflow ta
     assert.match(checked.stdout,/encouragement_messages/);
     assert.match(checked.stdout,/church_ministry_profiles/);
     assert.match(checked.stdout,/ministry_profile_suggestions/);
+    assert.match(checked.stdout,/ministry_appearances/);
     assert.match(checked.stdout,/request_type/);
     assert.match(checked.stdout,/admin_resolution/);
     assert.match(checked.stdout,/review_resolution_token/);
@@ -307,6 +308,7 @@ test("applies every migration to a fresh database including reviewer workflow ta
     assert.match(checked.stdout,/target_ref/);
     assert.match(checked.stdout,/role_category/);
     assert.match(checked.stdout,/fingerprint/);
+    assert.match(checked.stdout,/host_church_name/);
   } finally {
     await rm(directory,{recursive:true,force:true});
   }

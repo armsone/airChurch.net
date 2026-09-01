@@ -5,8 +5,8 @@ import {readFile} from "node:fs/promises";
 
 const read=async(path)=>JSON.parse(await readFile(path,"utf8"));
 const text=async(path)=>readFile(path,"utf8");
-const [roster,policy,worship,report,churchPage,pastorPage,suggestionRoute,importRoute]=await Promise.all([
-  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),
+const [roster,policy,worship,report,churchPage,pastorPage,attribution,suggestionRoute,importRoute]=await Promise.all([
+  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/pastor-sermon-attribution.ts"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),
 ]);
 const publicOperations=JSON.stringify(worship.operations);
 const privateContactArtifact="data/worship-schedules/all-contact-candidates.review.json";
@@ -30,7 +30,8 @@ const checks={
   copyright_excerpt_only:worship.operations.every((item)=>!item.values?.source_text||item.values.source_text.length<=1000)&&!JSON.stringify(worship).includes("raw_html"),
   source_attribution_complete:worship.operations.every((item)=>/^https?:\/\//i.test(item.values?.source_url??"")),
   duplicate_free:new Set(worship.operations.map((item)=>item.key)).size===worship.operations.length,
-  approved_only_queries:churchPage.includes("church_ministry_profiles WHERE church_id=? AND review_status='approved'")&&pastorPage.includes("church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved'"),
+  approved_only_queries:churchPage.includes("church_ministry_profiles WHERE church_id=? AND review_status='approved'")&&pastorPage.includes("church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved'")&&pastorPage.includes("FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved'"),
+  guarded_sermon_attribution:pastorPage.includes("isSermonAttributedTo(sermon.title,displayName,!minister)")&&attribution.includes("isPrimary&&named.length===0")&&attribution.includes("named.includes(subject)"),
   bounded_low_load:importRoute.includes("operations.length>100")&&importRoute.includes("offset+=50")&&churchPage.includes("LIMIT 80"),
   operating_db_writes_before_authorization:roster.operating_database_writes===0,
 };

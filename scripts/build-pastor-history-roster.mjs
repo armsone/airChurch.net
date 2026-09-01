@@ -31,6 +31,18 @@ function clean(value, maximum) {
   return String(value ?? "").normalize("NFKC").replace(/\s+/g, " ").trim().slice(0, maximum);
 }
 
+function discoveryQueries(identity,roleCategory,roleTitleClaim){
+  const name=identity.pastorName,church=identity.churchName,denomination=identity.denomination,role=roleTitleClaim??"목사";
+  const queries=[
+    {purpose:"official_identity",query:`${church} ${name} ${role}`,acceptedSources:["official_church","official_denomination","official_presbytery"]},
+    {purpose:"ministry_transition",query:`${name} ${church} 개척 설립 위임 이임 은퇴 원로`,acceptedSources:["official_church","official_denomination","official_presbytery"]},
+    {purpose:"guest_ministry",query:`${name} 목사 초청설교 특별집회 세미나`,acceptedSources:["official_host_church","official_host_church_youtube","official_bulletin"]},
+    {purpose:"denomination_history",query:`${name} ${denomination} 목사`,acceptedSources:["official_denomination","official_presbytery"]},
+  ];
+  if(["retired","emeritus"].includes(roleCategory))queries[1].query=`${name} ${church} 은퇴 원로 이임 설립 개척`;
+  return queries;
+}
+
 function recordValue(record, ...keys) {
   for (const key of keys) if (record?.[key] != null) return record[key];
   return null;
@@ -202,6 +214,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
         subjectId: `pastor-${sha256(dedupeKey).slice(0, 20)}`,
         churchId: Number.isInteger(churchId) && churchId > 0 ? churchId : null,
         identity,
+        discoveryQueries:discoveryQueries(identity,parsedPastor.roleCategory,parsedPastor.roleTitleClaim),
         organization: churchName,
         selectionBasis: "approved_airchurch_church",
         selectionPhase: policy.phase,

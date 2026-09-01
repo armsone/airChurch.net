@@ -7,12 +7,14 @@ import DailyMediaLink from "../../daily-media-link";
 import { database, ensureEncouragementTables, ensureMinistryProfileTables, ensureSermonTables } from "../../api/_shared";
 import { safeHttpUrl } from "../../safe-url";
 import EncouragementBoard,{type EncouragementItem} from "../../encouragement-board";
+import {isSermonAttributedTo} from "../../pastor-sermon-attribution";
 
 export const dynamic="force-dynamic";
 
 type PastorChurch={id:number;name:string;pastor:string;region:string;denomination:string;youtube_channel_id:string|null;homepage_url:string|null};
-type Sermon={youtube_id:string;title:string;published_at:string};
-type SermonHistory={total:number;first_at:string|null;latest_at:string|null};
+type Appearance={id:number;host_church_name:string;event_title:string;source_url:string;video_id:string|null;occurred_at:string};
+type AppearanceHistory={total:number;first_at:string|null;latest_at:string|null};
+type ChurchSermon={youtube_id:string;title:string;published_at:string};
 type Minister={id:number;name:string;role_title:string;role_status:string;source_url:string};
 
 const profile=cache(async(id:number)=>{
@@ -41,11 +43,13 @@ export default async function PastorProfilePage({params,searchParams}:{params:Pr
   const ministerId=Number(ministerRaw),minister=Number.isInteger(ministerId)&&ministerId>0?await db.prepare("SELECT id,name,role_title,role_status,source_url FROM church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved' LIMIT 1").bind(ministerId,id).first<Minister>():null;
   if(ministerRaw&&!minister)return <main className="church-detail-shell"><SkipLink/><section className="church-detail-missing"><h1>검토 승인된 교역자 정보가 아닙니다</h1><a href={`/church/${id}`}>교회 페이지로 돌아가기 →</a></section></main>;
   const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=minister?.role_title??"목사",targetRef=minister?`minister:${minister.id}`:"";
-  const [history,sermons,encouragements]=await Promise.all([
-    minister?Promise.resolve(null):db.prepare("SELECT COUNT(*) AS total,MIN(published_at) AS first_at,MAX(published_at) AS latest_at FROM sermons WHERE church_id=? AND status='published'").bind(id).first<SermonHistory>(),
-    minister?Promise.resolve({results:[]} as {results:Sermon[]}):db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 12").bind(id).all<Sermon>(),
+  const [history,appearances,churchSermons,encouragements]=await Promise.all([
+    db.prepare("SELECT COUNT(*) AS total,MIN(occurred_at) AS first_at,MAX(occurred_at) AS latest_at FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved'").bind(id,displayName).first<AppearanceHistory>(),
+    db.prepare("SELECT id,host_church_name,event_title,source_url,video_id,occurred_at FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved' ORDER BY occurred_at DESC,id DESC LIMIT 12").bind(id,displayName).all<Appearance>(),
+    db.prepare("SELECT youtube_id,title,published_at FROM sermons WHERE church_id=? AND status='published' ORDER BY published_at DESC LIMIT 80").bind(id).all<ChurchSermon>(),
     db.prepare("SELECT id,nickname,content,created_at AS createdAt FROM encouragement_messages WHERE church_id=? AND target_type='pastor' AND target_ref=? AND status='approved' ORDER BY created_at DESC,id DESC LIMIT 30").bind(id,targetRef).all<EncouragementItem>(),
   ]);
+  const attributedSermons=churchSermons.results.filter((sermon)=>isSermonAttributedTo(sermon.title,displayName,!minister)).slice(0,12);
   const homepage=safeHttpUrl(church.homepage_url),ministerSource=safeHttpUrl(minister?.source_url);
   const personJsonLd={"@context":"https://schema.org","@type":"Person",name:displayName,jobTitle:roleTitle,worksFor:{"@type":"Church",name:church.name,url:`https://airchurch.net/church/${church.id}`},url:`https://airchurch.net/pastors/${church.id}${minister?`?minister=${minister.id}`:""}`};
   return <main className="church-detail-shell pastor-profile-shell"><SkipLink/>
@@ -53,7 +57,8 @@ export default async function PastorProfilePage({params,searchParams}:{params:Pr
     <section className="pastor-profile-hero" id="primary-content" tabIndex={-1}><div><span>PASTOR STORY</span><p>공식 공개 정보로 보는 목회 여정</p><h1>{displayName}<small>{roleTitle}</small></h1><a href={`/church/${church.id}`}>{church.name} · {church.region} · {church.denomination}</a><nav className="pastor-profile-sources" aria-label="공식 출처">{ministerSource&&<a href={ministerSource} target="_blank" rel="noopener noreferrer">교역자 공식 출처 ↗</a>}{homepage&&<a href={homepage} target="_blank" rel="noopener noreferrer">교회 홈페이지 ↗</a>}{!minister&&church.youtube_channel_id&&<a href={`https://www.youtube.com/channel/${church.youtube_channel_id}`} target="_blank" rel="noopener noreferrer">공식 YouTube ↗</a>}</nav></div>{Number(history?.total??0)>0&&<aside><span>airChurch 기록</span><strong>{Number(history?.total??0).toLocaleString("ko-KR")}편</strong><small>연결된 공개 말씀</small></aside>}</section>
     <section className="pastor-profile-principle"><strong>사생활이 아닌, 공개된 목회 기록만</strong><p>교회·교단·공식 채널에서 확인되는 정보만 정리합니다. 학력·가족·개인 이력은 공식 출처가 확인되지 않으면 싣지 않습니다.</p><a href="/contact">정보 수정 요청</a></section>
     <section className="pastor-history-grid" aria-label="목회 기록 요약"><article><span>{minister?.role_status==="former"?"이전 섬김":"현재 섬김"}</span><strong>{church.name}</strong><p>{roleTitle} · {church.region} · {church.denomination}</p></article>{history?.first_at&&<article><span>첫 연결 기록</span><strong>{date(history.first_at)}</strong><p>airChurch에 연결된 공식 채널 기준</p></article>}{history?.latest_at&&<article><span>최근 말씀</span><strong>{date(history.latest_at)}</strong><p>공식 채널의 공개 영상 기준</p></article>}</section>
-    {sermons.results.length>0&&<section className="church-detail-content"><div className="section-heading"><div><span className="section-kicker">MINISTRY TIMELINE</span><h2>말씀으로 남은 목회 기록</h2></div><span className="result-count">최근 {sermons.results.length}편</span></div><div className="church-detail-video-grid">{sermons.results.map((sermon)=><DailyMediaLink className="church-detail-video" href={`https://www.youtube.com/watch?v=${sermon.youtube_id}`} step="sermon" key={sermon.youtube_id}><img src={`https://i.ytimg.com/vi/${sermon.youtube_id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer"/><span><small>{date(sermon.published_at)}</small><strong>{sermon.title}</strong><em>YouTube에서 보기 ↗</em></span></DailyMediaLink>)}</div></section>}
+    {appearances.results.length>0&&<section className="church-detail-content"><div className="section-heading"><div><span className="section-kicker">VERIFIED MINISTRY</span><h2>공식 출처로 확인된 설교와 사역</h2></div><span className="result-count">최근 {appearances.results.length}건</span></div><div className="church-detail-video-grid">{appearances.results.map((appearance)=>{const source=safeHttpUrl(appearance.source_url);if(!source)return null;return <DailyMediaLink className="church-detail-video" href={source} step="sermon" key={appearance.id}>{appearance.video_id&&<img src={`https://i.ytimg.com/vi/${appearance.video_id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer"/>}<span><small>{date(appearance.occurred_at)} · {appearance.host_church_name}</small><strong>{appearance.event_title}</strong><em>공식 출처에서 보기 ↗</em></span></DailyMediaLink>})}</div></section>}
+    {attributedSermons.length>0&&<section className="church-detail-content"><div className="section-heading"><div><span className="section-kicker">SERMONS</span><h2>{minister?"이름이 확인된 설교":"교회 공식 채널의 설교"}</h2></div><span className="result-count">최근 {attributedSermons.length}편</span></div><div className="church-detail-video-grid">{attributedSermons.map((sermon)=><DailyMediaLink className="church-detail-video" href={`https://www.youtube.com/watch?v=${sermon.youtube_id}`} step="sermon" key={sermon.youtube_id}><img src={`https://i.ytimg.com/vi/${sermon.youtube_id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer"/><span><small>{date(sermon.published_at)}</small><strong>{sermon.title}</strong><em>YouTube에서 보기 ↗</em></span></DailyMediaLink>)}</div></section>}
     <EncouragementBoard churchId={id} targetType="pastor" targetRef={targetRef} title={`${displayName} ${roleTitle} 응원하기`} initialItems={encouragements.results}/>
     <footer className="church-detail-footer"><a href={`/church/${church.id}`}>{church.name}</a><span>공개 출처가 확인되는 정보부터 차분히 채웁니다.</span></footer><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(personJsonLd).replace(/</g,"\\u003c")}}/>
   </main>;
