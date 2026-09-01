@@ -205,13 +205,29 @@ export const ensurePrivateContactTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensureEncouragementTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-encouragement-v1' LIMIT 1").first<{key:string}>();
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-encouragement-v2' LIMIT 1").first<{key:string}>();
   if(ready)return;
+  await db.prepare("CREATE TABLE IF NOT EXISTS encouragement_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),target_type TEXT NOT NULL,target_ref TEXT NOT NULL DEFAULT '',nickname TEXT NOT NULL,content TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'approved',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,moderated_at TEXT)").run();
+  const columns=await db.prepare("PRAGMA table_info(encouragement_messages)").all<{name:string}>();
+  await addColumnIfMissing(db,columns.results,"target_ref","ALTER TABLE encouragement_messages ADD COLUMN target_ref TEXT NOT NULL DEFAULT ''");
   await db.batch([
-    db.prepare("CREATE TABLE IF NOT EXISTS encouragement_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),target_type TEXT NOT NULL,nickname TEXT NOT NULL,content TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'approved',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,moderated_at TEXT)"),
-    db.prepare("CREATE INDEX IF NOT EXISTS idx_encouragement_target_status_created ON encouragement_messages(church_id,target_type,status,created_at DESC)"),
+    db.prepare("DROP INDEX IF EXISTS idx_encouragement_target_status_created"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_encouragement_target_status_created ON encouragement_messages(church_id,target_type,target_ref,status,created_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_encouragement_status_created ON encouragement_messages(status,created_at DESC)"),
-    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-encouragement-v1',CURRENT_TIMESTAMP)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-encouragement-v2',CURRENT_TIMESTAMP)"),
+  ]);
+});
+export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-ministry-profiles-v1' LIMIT 1").first<{key:string}>();if(ready)return;
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS church_ministry_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),name TEXT NOT NULL,role_title TEXT NOT NULL,role_category TEXT NOT NULL,role_status TEXT NOT NULL DEFAULT 'current',source_url TEXT NOT NULL,source_checked_at TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_profiles_church_review ON church_ministry_profiles(church_id,review_status,role_category,name)"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_ministry_profiles_identity ON church_ministry_profiles(church_id,name,role_title,role_status)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS ministry_profile_suggestions (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),name TEXT NOT NULL,role_title TEXT NOT NULL,source_url TEXT,note TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',fingerprint TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_at TEXT)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_suggestions_status_created ON ministry_profile_suggestions(status,created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_ministry_suggestions_church_created ON ministry_profile_suggestions(church_id,created_at DESC)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-ministry-profiles-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
@@ -231,9 +247,9 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v1"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v1"];
   if(await schemaBundleReady(db,keys))return;
-  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db)]);
+  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db)]);
 });
 let retentionCheckAfter=0;
 let retentionPromise:Promise<void>|null=null;
@@ -262,6 +278,7 @@ export async function maybeRunDataRetention(db:D1Database){
     if(tables.has("submission_rate_limits"))statements.push(db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"));
     if(tables.has("private_contact_access_events"))statements.push(db.prepare("DELETE FROM private_contact_access_events WHERE created_at<datetime('now','-180 days')"));
     if(tables.has("encouragement_messages"))statements.push(db.prepare("DELETE FROM encouragement_messages WHERE status IN ('rejected','deleted') AND COALESCE(moderated_at,created_at)<datetime('now','-90 days')"));
+    if(tables.has("ministry_profile_suggestions"))statements.push(db.prepare("DELETE FROM ministry_profile_suggestions WHERE (status='pending' AND created_at<datetime('now','-180 days')) OR (status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-30 days'))"));
     if(statements.length)try{await db.batch(statements);}catch(error){await db.prepare("UPDATE maintenance_state SET completed_at=datetime('now','-2 days') WHERE key='personal-data-retention-v1'").run().catch(()=>{});throw error;}
   })().catch(()=>{retentionCheckAfter=Date.now()+60*1000;}).finally(()=>{retentionPromise=null;});
   await retentionPromise;

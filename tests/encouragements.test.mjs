@@ -9,6 +9,8 @@ test("encouragements publish only approved messages and enforce a 30 minute brow
   assert.match(route,/consumeSubmissionLimit\(db,"encouragement-write",fp,1,30\)/);
   assert.match(board,/30\*60\*1000/);
   assert.match(board,/airchurch\.encouragement\.browserId/);
+  assert.match(route,/target_ref=\?/);
+  assert.match(route,/minister:/);
 });
 
 test("church and pastor pages keep separate encouragement streams",async()=>{
