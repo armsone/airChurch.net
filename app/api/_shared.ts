@@ -244,7 +244,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v12' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v15' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -321,6 +321,12 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("UPDATE pastor_people SET photo_url=NULL,photo_source_url=NULL,photo_sha256=NULL,photo_usage_basis=NULL,photo_review_status='pending',updated_at=CURRENT_TIMESTAMP WHERE photo_review_status='pending' AND photo_url IS NOT NULL"),
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v12',CURRENT_TIMESTAMP)"),
   ]);
+  await db.prepare(`WITH identities AS (SELECT DISTINCT p.id AS person_id,REPLACE(TRIM(p.name),' ','') AS name_key,COALESCE(r.church_id,-1) AS church_key,REPLACE(TRIM(COALESCE(r.church_name,'')),' ','') AS church_name_key FROM pastor_people p JOIN pastor_church_roles r ON r.pastor_id=p.id WHERE p.review_status='approved' AND r.review_status='approved'),ranked AS (SELECT person_id,ROW_NUMBER() OVER(PARTITION BY name_key,church_key,church_name_key ORDER BY person_id) AS duplicate_rank FROM identities),duplicates AS (SELECT DISTINCT person_id FROM ranked WHERE duplicate_rank>1) UPDATE pastor_people SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id IN (SELECT person_id FROM duplicates)`).run();
+  await db.prepare(`WITH ranked AS (SELECT r.id AS role_id,ROW_NUMBER() OVER(PARTITION BY COALESCE(r.church_id,-1),REPLACE(TRIM(COALESCE(r.church_name,'')),' ','') ORDER BY CASE WHEN c.id IS NOT NULL AND REPLACE(TRIM(p.name),' ','')=REPLACE(TRIM(COALESCE(c.pastor,'')),' ','') THEN 0 ELSE 1 END,CASE WHEN TRIM(COALESCE(r.source_url,''))<>'' THEN 0 ELSE 1 END,r.id) AS church_rank FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id LEFT JOIN churches c ON c.id=r.church_id WHERE p.review_status='approved' AND r.review_status='approved' AND r.role_category='current_primary' AND r.role_title='담임목사') UPDATE pastor_church_roles SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id IN (SELECT role_id FROM ranked WHERE church_rank>1)`).run();
+  await db.prepare("UPDATE pastor_church_roles SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND ((role_category='associate' AND role_title='목사') OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%집사%' OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%장로%' OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%권사%' OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%성도%' OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%간사%' OR REPLACE(TRIM(COALESCE(role_title,'')),' ','') LIKE '%직원%')").run();
+  await db.prepare("UPDATE pastor_church_roles SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (SELECT id FROM pastor_people WHERE review_status='removed') AND review_status='approved'").run();
+  await db.prepare("UPDATE pastor_people SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id AND r.review_status='approved')").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v15',CURRENT_TIMESTAMP)").run();
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
@@ -349,7 +355,7 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v12"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v15"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
 });
