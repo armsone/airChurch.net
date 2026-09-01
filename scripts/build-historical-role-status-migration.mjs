@@ -17,23 +17,18 @@ const targets = newData.ministryRelationships
 
 const uniqueTargets = [...new Map(targets.map((target) => [JSON.stringify(target), target])).values()];
 const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
+const sourceUrls = [...new Set(uniqueTargets.map((target) => target.sourceUrl))];
 const sql = `-- Official history pages previously misclassified as current ministry rosters.
 -- People remain published; only their matching church-role relationship becomes former.
-${uniqueTargets.map((target) => `DELETE FROM pastor_church_roles AS current_role
+${sourceUrls.map((sourceUrl) => `DELETE FROM pastor_church_roles AS current_role
 WHERE current_role.role_status='current'
-  AND current_role.church_name=${quote(target.churchName)}
-  AND current_role.role_title=${quote(target.roleTitle)}
-  AND current_role.source_url=${quote(target.sourceUrl)}
-  AND EXISTS (SELECT 1 FROM pastor_people AS person WHERE person.id=current_role.pastor_id AND person.name=${quote(target.name)})
+  AND current_role.source_url=${quote(sourceUrl)}
   AND EXISTS (SELECT 1 FROM pastor_church_roles AS former_role WHERE former_role.pastor_id=current_role.pastor_id AND COALESCE(former_role.church_id,-1)=COALESCE(current_role.church_id,-1) AND former_role.church_name=current_role.church_name AND former_role.role_title=current_role.role_title AND former_role.role_status='former' AND COALESCE(former_role.start_date,'')=COALESCE(current_role.start_date,'') AND COALESCE(former_role.end_date,'')=COALESCE(current_role.end_date,''));
 UPDATE pastor_church_roles AS role
 SET role_status='former',updated_at=CURRENT_TIMESTAMP
 WHERE role.role_status='current'
-  AND role.church_name=${quote(target.churchName)}
-  AND role.role_title=${quote(target.roleTitle)}
-  AND role.source_url=${quote(target.sourceUrl)}
-  AND EXISTS (SELECT 1 FROM pastor_people AS person WHERE person.id=role.pastor_id AND person.name=${quote(target.name)});`).join("\n")}
+  AND role.source_url=${quote(sourceUrl)};`).join("\n")}
 `;
 
 await writeFile(outputPath, sql, "utf8");
-console.log(JSON.stringify({ outputPath, correctedRelationships: uniqueTargets.length }));
+console.log(JSON.stringify({ outputPath, correctedRelationships: uniqueTargets.length, sourcePages: sourceUrls.length }));
