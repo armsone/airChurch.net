@@ -14,7 +14,11 @@ const conversationalSearchWords=new Set(["교회","목사","목사님","설교",
 export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/(?:담임)?목사(?:님)?$/,"");
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
 const naturalSearchTerm=(value:string)=>{const normalized=normalizeSearchValue(value).replace(/(?:에서|에)?있는/gu,"");if(conversationalSearchWords.has(normalized))return "";const stripped=normalized.replace(/(?:에서|으로|에는|에게|한테|에|로|의|을|를|이|가|은|는)$/u,"");if(conversationalSearchWords.has(stripped))return "";return stripped.length>=2?stripped:normalized;};
-const preparedSearchTerms=(query:string)=>query.toLowerCase().split(/\s+/).map(naturalSearchTerm).filter(Boolean).flatMap((term)=>{if(term.length<5)return [term];const prefix=[...regionPrefixes,...Object.keys(denominationAliases).sort((a,b)=>b.length-a.length)].find((candidate)=>term.startsWith(candidate)&&term.slice(candidate.length).length>=3);return prefix?[prefix,naturalSearchTerm(term.slice(prefix.length))].filter(Boolean):[term];});
+const searchablePrefixes=[...regionPrefixes,...Object.keys(denominationAliases).sort((a,b)=>b.length-a.length)];
+const splitJoinedSearchTerm=(term:string):string[]=>{if(term.length<5)return [term];const prefix=searchablePrefixes.find((candidate)=>term.startsWith(candidate)&&term.slice(candidate.length).length>=2);if(!prefix)return [term];const remainder=naturalSearchTerm(term.slice(prefix.length));return [prefix,...(remainder?splitJoinedSearchTerm(remainder):[])];};
+const preparedSearchTerms=(query:string)=>query.toLowerCase()
+  .replace(/(?:목사님?(?:의)?|설교|말씀|영상|찾아주세요|찾아줘|알려주세요|알려줘|보여주세요|보여줘)/gu," ")
+  .split(/[^\p{L}\p{N}]+/u).map(naturalSearchTerm).filter(Boolean).flatMap(splitJoinedSearchTerm);
 export const searchTermCount=(query:string)=>preparedSearchTerms(query).length;
 export const tokenizeSearchQuery=(query:string)=>preparedSearchTerms(query).slice(0,MAX_SEARCH_TERMS);
 export const matchesSearchTerms=(haystack:string,query:string)=>tokenizeSearchQuery(query).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
