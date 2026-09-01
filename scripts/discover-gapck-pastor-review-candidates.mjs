@@ -8,10 +8,12 @@ const normalized=(value)=>String(value??"").toLowerCase().replace(/[^\p{L}\p{N}]
 const regionMatches=(address,region)=>region.split(/\s+/).filter(Boolean).every((part)=>normalized(address).includes(normalized(part)));
 export function selectGapckTasks(tasks,excludedSubjectIds,limit){return tasks.filter((task)=>task.decision==="pending"&&task.denomination==="대한예수교장로회 합동"&&task.role_category==="current_primary"&&!excludedSubjectIds.has(task.subject_id)).slice(0,limit);}
 export function classifyGapckCandidate(task,churchPayload,ministerPayload){
+  const churchNameRows=(churchPayload?.list??[]).filter((row)=>normalized(row.org_nm)===normalized(task.church_name));
+  const ministerNameRows=(ministerPayload?.list??[]).filter((row)=>normalized(row.mber_nm)===normalized(task.pastor_name));
   const churchRows=(churchPayload?.list??[]).filter((row)=>normalized(row.org_nm)===normalized(task.church_name)&&normalized(row.pastor)===normalized(task.pastor_name)&&regionMatches(row.adrs,task.region));
   const ministerRows=(ministerPayload?.list??[]).filter((row)=>normalized(row.mber_nm)===normalized(task.pastor_name)&&normalized(row.ch_nm)===normalized(task.church_name)&&regionMatches(row.ch_adrs,task.region));
   const status=churchRows.length===1&&ministerRows.length===1?"ready_candidate":churchRows.length||ministerRows.length?"ambiguous":"not_found";
-  return {subject_id:task.subject_id,pastor_name:task.pastor_name,church_name:task.church_name,denomination:task.denomination,region:task.region,status,church_exact_matches:churchRows.length,minister_exact_matches:ministerRows.length,requires_human_review:true,automatic_approval:false};
+  return {subject_id:task.subject_id,pastor_name:task.pastor_name,church_name:task.church_name,denomination:task.denomination,region:task.region,status,church_name_matches:churchNameRows.length,minister_name_matches:ministerNameRows.length,church_exact_matches:churchRows.length,minister_exact_matches:ministerRows.length,requires_human_review:true,automatic_approval:false};
 }
 
 const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
