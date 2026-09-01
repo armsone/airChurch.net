@@ -6,8 +6,8 @@
     "databaseWrites": 0,
     "automaticApproval": false,
     "privateDataIncluded": false,
-    "people": 1,
-    "roles": 2,
+    "people": 2,
+    "roles": 4,
     "nameBasedExclusions": 0,
     "photosPrepared": 0,
     "photosAutomaticallyPublishable": 0
@@ -16,6 +16,16 @@
     {
       "directoryId": "person-b16564f403989379082b",
       "name": "정성진",
+      "publicSummary": null,
+      "photoUrl": null,
+      "photoSourceUrl": null,
+      "photoSha256": null,
+      "photoReviewStatus": "pending",
+      "reviewStatus": "pending"
+    },
+    {
+      "directoryId": "person-e31659b97e0cae4d344d",
+      "name": "조용기",
       "publicSummary": null,
       "photoUrl": null,
       "photoSourceUrl": null,
@@ -55,6 +65,38 @@
       "startDate": null,
       "endDate": null,
       "sourceUrl": "https://kwangsung.org/Page/Index/13",
+      "reviewStatus": "pending"
+    },
+    {
+      "directoryId": "role:person-e31659b97e0cae4d344d:church-10:설립목사:former",
+      "personDirectoryId": "person-e31659b97e0cae4d344d",
+      "existingChurchId": 10,
+      "directoryChurchId": "church-10",
+      "churchName": "여의도순복음교회",
+      "denomination": "기독교대한하나님의성회",
+      "region": "서울 영등포",
+      "roleTitle": "설립목사",
+      "roleCategory": "founding",
+      "roleStatus": "former",
+      "startDate": null,
+      "endDate": null,
+      "sourceUrl": "https://yfgc.fgtv.com/y1/0401.asp",
+      "reviewStatus": "pending"
+    },
+    {
+      "directoryId": "role:person-e31659b97e0cae4d344d:church-10:원로목사:former",
+      "personDirectoryId": "person-e31659b97e0cae4d344d",
+      "existingChurchId": 10,
+      "directoryChurchId": "church-10",
+      "churchName": "여의도순복음교회",
+      "denomination": "기독교대한하나님의성회",
+      "region": "서울 영등포",
+      "roleTitle": "원로목사",
+      "roleCategory": "emeritus",
+      "roleStatus": "former",
+      "startDate": null,
+      "endDate": null,
+      "sourceUrl": "https://yfgc.fgtv.com/y6/0105.asp",
       "reviewStatus": "pending"
     }
   ]
