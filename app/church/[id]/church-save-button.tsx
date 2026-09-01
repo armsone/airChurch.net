@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { readSavedItems, writeSavedItems } from "../../saved-items";
+import { markSavedItemSeen, readSavedItems, writeSavedItems } from "../../saved-items";
 
 export default function ChurchSaveButton({id,name,pastor,region}:{id:number;name:string;pastor:string;region:string}) {
   const savedId=`church:${id}`;
   const [saved,setSaved]=useState(false);
   useEffect(()=>{
-    setSaved(readSavedItems().some((item)=>item.id===savedId));
+    const exists=readSavedItems().some((item)=>item.id===savedId);setSaved(exists);if(exists)markSavedItemSeen(savedId);
   },[savedId]);
   function toggle(){
     const items=readSavedItems();

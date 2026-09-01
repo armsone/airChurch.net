@@ -24,6 +24,8 @@ export function writeSavedItems(items:SavedItem[]){
   return safe;
 }
 
+export function markSavedItemSeen(id:string){const items=readSavedItems(),index=items.findIndex((item)=>item.id===id);if(index<0)return items;const next=items.map((item,itemIndex)=>itemIndex===index?{...item,savedAt:new Date().toISOString()}:item);return writeSavedItems(next);}
+
 export function hasSavedItemNewSermon(item:SavedItem,sermons:{church:string;pastor:string;publishedAt?:string}[]){
   if(!item.savedAt||(item.kind!=="church"&&item.kind!=="pastor"))return false;
   const savedAt=Date.parse(item.savedAt);if(!Number.isFinite(savedAt))return false;
