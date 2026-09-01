@@ -400,6 +400,21 @@ test("collector is sequential, obeys site policy, and reuses fact-only cache", a
   assert.equal(second.result.metadata.pendingEvents, 1);
 });
 
+test("fetches one shared official URL once per run without storing its body", async () => {
+  const requested=[];
+  const sharedSource=source("https://official.example/church/shared");
+  const manifest={
+    version:1,
+    policy:{pilotOnly:true,minimumDelayMs:1500,defaultRecrawlDays:30},
+    sites:[{host:"official.example",collectionAllowed:true,sourceTypes:["official_church"],allowedPathPrefixes:["/church/"],minimumDelayMs:1500,policyReviewedAt:"2026-09-01",policyUrl:"https://official.example/policy"}],
+    subjects:[{...subject,id:"p1",minimumIdentitySources:1,sources:[sharedSource]},{...subject,id:"p2",minimumIdentitySources:1,sources:[sharedSource]}],
+  };
+  const collected=await collectPastorHistory(manifest,{fetchImpl:async(url)=>{requested.push(String(url));return new URL(url).pathname==="/robots.txt"?new Response("User-agent: *\nAllow: /church/",{status:200,headers:{"content-type":"text/plain"}}):new Response(officialHtml,{status:200,headers:{"content-type":"text/html"}});},sleep:async()=>{},now:()=>new Date("2026-09-01T00:00:00.000Z"),logger:()=>{}});
+  assert.equal(requested.filter((url)=>url.endsWith("/church/shared")).length,1);
+  assert.equal(collected.result.metadata.verifiedSubjects,2);
+  assert.equal(JSON.stringify(collected.cache).includes("<html>"),false);
+});
+
 test("retains verified HTTP facts with an unencrypted transport review warning", async () => {
   const manifest = {
     version: 1,

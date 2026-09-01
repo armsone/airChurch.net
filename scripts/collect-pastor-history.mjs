@@ -189,6 +189,9 @@ export async function collectPastorHistory(manifest, {
 
   const subjects = [];
   const adminContactMap = new Map();
+  // Keep response bodies only in memory for this run. This avoids repeatedly
+  // requesting a shared denomination page without persisting copyrighted text.
+  const fetchedBodiesByUrl = new Map();
   for (const subject of manifest.subjects) {
     const sourceResults = [];
     const orderedSources = [...(subject.sources ?? [])].sort((a, b) => Number(a.type === "official_youtube") - Number(b.type === "official_youtube"));
@@ -225,7 +228,12 @@ export async function collectPastorHistory(manifest, {
         continue;
       }
       try {
-        const fetched = await fetchSource(source);
+        const fetchKey = `${source.type}|${validatedUrl.toString()}`;
+        let fetched = fetchedBodiesByUrl.get(fetchKey);
+        if (!fetched) {
+          fetched = await fetchSource(source);
+          fetchedBodiesByUrl.set(fetchKey, fetched);
+        } else logger(`[shared] ${subject.id} ${source.url}`);
         const checkedAt = currentTime.toISOString();
         const result = evaluateOfficialSource({ subject, source, html: fetched.html, checkedAt });
         sourceResults.push(result);
