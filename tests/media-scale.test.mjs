@@ -29,6 +29,13 @@ test("admin health reports catalog and church coverage rather than only freshnes
   for(const metric of ["sermon_count","sermon_church_count","praise_count","praise_church_count","short_count","short_church_count","ministry_profile_count","ministry_appearance_count"])assert.match(admin,new RegExp(metric));
 });
 
+test("keeps media synchronization internal and releases both collection leases",async()=>{
+  const [sermons,praises]=await Promise.all([read("../app/api/sermons/sync/route.ts"),read("../app/api/praises/sync/route.ts")]);
+  assert.match(sermons,/hostname!=="airchurch\.internal"/);
+  assert.match(praises,/if\(request\)return Response\.json\(\{error:"Not found"\}/);
+  for(const route of [sermons,praises]){assert.match(route,/finally \{/);assert.match(route,/DELETE FROM sync_state WHERE key=\?/);}
+});
+
 test("unified search promotes approved pastor profiles before videos",async()=>{
   const search=await read("../app/search/page.tsx");
   assert.match(search,/FROM church_ministry_profiles p JOIN churches c/);

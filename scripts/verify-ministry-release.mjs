@@ -5,8 +5,8 @@ import {readFile} from "node:fs/promises";
 
 const read=async(path)=>JSON.parse(await readFile(path,"utf8"));
 const text=async(path)=>readFile(path,"utf8");
-const [roster,policy,worship,report,churchPage,pastorPage,attribution,suggestionRoute,importRoute,dryRunImporter,searchPage,syncRoute,coverageReport,manageRoute,signupRoute,...mediaRoutes]=await Promise.all([
-  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/pastor-sermon-attribution.ts"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),text("scripts/dry-run-pastor-history-import.mjs"),text("app/search/page.tsx"),text("app/api/sermons/sync/route.ts"),text("scripts/report-pastor-media-coverage.mjs"),text("app/api/admin/manage/route.ts"),text("app/api/reviewer-signup/route.ts"),text("app/api/sermons/route.ts"),text("app/api/praises/route.ts"),text("app/api/shorts/route.ts"),
+const [roster,policy,worship,report,churchPage,pastorPage,attribution,suggestionRoute,importRoute,dryRunImporter,searchPage,syncRoute,praiseSyncRoute,coverageReport,manageRoute,signupRoute,...mediaRoutes]=await Promise.all([
+  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/pastor-sermon-attribution.ts"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),text("scripts/dry-run-pastor-history-import.mjs"),text("app/search/page.tsx"),text("app/api/sermons/sync/route.ts"),text("app/api/praises/sync/route.ts"),text("scripts/report-pastor-media-coverage.mjs"),text("app/api/admin/manage/route.ts"),text("app/api/reviewer-signup/route.ts"),text("app/api/sermons/route.ts"),text("app/api/praises/route.ts"),text("app/api/shorts/route.ts"),
 ]);
 const publicOperations=JSON.stringify(worship.operations);
 const privateContactArtifact="data/worship-schedules/all-contact-candidates.review.json";
@@ -36,7 +36,8 @@ const checks={
   approved_person_search_only:searchPage.includes("p.review_status='approved'")&&searchPage.includes('id="pastor-results"'),
   media_gap_does_not_hold_church:syncRoute.includes("missing or quiet YouTube channel is a collection gap")&&!syncRoute.includes("UPDATE churches SET review_status='removed'"),
   expanded_archive_is_batched:syncRoute.includes("recentSermons.slice(0,18)")&&syncRoute.includes("recentShorts.slice(0,12)")&&syncRoute.includes("recentPraises.slice(0,12)")&&syncRoute.includes("await db.batch(mediaStatements)"),
-  collection_lease_released_on_failure:syncRoute.includes("finally {")&&syncRoute.includes('DELETE FROM sync_state WHERE key=?')&&syncRoute.includes(".catch(()=>undefined)"),
+  collection_lease_released_on_failure:[syncRoute,praiseSyncRoute].every((route)=>route.includes("finally {")&&route.includes('DELETE FROM sync_state WHERE key=?')&&route.includes(".catch(()=>undefined)")),
+  collection_endpoints_are_internal_only:syncRoute.includes('hostname!=="airchurch.internal"')&&praiseSyncRoute.includes('if(request)return Response.json({error:"Not found"}'),
   edge_cache_keeps_stale_content:mediaRoutes.every((route)=>route.includes("cdn-cache-control")&&route.includes("stale-while-revalidate=3600")&&!route.includes("s-maxage")),
   offline_person_coverage_report:coverageReport.includes('mode:"offline_read_only"')&&coverageReport.includes("network_requests:0")&&coverageReport.includes("database_writes:0")&&coverageReport.includes("isSermonAttributedTo"),
   pastor_change_requests_bound_to_affiliation:signupRoute.includes("fingerprint,church_id")&&manageRoute.includes("a.church_id=c.id WHERE c.id=?"),
