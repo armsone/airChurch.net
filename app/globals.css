@@ -540,3 +540,7 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .church-directory-grid>article[role="link"]{cursor:pointer}.church-directory-grid>article[role="link"]:hover,.church-directory-grid>article[role="link"]:focus-visible{border-color:#aec5b9;box-shadow:0 8px 22px rgba(24,54,47,.07);outline:none}.church-directory-top-actions{min-width:76px!important;display:flex;align-items:center;justify-content:flex-end;gap:8px!important}.church-directory-top-actions .church-denomination-mark{width:24px;height:24px}.church-directory-top-actions .church-save{width:44px;height:44px}
 @media (max-width:1024px){.church-directory-grid,.pastor-directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 @media (max-width:640px){.church-directory-grid,.pastor-directory-grid{grid-template-columns:1fr!important}}
+
+/* Keep the home pastor editor directly below its compact card. */
+.pastor-home-card .admin-pastor-details[open]{display:block;height:auto;margin-top:14px}
+.pastor-home-card:has(.admin-pastor-details[open])>.pastor-directory-card{height:auto;align-self:start}
