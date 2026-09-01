@@ -241,6 +241,23 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-ministry-profiles-v3',CURRENT_TIMESTAMP)"),
   ]);
 });
+export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v1' LIMIT 1").first<{key:string}>();if(ready)return;
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_church_roles (id INTEGER PRIMARY KEY AUTOINCREMENT,pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),church_id INTEGER REFERENCES churches(id),church_name TEXT,denomination TEXT,region TEXT,role_title TEXT NOT NULL,role_category TEXT NOT NULL,role_status TEXT NOT NULL DEFAULT 'current',start_date TEXT,end_date TEXT,source_url TEXT,review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_pastor_roles_identity ON pastor_church_roles(pastor_id,COALESCE(church_id,-1),COALESCE(church_name,''),role_title,role_status,COALESCE(start_date,''),COALESCE(end_date,''))"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_roles_person_review ON pastor_church_roles(pastor_id,review_status,role_status)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_roles_church_review ON pastor_church_roles(church_id,review_status,role_category)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_encouragement_messages (id INTEGER PRIMARY KEY AUTOINCREMENT,pastor_id INTEGER NOT NULL REFERENCES pastor_people(id),nickname TEXT NOT NULL,content TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'approved',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,moderated_at TEXT)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_encouragement_person_status ON pastor_encouragement_messages(pastor_id,status,created_at DESC)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_encouragement_status ON pastor_encouragement_messages(status,created_at DESC)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pastor_private_contacts (pastor_id INTEGER PRIMARY KEY NOT NULL REFERENCES pastor_people(id),encrypted_payload TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v1',CURRENT_TIMESTAMP)"),
+  ]);
+});
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
   await ensureMaintenanceState(db);
   const placeholders=keys.map(()=>"?").join(",");
@@ -258,9 +275,9 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v3"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v3","schema-pastor-people-v1"];
   if(await schemaBundleReady(db,keys))return;
-  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db)]);
+  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
 });
 let retentionCheckAfter=0;
 let retentionPromise:Promise<void>|null=null;
