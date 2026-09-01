@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { database, ensurePraiseTables, ensureSermonTables, ensureShortsTables } from "../../_shared";
+import { database, ensureMediaCollectionTables } from "../../_shared";
 import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
 import { isShortCandidate, youtubeDurationSeconds } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
@@ -52,7 +52,7 @@ async function seedHeldSources(db:D1Database) {
   return heldSourcesSeeded;
 }
 
-const sources:Source[]=[
+const sourceCandidates:Source[]=[
   {name:"더작은교회",pastor:"전영준 목사",region:"인천 계양",denomination:"기독교대한성결교회",channelId:"UCp1lD5gI8JRKZurlAPRSHiw",homepage:"https://cafe.daum.net/the-sc"},
   {name:"구파발교회",pastor:"김춘곤 목사",region:"서울 은평",denomination:"대한예수교장로회 통합",channelId:"UCzLn1mDAnao7GAXfYL5Ze2A"},
   {name:"개봉교회",pastor:"노창영 목사",region:"서울 구로",denomination:"대한예수교장로회 통합",channelId:"UCfttSAr79s5vyYiBstgDUfg"},
@@ -436,6 +436,8 @@ const sources:Source[]=[
   ...salvationSources,
   ...publicRemainingSources,
 ];
+const sourceIdentity=(source:Source)=>source.channelId?`channel:${source.channelId}`:source.handle?`handle:${source.handle.toLowerCase()}`:source.username?`username:${source.username.toLowerCase()}`:`church:${normalizeSearchValue(source.name)}:${normalizeSearchValue(source.region)}`;
+const sources=[...new Map(sourceCandidates.map((source)=>[sourceIdentity(source),source] as const)).values()];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
@@ -447,7 +449,7 @@ export async function POST(request:Request) {
   if(new URL(request.url).hostname!=="airchurch.internal")return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key) return Response.json({error:"YouTube API key not configured"},{status:503,headers:{"cache-control":"no-store"}});
-  const db=database(); await ensureSermonTables(db); await ensureShortsTables(db); await ensurePraiseTables(db); await seedHeldSources(db);
+  const db=database(); await ensureMediaCollectionTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
   const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
   const databaseResult=requestedScope==="database"?await db.prepare("SELECT name,pastor,region,denomination,homepage_url AS homepage,youtube_channel_id AS channelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY id").all<DatabaseSourceRow>():null;

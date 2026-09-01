@@ -3,7 +3,7 @@ import { cache } from "react";
 import HomeReloadLink from "../../home-reload-link";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
-import { database, ensurePraiseTables, ensureSermonTables } from "../../api/_shared";
+import { database, ensureMediaTables } from "../../api/_shared";
 import ChurchSaveButton from "./church-save-button";
 import ChurchShareButton from "./church-share-button";
 import { safeHttpUrl } from "../../safe-url";
@@ -37,7 +37,7 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}):P
 
 export default async function ChurchPage({params}:{params:Promise<{id:string}>}){
   const {id:rawId}=await params;const id=Number(rawId);
-  const db=database();await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
+  const db=database();await ensureMediaTables(db);
   const church=await publicChurch(id);
   if(!church)return <main className="church-detail-shell"><SkipLink/><header className="church-detail-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink><a href="/#church-directory">교회 찾기로 돌아가기</a></header><section className="church-detail-missing" id="primary-content" tabIndex={-1}><span>CHURCH DIRECTORY</span><h1>현재 공개된 교회가 아닙니다</h1><p>정보가 변경되었거나 운영 기준에 따라 보류되었을 수 있습니다.</p><a href="/#church-directory">다른 교회 찾아보기 →</a></section></main>;
   const regionPrefix=`${church.region.split(/\s+/)[0]}%`;

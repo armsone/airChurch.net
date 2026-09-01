@@ -8,7 +8,7 @@ import ChurchRequestResolution from "./church-request-resolution";
 import { safeHttpUrl } from "../safe-url";
 import ReviewerResolutionControls from "./reviewer-resolution-controls";
 import HomeReloadLink from "../home-reload-link";
-import { database, ensureAnalyticsTables, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, ensureShortsTables } from "../api/_shared";
+import { database, ensureAdminTables } from "../api/_shared";
 
 export const dynamic = "force-dynamic";
 export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
@@ -45,7 +45,7 @@ export default async function AdminPage() {
   if (!(await hasAdminAccess())) return <AdminLogin />;
 
   const db = database();
-  await Promise.all([ensureAnalyticsTables(db), ensureCommunityTables(db), ensureContactTables(db), ensureSermonTables(db), ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await ensureAdminTables(db);
   const [today, week, month, active, hourly, daily, monthly, churches, heldChurches, recommendations, pendingCommunity, publicChurchRows, heldChurchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),

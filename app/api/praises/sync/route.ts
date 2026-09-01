@@ -1,4 +1,4 @@
-import { database, ensurePraiseTables, ensureSermonTables } from "../../_shared";
+import { database, ensureMediaTables } from "../../_shared";
 import { isPraiseTitle } from "../../sermons/_selection";
 
 type Church = { id: number; name: string; youtubeChannelId: string };
@@ -33,7 +33,7 @@ async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Pro
 export async function POST(request?:Request) {
   if(request)return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const db = database();
-  await Promise.all([ensureSermonTables(db), ensurePraiseTables(db)]);
+  await ensureMediaTables(db);
   const syncKey = "youtube-praise-v1";
   const state = await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{ lastSyncedAt: string }>();
   const current = await db.prepare("SELECT COUNT(*) AS count FROM praise_videos WHERE status='published'").first<{ count: number }>();

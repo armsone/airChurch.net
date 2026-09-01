@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import HomeReloadLink from "../home-reload-link";
-import { database, ensurePraiseTables, ensureSermonTables } from "../api/_shared";
+import { database, ensureMediaTables } from "../api/_shared";
 import { expandSearchTerm as expand, MAX_SEARCH_TERMS, normalizeSearchValue as normalize, searchTermCount, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../search-domain";
 import SearchForm from "./search-form";
 import SearchAnchorFocus from "./search-anchor-focus";
@@ -31,7 +31,7 @@ export default async function SearchPage({searchParams}:{searchParams:Promise<Re
   const filters=(haystack:string)=>{const groups=terms.map(expand);const conditions=groups.map((group)=>`(${group.map(()=>`instr(${haystack},?)>0`).join(" OR ")})`);const bindings:string[]=groups.flat();if(region&&region!=="전체"){conditions.push("substr(c.region,1,length(?))=?");bindings.push(region,region);}if(denomination&&denomination!=="전체 교단"){conditions.push("c.denomination=?");bindings.push(denomination);}return {sql:conditions.length?` AND ${conditions.join(" AND ")}`:"",bindings};};
   const churchFilter=filters(sqlMetadataSearchValue("c.name","c.pastor","c.region","c.denomination")),videoFilter=filters(sqlMetadataSearchValue("c.name","c.pastor","c.region","c.denomination","v.title"));
   const groups=terms.map(expand),churchSqlScore=sqlRelevance([["c.name",40],["c.pastor",25],["c.region",15],["c.denomination",12]],groups),videoSqlScore=sqlRelevance([["v.title",45],["c.name",35],["c.pastor",24],["c.region",14],["c.denomination",12]],groups);
-  const db=database();await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
+  const db=database();await ensureMediaTables(db);
   const [churches,sermons,praises,denominationRows]=await Promise.all([
     db.prepare(`SELECT c.id,c.name,c.pastor,c.region,c.denomination,c.priority_weight FROM churches c WHERE c.review_status='approved'${churchFilter.sql} ORDER BY (${churchSqlScore.sql}) DESC,c.priority_weight DESC,c.name,c.id LIMIT ${pageSize+1} OFFSET ${churchOffset}`).bind(...churchFilter.bindings,...churchSqlScore.bindings).all<ChurchResult>(),
     db.prepare(`SELECT v.youtube_id,v.title,v.published_at,c.id AS church_id,c.name AS church,c.pastor,c.region,c.denomination FROM sermons v JOIN churches c ON c.id=v.church_id WHERE c.review_status='approved' AND v.status='published'${videoFilter.sql} ORDER BY (${videoSqlScore.sql}) DESC,v.published_at DESC,v.id DESC LIMIT ${pageSize+1} OFFSET ${sermonOffset}`).bind(...videoFilter.bindings,...videoSqlScore.bindings).all<VideoResult>(),

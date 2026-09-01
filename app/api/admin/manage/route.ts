@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureChurchRecommendationTables, ensureCommunityTables, ensureContactTables, ensurePraiseTables, ensureReviewerTables, ensureSermonTables, ensureShortsTables, readLimitedJson } from "../../_shared";
+import { clean, database, ensureAdminTables, readLimitedJson } from "../../_shared";
 import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 
 async function requestRole(request: Request) {
@@ -20,7 +20,7 @@ export async function PATCH(request: Request) {
   if (kind !== "church-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
-  await Promise.all([ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await ensureAdminTables(db);
 
   if(kind==="church-batch") {
     if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});

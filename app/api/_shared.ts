@@ -174,6 +174,27 @@ export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-submission-rate-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
+const schemaBundleReady=async(db:D1Database,keys:string[])=>{
+  await ensureMaintenanceState(db);
+  const placeholders=keys.map(()=>"?").join(",");
+  const row=await db.prepare(`SELECT COUNT(*) AS count FROM maintenance_state WHERE key IN (${placeholders})`).bind(...keys).first<{count:number}>();
+  return Number(row?.count??0)===keys.length;
+};
+// Multi-table pages use one exact-version gate per isolate instead of one D1 round trip
+// for every table family. Changing any component schema key automatically invalidates the gate.
+export const ensureMediaTables=memoizeEnsure(async(db:D1Database)=>{
+  if(await schemaBundleReady(db,["schema-sermons-v4","schema-praises-v1"]))return;
+  await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
+});
+export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
+  if(await schemaBundleReady(db,["schema-sermons-v4","schema-praises-v1","schema-shorts-v1"]))return;
+  await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
+});
+export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v4","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3"];
+  if(await schemaBundleReady(db,keys))return;
+  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+});
 let retentionCheckAfter=0;
 let retentionPromise:Promise<void>|null=null;
 export async function maybeRunDataRetention(db:D1Database){
