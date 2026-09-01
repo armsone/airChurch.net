@@ -29,6 +29,7 @@ function parseArgs(argv) {
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
     sourceHost: clean(value("--source-host", "")).toLowerCase(),
     discoverRelatedPages: argv.includes("--discover-related-pages"),
+    retryFailed: argv.includes("--retry-failed"),
   };
 }
 
@@ -244,6 +245,10 @@ async function main() {
   if (checkpoint.discoveryVersion !== DISCOVERY_VERSION) {
     checkpoint.discoveryVersion = DISCOVERY_VERSION;
     checkpoint.discovery = {};
+  }
+  if (options.retryFailed) {
+    for (const [url, source] of Object.entries(checkpoint.sources ?? {})) if (source.status === "failed") delete checkpoint.sources[url];
+    for (const [url, image] of Object.entries(checkpoint.images ?? {})) if (image.status === "failed") delete checkpoint.images[url];
   }
   checkpoint.discovery ??= {};
   const hostPeople = new Map();
