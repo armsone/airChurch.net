@@ -26,5 +26,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
+    ...churches.results.map((church) => ({
+      url: `https://airchurch.net/pastors/${church.id}`,
+      lastModified: new Date(`${church.created_at.replace(" ", "T")}Z`),
+      changeFrequency: "weekly" as const,
+      priority: 0.55,
+    })),
   ];
 }
