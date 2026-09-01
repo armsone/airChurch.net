@@ -23,5 +23,5 @@ export async function GET(request:Request) {
   const rows = await db.prepare(`SELECT p.youtube_id AS youtubeId,p.title,p.published_at AS publishedAt,c.id AS churchId,c.name AS church,c.pastor,c.region,c.denomination,c.priority_weight AS priorityWeight FROM praise_videos p JOIN churches c ON c.id=p.church_id WHERE c.review_status='approved' AND p.status='published' ORDER BY p.published_at DESC LIMIT ${poolLimit}`).all<PraiseRow>();
   const items = selectWeightedRecent(rows.results as PraiseRow[], limit).map((item) => ({ youtubeId: item.youtubeId, title: item.title, thumbnailUrl: `https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`, publishedAt: item.publishedAt, church: item.church, pastor: item.pastor, region: item.region, denomination: item.denomination, pinned: item.priorityWeight >= PIN_UP_WEIGHT }));
   scheduleSync();
-  return Response.json({ items }, { headers: { "cache-control": "public, max-age=300, s-maxage=300, stale-while-revalidate=3600" } });
+  return Response.json({ items }, { headers: { "cache-control": "public, max-age=60, stale-while-revalidate=3600", "cdn-cache-control":"public, max-age=300, stale-while-revalidate=3600" } });
 }

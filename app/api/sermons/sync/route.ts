@@ -467,8 +467,9 @@ export async function POST(request:Request) {
   const batch=sourcePool.slice(start,start+limit);
   const resetShorts=new URL(request.url).searchParams.get("resetShorts")==="medium"&&scope==="database"&&start===0;
   const resetShortsResult=resetShorts?await db.prepare("DELETE FROM church_shorts WHERE lower(title) NOT LIKE '%shorts%' AND title NOT LIKE '%쇼츠%'").run():null;
-  const cleanup=await db.prepare("UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널 식별값이 없어 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND youtube_channel_id IS NULL").run();
-  const removed=cleanup.meta.changes;
+  // A missing or quiet YouTube channel is a collection gap, never evidence that
+  // a church itself should be hidden. Holds require a separate human review.
+  const removed=0;
   const state=await db.prepare("SELECT last_synced_at AS lastSyncedAt FROM sync_state WHERE key=?").bind(syncKey).first<{lastSyncedAt:string}>();
   if(explicitStart===null&&start===0&&state && Date.now()-Date.parse(state.lastSyncedAt)<60*60*1000) {
     const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
@@ -491,7 +492,7 @@ export async function POST(request:Request) {
     const channel=await channelResponse.json() as ChannelResponse;
     const found=channel.items?.[0];
     if(!found) {
-      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='youtube_unavailable',hold_note='공식 YouTube 채널을 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status='approved'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
+      failed++;
       continue;
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
@@ -523,7 +524,6 @@ export async function POST(request:Request) {
     }
     const recentPraises=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
-      await db.prepare(`UPDATE churches SET review_status='removed',hold_reason='inactive',hold_note='최근 180일 내 검증 가능한 설교·예배 업로드를 확인하지 못해 자동 보류했습니다.',held_at=CURRENT_TIMESTAMP WHERE ${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=? AND review_status='approved'`).bind(normalizeSearchValue(source.name),normalizeSearchValue(source.region)).run();
       continue;
     }
     const existing=await db.prepare(`SELECT id,review_status FROM churches WHERE youtube_channel_id=? OR (${sqlNormalized("name")}=? AND ${sqlNormalized("region")}=?) ORDER BY CASE WHEN youtube_channel_id=? THEN 0 ELSE 1 END LIMIT 1`).bind(found.id,normalizeSearchValue(source.name),normalizeSearchValue(source.region),found.id).first<{id:number;review_status:string}>();
@@ -539,9 +539,14 @@ export async function POST(request:Request) {
       churchId=Number(inserted.meta.last_row_id);
     }
     verified++;
-    for(const item of recentSermons.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); imported++; }
-    for(const item of recentShorts.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO church_shorts (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); }
-    for(const item of recentPraises.slice(0,6)) { const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`; await db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt).run(); }
+    const sermonArchive=recentSermons.slice(0,18),shortArchive=recentShorts.slice(0,12),praiseArchive=recentPraises.slice(0,12);
+    const mediaStatements=[
+      ...sermonArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
+      ...shortArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO church_shorts (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
+      ...praiseArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
+    ];
+    if(mediaStatements.length)await db.batch(mediaStatements);
+    imported+=sermonArchive.length;
   }
   const nextStart=start+batch.length;
   const nextCursor=nextStart<sourcePool.length?nextStart:0;
