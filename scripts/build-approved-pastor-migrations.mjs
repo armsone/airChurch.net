@@ -9,7 +9,7 @@ if(!process.argv.includes(approvalFlag))throw new Error(`Refusing publication wi
 const input=process.argv[2]??"out/pastor-history/identity-resolved-pastor-import-plan.json";
 const outputDir=process.argv[3]??"drizzle";
 const firstMigration=Math.max(0,Number(process.argv[4]??20));
-const batchSize=Math.max(50,Math.min(200,Number(process.argv[5]??100)));
+const batchSize=Math.max(50,Math.min(500,Number(process.argv[5]??100)));
 const plan=JSON.parse(await readFile(input,"utf8"));
 if(plan.metadata?.automaticApproval!==false||plan.metadata?.privateDataIncluded!==false)throw new Error("Refusing an unsafe pastor import plan");
 
