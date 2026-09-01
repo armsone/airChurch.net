@@ -27,6 +27,7 @@
     "pastor-history:upgrade-gapck-limits": "node scripts/upgrade-gapck-review-query-limits.mjs",
     "pastor-history:collect-national": "node scripts/collect-national-ministers.mjs",
     "pastor-history:collect-photos": "node scripts/collect-national-minister-photos.mjs",
+    "pastor-history:filter-photos": "node scripts/filter-official-minister-photos.mjs",
     "pastor-history:prepare-final": "node scripts/prepare-final-pastor-import.mjs",
     "ministry:data-readiness": "node scripts/report-ministry-data-readiness.mjs",
     "worship:collect": "node scripts/worship-schedules/collect.mjs --input data/worship-schedules/pilot-churches.json --policy data/worship-schedules/policies.json --output data/worship-schedules/pilot-output.json",

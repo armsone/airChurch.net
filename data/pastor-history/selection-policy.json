@@ -18,5 +18,15 @@
   "minimumOfficialIdentitySources": 1,
   "allowsPublicHttpRead": true,
   "visibilityPriorityPolicy": "equal_across_role_categories",
+  "photoPolicy": {
+    "publicRoleBasis": "교회와 교단의 공식 공개 페이지에서 목회 직분을 수행하는 인물로 식별되는 단독 프로필",
+    "publicationMode": "publish_then_notice_and_takedown",
+    "individualPreApprovalRequired": false,
+    "allowedSources": ["교회 공식 홈페이지", "교단 공식 홈페이지"],
+    "excludedSources": ["개인 SNS", "사적 블로그", "제3자 언론·인물정보 사이트"],
+    "excludedSubjects": ["가족", "친인척", "일반 신도", "직무와 무관한 제3자"],
+    "requiredEvidence": ["목회자 이름", "목회 직분", "공식 출처 URL", "확인일", "단독 프로필 형태"],
+    "takedownPolicy": "구체적인 문제 제기 접수 시 즉시 임시 비노출 후 사실·인물·권리 관계를 확인하여 복구·교체·삭제"
+  },
   "publicationDefault": false
 }

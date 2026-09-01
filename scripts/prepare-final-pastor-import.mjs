@@ -11,7 +11,7 @@ run("scripts/prepare-collected-pastor-import.mjs",[
   "out/pastor-history/nationwide-import-plan.json",
   "out/pastor-history/collected-pastor-import-plan.json",
   "out/pastor-history/collected-pastor-review-queue.json",
-  "out/pastor-history/national-collection-v2/photos-strict/photos.json",
+  "out/pastor-history/national-collection-v3/photos-official/photos.json",
 ]);
 run("scripts/build-pastor-d1-import.mjs",[
   "out/pastor-history/collected-pastor-import-plan.json",
@@ -26,7 +26,7 @@ run("scripts/build-pastor-d1-import.mjs",[
 ]);
 run("scripts/verify-collected-ministry-integration.mjs",[
   "--pastors","out/pastor-history/national-collection-v3/candidates.json",
-  "--photos","out/pastor-history/national-collection-v2/photos-strict/photos.json",
+  "--photos","out/pastor-history/national-collection-v3/photos-official/photos.json",
   "--import-plan","out/pastor-history/collected-pastor-import-plan.json",
   "--manifest","out/pastor-history/d1-import-collected/manifest.json",
 ]);

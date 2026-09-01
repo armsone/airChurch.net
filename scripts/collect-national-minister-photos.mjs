@@ -3,16 +3,17 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import sharp from "sharp";
 
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
-const DEFAULT_INPUT = "out/pastor-history/national-collection-v2/import-ready.json";
-const DEFAULT_DIR = "out/pastor-history/national-collection-v2/photos";
+const DEFAULT_INPUT = "out/pastor-history/national-collection-v3/candidates.json";
+const DEFAULT_DIR = "out/pastor-history/national-collection-v3/photos-official";
 const ROLE = /(?:담임|위임|대표|개척|부|교육|행정|목양|협동|원로|은퇴)?목사|강도사|(?:전임|교육)?전도사/u;
 const IMAGE_ATTR = /(?:src|data-src|data-original|data-lazy-src|data-lazy|data-echo|data-image|data-bg|srcset|data-srcset)\s*=\s*["']([^"']+)["']/i;
 const IMAGE_TAG = /<img\b[^>]*>/gi;
 const BACKGROUND = /background(?:-image)?\s*:\s*url\(["']?([^"')]+)["']?\)/gi;
-const BAD_IMAGE = /(?:logo|icon|banner|sprite|loading|spinner|blank|spacer|default|placeholder|avatar-default|favicon|button|btn_|arrow|bullet|pixel|qr|map)/i;
-const DISCOVERY_VERSION = 2;
+const BAD_IMAGE = /(?:logo|icon|banner|visual|sub[_-]?top|header|title[_-]?bg|sprite|loading|spinner|blank|spacer|default|placeholder|avatar-default|favicon|button|btn_|arrow|bullet|pixel|qr|map)/i;
+const DISCOVERY_VERSION = 3;
 const PAGE_HINT = /교역자|목회자|사역자|섬기는|원로|은퇴|담임|부목사|설교|말씀|영상|staff|pastor|minister|servant|leadership|clergy|sermon|preach|video/i;
 
 function parseArgs(argv) {
@@ -23,6 +24,7 @@ function parseArgs(argv) {
     concurrency: Math.max(1, Number(value("--concurrency", 12))),
     timeoutMs: Math.max(2_000, Number(value("--timeout-ms", 8_000))),
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
+    discoverRelatedPages: argv.includes("--discover-related-pages"),
   };
 }
 
@@ -109,11 +111,12 @@ function labeledPhoto(html, person, pageUrl, pagePeople) {
       const distance = Math.abs(image.tagIndex - nameAt);
       let score = 0;
       let matchMethod = null;
-      if (image.alt.includes(person.name)) { score += 150; matchMethod = "name_in_image_label"; }
-      if (image.alt && ROLE.test(image.alt)) score += 30;
       const absoluteImageAt = start + image.tagIndex;
       const local = clean(html.slice(Math.max(0, absoluteImageAt - 700), Math.min(html.length, absoluteImageAt + 700)).replace(/<[^>]+>/g, " "));
       const nearbyPeople = new Set(pagePeople.filter((candidate) => local.includes(candidate.name)).map((candidate) => candidate.directoryPersonId));
+      const oneNamedPerson = nearbyPeople.size === 1 && nearbyPeople.has(person.directoryPersonId);
+      if (image.alt.includes(person.name) && oneNamedPerson) { score += 150; matchMethod = "name_in_image_label"; }
+      if (image.alt && ROLE.test(image.alt)) score += 30;
       if (!matchMethod && roleSeen && distance <= 1_200 && nearbyPeople.size === 1 && nearbyPeople.has(person.directoryPersonId)) {
         score += 100;
         matchMethod = "single_named_person_card";
@@ -160,7 +163,7 @@ async function main() {
     if (!hostPeople.has(host)) hostPeople.set(host, new Map());
     for (const person of sourcePeople) hostPeople.get(host).set(person.directoryPersonId, person);
   }
-  const discoveryHosts = [...hostPeople.keys()].filter((host) => !checkpoint.discovery[host]);
+  const discoveryHosts = options.discoverRelatedPages ? [...hostPeople.keys()].filter((host) => !checkpoint.discovery[host]) : [];
   let discoveryCursor = 0;
   const discoveryWorkers = Array.from({ length: Math.min(options.concurrency, Math.max(1, discoveryHosts.length)) }, async () => {
     while (discoveryCursor < discoveryHosts.length) {
@@ -228,7 +231,10 @@ async function main() {
         const { response, bytes } = await fetchLimited(imageUrl, options.timeoutMs, 4_000_000, "image/*");
         const type = response.headers.get("content-type") ?? "";
         if (!type.startsWith("image/")) throw new Error("not_an_image");
-        checkpoint.images[imageUrl] = { status: "verified", checkedAt: iso(), finalUrl: response.url, contentType: type.split(";")[0], byteLength: bytes.byteLength, sha256: sha256(bytes) };
+        const metadata = await sharp(bytes, { animated: false }).metadata();
+        const width = Number(metadata.width), height = Number(metadata.height), aspectRatio = width / height;
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 120 || height < 140 || aspectRatio < 0.42 || aspectRatio > 1.25) throw new Error("not_single_person_portrait_shape");
+        checkpoint.images[imageUrl] = { status: "verified", checkedAt: iso(), finalUrl: response.url, contentType: type.split(";")[0], byteLength: bytes.byteLength, width, height, aspectRatio: Number(aspectRatio.toFixed(4)), sha256: sha256(bytes) };
       } catch (error) { checkpoint.images[imageUrl] = { status: "failed", checkedAt: iso(), failureType: error?.cause?.code ?? error.message }; }
     }
   });
@@ -240,7 +246,7 @@ async function main() {
   for (const [personId, match] of bestByPerson) {
     const image = checkpoint.images[match.imageUrl];
     if (image?.status !== "verified") continue;
-    photos.push({ directoryPersonId: personId, imageUrl: image.finalUrl, sourcePageUrl: match.sourceUrl, checkedAt: match.checkedAt, labelEvidence: match.labelEvidence, matchMethod: match.matchMethod, contentType: image.contentType, byteLength: image.byteLength, imageSha256: image.sha256, identityUse: "official_labeled_photo_evidence" });
+    photos.push({ directoryPersonId: personId, imageUrl: image.finalUrl, sourcePageUrl: match.sourceUrl, checkedAt: match.checkedAt, labelEvidence: match.labelEvidence, matchMethod: match.matchMethod, contentType: image.contentType, byteLength: image.byteLength, width: image.width, height: image.height, imageSha256: image.sha256, identityUse: "official_labeled_photo_evidence", usageBasis: "official_public_clergy_profile", publicationPolicy: "publish_then_notice_and_takedown", thirdPartyImagePolicy: "single_person_profile_only" });
   }
   const assignmentsByHash = new Map();
   for (const photo of photos) {
