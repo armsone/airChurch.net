@@ -9,8 +9,8 @@
     "people": 2,
     "roles": 5,
     "nameBasedExclusions": 0,
-    "photosPrepared": 1,
-    "photosAutomaticallyPublishable": 1
+    "photosPrepared": 2,
+    "photosAutomaticallyPublishable": 2
   },
   "people": [
     {
@@ -27,11 +27,12 @@
     {
       "directoryId": "person-e31659b97e0cae4d344d",
       "name": "조용기",
-      "publicSummary": null,
-      "photoUrl": null,
-      "photoSourceUrl": null,
-      "photoSha256": null,
-      "photoReviewStatus": "pending",
+      "publicSummary": "여의도순복음교회를 설립해 세계적인 교회로 성장시키며 오랫동안 목회했고, 원로목사로 기록되어 있습니다.",
+      "photoUrl": "https://davidcho.fgtv.com/image/main_visual_230611.jpg",
+      "photoSourceUrl": "https://davidcho.fgtv.com/",
+      "photoSha256": "4ba18a8eaf1b4d6b1aee472b1728f6eb1cf4a9a8b0444911cfeda9e7ea595125",
+      "photoUsageBasis": "official_public_clergy_profile",
+      "photoReviewStatus": "approved",
       "reviewStatus": "pending"
     }
   ],
