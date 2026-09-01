@@ -99,6 +99,7 @@ function relatedPageUrls(html, baseUrl, people = []) {
       const sameHost = url.hostname === base.hostname;
       const sameOfficialFamily = officialSiteFamily(url.hostname) === officialSiteFamily(base.hostname);
       const clue = `${label} ${decodeURIComponent(url.pathname)}`;
+      if (!exactPerson && /장로|elder/i.test(clue)) continue;
       if ((!sameHost && !(exactPerson && sameOfficialFamily)) || (!exactPerson && !DISCOVERY_HINT.test(clue))) continue;
       url.hash = "";
       const priority = exactPerson ? 100 : /프로필|약력|교역자|목회자|섬기는|원로|은퇴|추대|profile|bio|staff|pastor|minister|clergy/i.test(clue) ? 50 : 20;
@@ -109,7 +110,7 @@ function relatedPageUrls(html, baseUrl, people = []) {
     try {
       const url = new URL(decodeEntities(match[1]), baseUrl);
       const clue = decodeURIComponent(url.pathname);
-      if (url.hostname === new URL(baseUrl).hostname && DISCOVERY_HINT.test(clue)) urls.push({ url: url.toString(), priority: /profile|bio|staff|pastor|minister|clergy/i.test(clue) ? 45 : 15 });
+      if (url.hostname === new URL(baseUrl).hostname && !/장로|elder/i.test(clue) && DISCOVERY_HINT.test(clue)) urls.push({ url: url.toString(), priority: /profile|bio|staff|pastor|minister|clergy/i.test(clue) ? 45 : 15 });
     } catch {}
   }
   return [...new Map(urls.toSorted((left, right) => right.priority - left.priority).map((item) => [item.url, item])).values()].map((item) => item.url);
