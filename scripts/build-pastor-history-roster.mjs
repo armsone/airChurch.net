@@ -14,13 +14,14 @@ const ROLE_CATEGORIES = {
   associate: ["부목사", "수석부목사", "행정목사", "목양목사"],
   education: ["교육목사", "강도사", "전임전도사", "교육전도사", "전도사"],
   cooperating: ["협동목사"],
+  founding: ["설립목사", "창립목사", "개척목사"],
   emeritus: ["원로목사"],
   retired: ["은퇴목사"],
 };
 const ROLE_BY_TITLE = new Map(Object.entries(ROLE_CATEGORIES).flatMap(([category, titles]) => titles.map((title) => [title, category])));
 const UNSUPPORTED_ROLE = /(?:기관)\s*목사|선교사|장로|사모/u;
 const MULTIPLE_PEOPLE = /(?:[,/&·ㆍ]|\s외(?:\s*\d+명)?$|\s및\s)/u;
-const GENERIC_NAME = /^(?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*)?목사(?:님)?$|^(?:강도사|전임전도사|교육전도사|전도사)(?:님)?$|^(?:미상|없음|공석|청빙중)$/u;
+const GENERIC_NAME = /^(?:(?:교육|협동|설립|창립|개척|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*)?목사(?:님)?$|^(?:강도사|전임전도사|교육전도사|전도사)(?:님)?$|^(?:미상|없음|공석|청빙중)$/u;
 
 function parseArgs(argv) {
   const value = (name, fallback = null) => { const index = argv.indexOf(name); return index >= 0 ? argv[index + 1] : fallback; };
@@ -61,8 +62,8 @@ function parsePastorLabel(value, explicitRole = null, requireExplicitRole = fals
   let roleTitleClaim = normalizeRoleTitle(explicitRole);
   let name = label;
   if (!roleTitleClaim) {
-    const prefix = label.match(/^((?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?\s+(.+)$/u);
-    const suffix = label.match(/^(.+?)\s+((?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?$/u);
+    const prefix = label.match(/^((?:(?:교육|협동|설립|창립|개척|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?\s+(.+)$/u);
+    const suffix = label.match(/^(.+?)\s+((?:(?:교육|협동|설립|창립|개척|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?$/u);
     if (prefix) { roleTitleClaim = normalizeRoleTitle(prefix[1]); name = prefix[2]; }
     else if (suffix) { name = suffix[1]; roleTitleClaim = normalizeRoleTitle(suffix[2]); }
     else name = label.replace(/\s*목사(?:님)?$/u, "");
@@ -182,7 +183,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
       officialHomepageUrl: homepageUrl,
       homepageSourceIssue,
       ...homepageTransport,
-      roleCategoriesToDiscover: ["associate", "education", "cooperating", "emeritus", "retired"],
+      roleCategoriesToDiscover: ["current_primary", "associate", "education", "cooperating", "founding", "emeritus", "retired"],
       reviewStatus: "needs_official_role_discovery",
       confidence: "unverified",
       publicationEligible: false,

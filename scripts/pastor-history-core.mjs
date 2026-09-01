@@ -9,7 +9,7 @@ export const SOURCE_TYPES = new Set([
   "official_seminary",
   "official_youtube",
 ]);
-export const ROLE_CATEGORIES = new Set(["current_primary", "associate", "education", "cooperating", "emeritus", "retired"]);
+export const ROLE_CATEGORIES = new Set(["current_primary", "associate", "education", "cooperating", "founding", "emeritus", "retired"]);
 export const ROLE_STATUSES = new Set(["current", "former", "unverified"]);
 export const OFFICIAL_CONTACT_TYPES = new Set(["email", "phone", "account"]);
 const IDENTITY_AXES = ["pastor", "church", "denomination", "region", "role"];

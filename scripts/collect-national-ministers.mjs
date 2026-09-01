@@ -8,7 +8,7 @@ const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
 const COLLECTOR_VERSION = 2;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
-const ROLE_PATTERN = "수석부목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|개척목사|부목사|부교역자|교육목사|행정목사|목양목사|협동목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
+const ROLE_PATTERN = "수석부목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|설립목사|창립목사|개척목사|부목사|부교역자|교육목사|행정목사|목양목사|협동목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
 const ROLE_RE = new RegExp(`(?:(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})|([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN}))`, "gu");
 const LINK_HINT = /교역자|목회자|사역자|섬기는|교회소개|연혁|조직|staff|pastor|ministry|servant|history/i;
 const BLOCKED_PATH = /(?:login|logout|member|admin|mypage|signup|register|privacy|contact|donation|offering)/i;
@@ -20,6 +20,7 @@ function args(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
   return {
     input: value("--input", DEFAULT_INPUT),
+    registered: value("--registered", "data/worship-schedules/all-registered-churches.json"),
     outputDir: value("--output-dir", DEFAULT_DIR),
     concurrency: Math.max(1, Number(value("--concurrency", 16))),
     limit: Math.max(0, Number(value("--limit", 0))),
@@ -85,7 +86,8 @@ function candidateLinks(html, baseUrl) {
 
 function normalizeRole(title) {
   if (/^(?:수석|교육|행정|목양)부목사$/.test(title)) return { roleTitle: title, roleCategory: title === "교육부목사" ? "education" : "associate" };
-  if (/^(?:담임|위임|대표|개척)목사$/.test(title)) return { roleTitle: title, roleCategory: "current_primary" };
+  if (/^(?:설립|창립|개척)목사$/.test(title)) return { roleTitle: title, roleCategory: "founding" };
+  if (/^(?:담임|위임|대표)목사$/.test(title)) return { roleTitle: title, roleCategory: "current_primary" };
   if (/^(?:부목사|부교역자|행정목사|목양목사)$/.test(title)) return { roleTitle: title, roleCategory: "associate" };
   if (/^(?:교육목사|강도사|전임전도사|교육전도사|전도사)$/.test(title)) return { roleTitle: title, roleCategory: "education" };
   if (title === "협동목사") return { roleTitle: title, roleCategory: "cooperating" };
@@ -289,6 +291,32 @@ async function main() {
   const reportPath = path.join(options.outputDir, "report.json");
   const baseline = await readJson(options.input);
   if (!baseline?.churches || !baseline?.ministers) throw new Error("invalid_nationwide_directory");
+  const registered = await readJson(options.registered, { churches: [] });
+  const churchesByKey = new Map(baseline.churches.map((church) => [identityKey(church.name, church.denomination, church.region), church]));
+  for (const record of registered.churches ?? []) {
+    const name = clean(record.church_name), denomination = clean(record.denomination), region = clean(record.region);
+    if (!name || !denomination || !region) continue;
+    const key = identityKey(name, denomination, region);
+    const existing = churchesByKey.get(key);
+    if (existing) {
+      existing.existingChurchId = Number(record.church_id) || existing.existingChurchId || null;
+      if (!existing.homepageUrl) existing.homepageUrl = clean(record.homepage_url) || null;
+      if (!existing.officialSourceUrl) existing.officialSourceUrl = clean(record.profile_source_url) || clean(record.homepage_url) || null;
+      continue;
+    }
+    const directoryChurchId = `church-${digest(key)}`;
+    baseline.churches.push({
+      directoryChurchId,
+      existingChurchId: Number(record.church_id) || null,
+      name,
+      denomination,
+      region,
+      presbytery: null,
+      homepageUrl: clean(record.homepage_url) || null,
+      officialSourceUrl: clean(record.profile_source_url) || clean(record.homepage_url) || null,
+    });
+    churchesByKey.set(key, baseline.churches.at(-1));
+  }
   const fingerprint = digest(JSON.stringify({ collectorVersion: COLLECTOR_VERSION, churches: baseline.churches.map((c) => [c.directoryChurchId, c.homepageUrl]), ministers: baseline.ministers.map((p) => p.directoryMinisterId) }), 64);
   let checkpoint = await readJson(checkpointPath, { version: 1, inputFingerprint: fingerprint, startedAt: nowIso(), results: {} });
   if (checkpoint.inputFingerprint !== fingerprint) throw new Error("checkpoint_input_changed_use_new_output_dir");
