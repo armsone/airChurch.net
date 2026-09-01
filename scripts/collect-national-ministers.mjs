@@ -8,7 +8,7 @@ const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
 const COLLECTOR_VERSION = 3;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
-const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
+const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사|목사";
 const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
 const LINK_HINT = /교역자|목회자|사역자|섬기는|섬김|교회소개|인사말|목사|약력|소개|연혁|조직|staff|pastor|ministry|servant|history|greeting|about|intro/i;
 const BLOCKED_PATH = /(?:login|logout|admin|mypage|signup|register|privacy|contact|donation|offering)/i;
@@ -16,6 +16,7 @@ const NAME_DENY = new Set(["교회소개", "예배안내", "섬기는", "사람�
 const SURNAME = /^(?:김|이|박|최|정|강|조|윤|장|임|한|오|서|신|권|황|안|송|전|홍|유|류|라|나|고|문|양|손|배|백|허|남|심|노|하|곽|성|차|주|우|구|민|진|지|엄|채|원|천|방|공|현|함|변|염|여|추|도|소|석|선|설|마|길|연|위|표|명|기|반|왕|금|옥|육|인|맹|제|모|탁|국|어|은|편|용|봉|태|빈|시|계|피|목|남궁|황보|제갈|선우|독고|사공)/u;
 const COMPOUND_SURNAME = /^(?:남궁|황보|제갈|선우|독고|사공)/u;
 const NON_PERSON = /^(?:하나|박사|권사|강도사|선교사|여전도사|조사|인사|인사말|공지|공지사항|기도회|위원회|고문위원|이사장|원로|원로장로|현재|성년부|소년부|어린이부|유소년부|장년부|장애인부|주강사|강사로|강사도|안수후|안수하여|인허받고|인허받다|인허식|위임건|위임식|위임식을|위임을|추대를|추대식|추대식을|추대와|추대의|사공집|은퇴|퇴임|소천|별세|청빙|후임|시무|취임|이임|성도|장로|권찰|설교|명예|안식년|인턴|이들)$/u;
+const ORGANIZATION_AS_NAME = /(?:성전|교구|기관|선임|국장|부서|선교국)$/u;
 
 function args(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -30,6 +31,8 @@ function args(argv) {
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
     pagesPerChurch: Math.max(1, Math.min(8, Number(value("--pages-per-church", 3)))),
     sourceHost: clean(value("--source-host", "")).toLowerCase(),
+    sourcePage: clean(value("--source-page", "")),
+    churchName: clean(value("--church-name", "")),
     retryStatuses: new Set(clean(value("--retry-statuses", "")).split(",").filter(Boolean)),
     retryFailureTypes: new Set(clean(value("--retry-failure-types", "")).split(",").filter(Boolean)),
   };
@@ -94,6 +97,7 @@ function candidateLinks(html, baseUrl) {
 }
 
 function normalizeRole(title) {
+  if (title === "목사") return { roleTitle: "목사", roleCategory: "associate" };
   if (/^(?:수석|교육|행정|목양)부목사$/.test(title)) return { roleTitle: title, roleCategory: title === "교육부목사" ? "education" : "associate" };
   if (/^(?:설립|창립|개척|초대|초대담임)목사$/.test(title)) return { roleTitle: title, roleCategory: "founding" };
   if (/^(?:담임|위임|대표)목사$/.test(title)) return { roleTitle: title, roleCategory: "current_primary" };
@@ -108,7 +112,7 @@ function normalizeRole(title) {
 function validName(name) {
   const maximumLength = COMPOUND_SURNAME.test(name) ? 5 : 4;
   return name.length >= 2 && name.length <= maximumLength && SURNAME.test(name) && !NAME_DENY.has(name)
-    && !NON_PERSON.test(name)
+    && !NON_PERSON.test(name) && !ORGANIZATION_AS_NAME.test(name)
     && !/(교회|목사|전도|예배|교육|사역|부서|소개|말씀|하나님|예수님|학교|노회|성경|전도회|심방|전임|전담|인허|위임|추대|안수|주년|사임|사면|부임|유년부|유치부|초등부|중등부|고등부|대학부|청년부|장립집사|현재까지|에서|부)$/u.test(name);
 }
 
@@ -125,7 +129,7 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
     const isFormer = /사임|사면|은퇴|퇴임|이임|소천|별세|역대/u.test(evidence)
       || /(?:~|–|—|부터)\s*(?:19|20)\d{2}(?:년)?(?:까지)?/u.test(evidence)
       || /(?:19|20)\d{2}년?\s*(?:까지|사임|은퇴|퇴임|이임)/u.test(evidence);
-    const personKey = identityKey(name, church.directoryChurchId, role, sourceUrl);
+    const personKey = identityKey(name, church.directoryChurchId);
     people.push({
       discoveryId: `discovery-${digest(identityKey(name, church.directoryChurchId, role, sourceUrl))}`,
       directoryPersonId: `person-${digest(personKey)}`,
@@ -144,7 +148,7 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
       publicationEligible: false,
     });
   }
-  return [...new Map(people.map((person) => [person.directoryPersonId, person])).values()];
+  return [...new Map(people.map((person) => [person.discoveryId, person])).values()];
 }
 
 function failureType(error) {
@@ -268,14 +272,14 @@ async function crawlChurch(church, options) {
       ministers.push(...extractMinisters(dynamic ? `${page.html}\n${dynamic}` : page.html, church, page.finalUrl, checkedAt));
     } catch (error) { failures.push({ url: link.url, type: error.message, detail: error.detail ?? null }); }
   }
-  ministers = [...new Map(ministers.map((person) => [person.directoryPersonId, person])).values()];
+  ministers = [...new Map(ministers.map((person) => [person.discoveryId, person])).values()];
   return { church, checkedAt, status: ministers.length ? "people_found" : "no_people_found", failureType: null, robotsStatus, failures, pages, ministers };
 }
 
 function summarize(results, baseline, registered, startedAt) {
   const all = results.flatMap((result) => result.ministers ?? []);
   const discovered = [...new Map(all.map((person) => [person.directoryPersonId, person])).values()];
-  const additionalRelationships = discovered;
+  const additionalRelationships = [...new Map(all.map((person) => [person.discoveryId, person])).values()];
   const additionalPeople = discovered;
   const roleCounts = {};
   const roleStatusCounts = {};
@@ -404,6 +408,10 @@ async function main() {
     try { return new URL(church.homepageUrl).hostname.toLowerCase() === options.sourceHost; }
     catch { return false; }
   }).slice(options.offset);
+  if (options.sourcePage && options.churchName) {
+    const selected = baseline.churches.find((church) => identityKey(church.name) === identityKey(options.churchName));
+    churches = selected ? [{ ...selected, homepageUrl: options.sourcePage }] : [];
+  }
   if (options.limit) churches = churches.slice(0, options.limit);
   churches = churches.filter((church) => !checkpoint.results[church.directoryChurchId]);
   let cursor = 0;
@@ -424,7 +432,7 @@ async function main() {
   const results = rawResults.map((result) => ({ ...result, ministers: (result.ministers ?? []).filter((person) => validName(person.name)) }));
   const report = summarize(results, baseline, registered, checkpoint.startedAt);
   report.parserRejectedNonPerson = parserRejectedNonPerson;
-  const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [person.directoryPersonId, person])).values()];
+  const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [person.discoveryId, person])).values()];
   const readyRelationships = candidates.map((person) => ({ ...person, reviewStatus: "source_review_required" }));
   const readyPeople = [...new Map(readyRelationships.map((person) => [person.directoryPersonId, {
     directoryPersonId: person.directoryPersonId,

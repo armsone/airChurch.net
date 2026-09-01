@@ -134,6 +134,16 @@ function officialChurchLinks(html, baseUrl, people = []) {
 }
 
 function labeledPhoto(html, person, pageUrl, pagePeople) {
+  const imageTags = [...html.matchAll(IMAGE_TAG)];
+  for (let index = 0; index < imageTags.length; index += 1) {
+    const current = imageTags[index], start = current.index ?? 0;
+    const end = imageTags[index + 1]?.index ?? Math.min(html.length, start + 3_000);
+    const fragment = html.slice(start, end), text = clean(fragment.replace(/<[^>]+>/g, " "));
+    const namedPeople = pagePeople.filter((candidate) => candidate?.name && text.includes(candidate.name));
+    if (namedPeople.length !== 1 || namedPeople[0].directoryPersonId !== person.directoryPersonId || !ROLE.test(text)) continue;
+    const image = tagImageUrls(current[0], pageUrl)[0];
+    if (image) return { ...image, score: 180, distance: 0, matchMethod: "single_named_person_card" };
+  }
   const occurrences = [];
   let position = html.indexOf(person.name);
   while (position >= 0 && occurrences.length < 20) { occurrences.push(position); position = html.indexOf(person.name, position + person.name.length); }
@@ -152,7 +162,7 @@ function labeledPhoto(html, person, pageUrl, pagePeople) {
       const local = clean(html.slice(Math.max(0, absoluteImageAt - 700), Math.min(html.length, absoluteImageAt + 700)).replace(/<[^>]+>/g, " "));
       const nearbyPeople = new Set(pagePeople.filter((candidate) => local.includes(candidate.name)).map((candidate) => candidate.directoryPersonId));
       const oneNamedPerson = nearbyPeople.size === 1 && nearbyPeople.has(person.directoryPersonId);
-      if (image.alt.includes(person.name) && oneNamedPerson) { score += 150; matchMethod = "name_in_image_label"; }
+      if (image.alt.includes(person.name)) { score += 150; matchMethod = "name_in_image_label"; }
       if (image.alt && ROLE.test(image.alt)) score += 30;
       if (!matchMethod && roleSeen && distance <= 1_200 && nearbyPeople.size === 1 && nearbyPeople.has(person.directoryPersonId)) {
         score += 100;
@@ -324,11 +334,19 @@ async function main() {
       const imageUrl = imageJobs[cursor++];
       try {
         await paced(imageUrl);
-        const { response, bytes } = await fetchLimited(imageUrl, options.timeoutMs, 4_000_000, "image/*");
+        const { response, bytes } = await fetchLimited(imageUrl, options.timeoutMs, 12_000_000, "image/*");
         const type = response.headers.get("content-type") ?? "";
         if (!type.startsWith("image/")) throw new Error("not_an_image");
-        const metadata = await sharp(bytes, { animated: false }).metadata();
-        const width = Number(metadata.width), height = Number(metadata.height), aspectRatio = width / height;
+        let width, height;
+        try {
+          const metadata = await sharp(bytes, { animated: false }).metadata();
+          width = Number(metadata.width); height = Number(metadata.height);
+        } catch (error) {
+          if (bytes[0] !== 0x42 || bytes[1] !== 0x4d || bytes.byteLength < 26) throw error;
+          const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+          width = view.getUint32(18, true); height = Math.abs(view.getInt32(22, true));
+        }
+        const aspectRatio = width / height;
         const evidence = [...bestByPerson.values()].find((match) => match.imageUrl === imageUrl);
         const wideOfficialProfile = evidence?.matchMethod === "dedicated_official_profile" && aspectRatio <= 3;
         if (!Number.isFinite(width) || !Number.isFinite(height) || width < 120 || height < 140 || aspectRatio < 0.42 || (aspectRatio > 1.25 && !wideOfficialProfile)) throw new Error("not_single_person_portrait_shape");
