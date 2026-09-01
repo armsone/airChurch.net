@@ -6,7 +6,7 @@ import path from "node:path";
 
 const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
-const COLLECTOR_VERSION = 2;
+const COLLECTOR_VERSION = 3;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
 const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
 const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
