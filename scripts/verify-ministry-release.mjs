@@ -23,7 +23,7 @@ const checks={
   official_source_policy:policy.minimumOfficialIdentitySources===1&&suggestionRoute.includes("개인 SNS 대신 교회·교단·노회의 공식 공개 페이지"),
   ambiguity_requires_second_source:(await text("scripts/pastor-history-core.mjs")).includes("ambiguous?Math.max(2"),
   no_auto_publish:roster.automatic_publication===false&&worship.metadata?.requires_separate_apply_authorization===true,
-  approval_digest_verified:worship.metadata?.approvalVerified===true&&createHash("sha256").update(JSON.stringify(worship.operations)).digest("hex")===worship.metadata?.sha256,
+  approval_digest_verified:worship.metadata?.reviewComplete===true&&worship.metadata?.approvalVerified===true&&createHash("sha256").update(JSON.stringify(worship.operations)).digest("hex")===worship.metadata?.sha256,
   privacy_passed:roster.public_contact_fields===0&&roster.sensitive_findings===0&&worship.metadata?.privacyScan?.status==="passed",
   public_artifacts_have_no_contact_values:publicSensitiveValueFindings.length===0,
   private_contact_artifact_is_git_ignored:privateContactArtifactIgnored,

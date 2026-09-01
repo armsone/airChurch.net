@@ -66,6 +66,7 @@ export function buildImportPlan(collected, approval = null) {
       databaseWrites: 0,
       published: false,
       artifactSha256,
+      reviewComplete: approvalVerified,
       approvalVerified,
       approvalReason,
       requires_separate_apply_authorization: true,

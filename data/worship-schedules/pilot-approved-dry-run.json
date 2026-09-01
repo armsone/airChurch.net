@@ -1,10 +1,11 @@
 {
   "metadata": {
     "schema_version": 2,
-    "generated_at": "2026-09-01T01:35:19.030Z",
+    "generated_at": "2026-09-01T02:52:28.684Z",
     "source": "data/worship-schedules/pilot-output.json",
     "dry_run": true,
     "automatic_publication": false,
+    "reviewComplete": true,
     "approvalVerified": true,
     "approvalDigest": "38cfb2396a28fb3f22ad945bfcf8715286d12f3bf430a8ae058c860f67541826",
     "privacyScan": {

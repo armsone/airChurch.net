@@ -18,7 +18,7 @@ export async function POST(request:Request){
   const operations=plan?.operations,metadata=plan?.metadata;
   if(!Array.isArray(operations)||operations.length<1||operations.length>100)return Response.json({error:"한 번에 1~100건만 반영할 수 있습니다."},{status:400});
   const calculated=await digest(operations),declared=clean(metadata?.sha256,64);
-  if(metadata?.approvalVerified!==true||metadata?.requires_separate_apply_authorization!==true||!/^[0-9a-f]{64}$/.test(declared)||declared!==calculated||confirmedDigest!==declared)return Response.json({error:"승인 해시를 다시 확인해 주세요."},{status:409});
+  if(metadata?.reviewComplete!==true||metadata?.approvalVerified!==true||metadata?.requires_separate_apply_authorization!==true||!/^[0-9a-f]{64}$/.test(declared)||declared!==calculated||confirmedDigest!==declared)return Response.json({error:"전체 검토와 승인 해시를 다시 확인해 주세요."},{status:409});
   const parsed:Array<{action:"schedule"|"profile"|"minister"|"appearance";churchId:number;values:Record<string,string|null>}>=[];
   for(const operation of operations){
     const values=operation.values??{},churchId=Number(values.church_id),sourceUrl=safeHttpUrl(clean(values.source_url,500)),reviewedAt=clean(values.reviewed_at,40),reviewStatus=clean(values.review_status,20);

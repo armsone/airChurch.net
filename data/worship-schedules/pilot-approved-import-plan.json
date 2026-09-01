@@ -1,11 +1,12 @@
 {
   "metadata": {
-    "generated_at": "2026-09-01T01:35:19.075Z",
+    "generated_at": "2026-09-01T02:52:28.727Z",
     "dry_run": true,
     "operation_count": 37,
     "source_collection_hold_count": 2,
     "source_collection_error_count": 0,
     "sha256": "0f55bddeb9148feb505f56a6394f8ff5fa1a9258c58293c0a7d4232438d8eb4f",
+    "reviewComplete": true,
     "approvalVerified": true,
     "approvalDigest": "38cfb2396a28fb3f22ad945bfcf8715286d12f3bf430a8ae058c860f67541826",
     "privacyScan": {

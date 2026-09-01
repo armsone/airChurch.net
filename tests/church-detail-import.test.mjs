@@ -8,6 +8,7 @@ test("reviewed church detail import is admin-only, digest-bound, bounded, and id
   assert.match(route,/operations\.length>100/);
   assert.match(route,/confirmedDigest!==declared/);
   assert.match(route,/approvalVerified!==true/);
+  assert.match(route,/reviewComplete!==true/);
   assert.match(route,/ON CONFLICT\(record_id\) DO UPDATE/);
   assert.match(route,/upsert_reviewed_ministry_profile/);
   assert.match(route,/upsert_reviewed_ministry_appearance/);

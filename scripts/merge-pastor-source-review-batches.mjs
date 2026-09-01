@@ -8,6 +8,16 @@ import {immutablePastorSourceTask} from "./prepare-pastor-source-review-batches.
 const sha=(value)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const sensitive=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?<!\d)01[016789][- .]?\d{3,4}[- .]?\d{4}(?!\d)|(?:계좌|account)\s*[:：]?\s*\d[\d -]{7,})/gi;
 const allowedDecisions=new Set(["pending","ready","hold"]),allowedTypes=new Set(["official_church","official_denomination","official_presbytery","official_seminary","official_youtube"]),allowedAxes=new Set(["pastor","church","denomination","region","role"]);
+const allowedRoleStatuses=new Set(["current","former"]);
+const evidenceArray=(value)=>Array.isArray(value)&&value.length>0&&value.length<=8&&value.every((item)=>typeof item==="string"&&item.trim().length>0&&item.length<=120);
+function validateOfficialSource(source){
+  let url,policyUrl;try{url=new URL(String(source.url));policyUrl=new URL(String(source.site_policy?.policy_url));}catch{throw new Error("invalid_official_source_url");}
+  const axes=source.identity_contribution,policy=source.site_policy;
+  if(!["http:","https:"].includes(url.protocol)||!allowedTypes.has(source.type)||!Array.isArray(axes)||!axes.length||axes.some((axis)=>!allowedAxes.has(axis))||new Set(axes).size!==axes.length)throw new Error("invalid_official_source");
+  if(!policy||policy.collection_allowed!==true||policyUrl.hostname!==url.hostname||!/^\d{4}-\d{2}-\d{2}$/.test(policy.policy_reviewed_at)||!Array.isArray(policy.allowed_path_prefixes)||!policy.allowed_path_prefixes.some((prefix)=>typeof prefix==="string"&&prefix.startsWith("/")&&url.pathname.startsWith(prefix)))throw new Error("invalid_official_site_policy");
+  if(!source.identity_evidence||axes.some((axis)=>!evidenceArray(source.identity_evidence[axis])))throw new Error("incomplete_official_identity_evidence");
+  for(const assertion of source.assertions??[]){if(!assertion||!assertion.event_type||!assertion.role||!assertion.organization||!assertion.fact_summary||assertion.fact_summary.length>160||!evidenceArray(assertion.evidence_all))throw new Error("invalid_official_assertion");}
+}
 export function mergePastorSourceReviewBatches(summary,batches,{allowPending=false}={}){
   const tasks=[],ids=new Set();
   for(const batch of batches){
@@ -17,12 +27,11 @@ export function mergePastorSourceReviewBatches(summary,batches,{allowPending=fal
       if(!allowedDecisions.has(task.decision))throw new Error("invalid_pastor_review_decision");
       const sources=Array.isArray(task.official_sources)?task.official_sources:[];
       for(const source of sources){
-        let url;try{url=new URL(String(source.url));}catch{throw new Error("invalid_official_source_url");}
-        const axes=source.identity_contribution;
-        if(!["http:","https:"].includes(url.protocol)||!allowedTypes.has(source.type)||!Array.isArray(axes)||!axes.length||axes.some((axis)=>!allowedAxes.has(axis))||new Set(axes).size!==axes.length)throw new Error("invalid_official_source");
-        if(sensitive.test(JSON.stringify([source.fact_summary,source.note])))throw new Error("sensitive_value_in_pastor_review");sensitive.lastIndex=0;
+        validateOfficialSource(source);
+        const reviewText=JSON.stringify([Object.values(source.identity_evidence??{}),(source.assertions??[]).map((item)=>[item.fact_summary,item.evidence_all]),source.note]);
+        if(sensitive.test(reviewText))throw new Error("sensitive_value_in_pastor_review");sensitive.lastIndex=0;
       }
-      if(task.decision==="ready"&&(!sources.length||!/^\d{4}-\d{2}-\d{2}T/.test(task.reviewed_at)||String(task.note??"").trim().length<3))throw new Error("incomplete_ready_pastor_review");
+      if(task.decision==="ready"&&(!sources.length||!task.eligible_role_titles.includes(task.confirmed_role_title)||!allowedRoleStatuses.has(task.confirmed_role_status)||!/^\d{4}-\d{2}-\d{2}T/.test(task.reviewed_at)||String(task.note??"").trim().length<3))throw new Error("incomplete_ready_pastor_review");
       if(task.decision==="hold"&&(!/^\d{4}-\d{2}-\d{2}T/.test(task.reviewed_at)||String(task.note??"").trim().length<3))throw new Error("incomplete_held_pastor_review");
       if(sensitive.test(String(task.note??"")))throw new Error("sensitive_value_in_pastor_review");sensitive.lastIndex=0;
       tasks.push(task);

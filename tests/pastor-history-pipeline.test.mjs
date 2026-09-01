@@ -461,6 +461,7 @@ test("dry-run importer requires an exact human approval artifact and never write
   };
   const unapproved = buildImportPlan(collected);
   assert.equal(unapproved.metadata.approvalVerified, false);
+  assert.equal(unapproved.metadata.reviewComplete, false);
   assert.equal(unapproved.metadata.databaseWrites, 0);
   assert.equal(unapproved.metadata.privacyScan.sensitiveFindings, 0);
   assert.equal(unapproved.metadata.httpSourceCount, 0);
@@ -476,6 +477,7 @@ test("dry-run importer requires an exact human approval artifact and never write
   approval.approvedAt = new Date().toISOString();
   const approvedPreview = buildImportPlan(collected, approval);
   assert.equal(approvedPreview.metadata.approvalVerified, true);
+  assert.equal(approvedPreview.metadata.reviewComplete, true);
   assert.equal(approvedPreview.metadata.databaseWrites, 0);
   assert.equal(approvedPreview.metadata.published, false);
   assert.match(approvedPreview.metadata.sha256,/^[0-9a-f]{64}$/);
