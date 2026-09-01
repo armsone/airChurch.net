@@ -12,9 +12,9 @@ const ROLE = /(?:담임|위임|대표|개척|부|교육|행정|목양|협동|원
 const IMAGE_ATTR = /(?:src|data-src|data-original|data-lazy-src|data-lazy|data-echo|data-image|data-bg|srcset|data-srcset)\s*=\s*["']([^"']+)["']/i;
 const IMAGE_TAG = /<img\b[^>]*>/gi;
 const BACKGROUND = /background(?:-image)?\s*:\s*url\(["']?([^"')]+)["']?\)/gi;
-const BAD_IMAGE = /(?:logo|icon|banner|visual|sub[_-]?top|header|title[_-]?bg|sprite|loading|spinner|blank|spacer|default|placeholder|avatar-default|favicon|button|btn_|arrow|bullet|pixel|qr|map)/i;
-const DISCOVERY_VERSION = 3;
-const PAGE_HINT = /교역자|목회자|사역자|섬기는|원로|은퇴|담임|부목사|설교|말씀|영상|staff|pastor|minister|servant|leadership|clergy|sermon|preach|video/i;
+const BAD_IMAGE = /(?:logo|icon|sub[_-]?top|header|title[_-]?bg|sprite|loading|spinner|blank|spacer|default|placeholder|avatar-default|favicon|button|btn_|arrow|bullet|pixel|qr|map)/i;
+const DISCOVERY_VERSION = 4;
+const PAGE_HINT = /프로필|약력|인사말|대표|소개|교역자|목회자|사역자|섬기는|원로|은퇴|담임|부목사|설교|말씀|영상|profile|bio(?:graphy)?|staff|pastor|minister|servant|leadership|clergy|sermon|preach|video/i;
 
 function parseArgs(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -76,13 +76,24 @@ function tagImageUrls(fragment, pageUrl) {
   return [...new Map(images.map((image) => [image.imageUrl, image])).values()];
 }
 
-function relatedPageUrls(html, baseUrl) {
+function officialSiteFamily(hostname) {
+  const parts = hostname.toLowerCase().split(".").filter(Boolean);
+  const countrySecondLevels = new Set(["co", "or", "go", "ac", "ne", "re", "pe"]);
+  const size = parts.length >= 3 && parts.at(-1)?.length === 2 && countrySecondLevels.has(parts.at(-2)) ? 3 : 2;
+  return parts.slice(-size).join(".");
+}
+
+function relatedPageUrls(html, baseUrl, people = []) {
   const urls = [];
+  const base = new URL(baseUrl);
   for (const match of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     try {
       const label = clean(match[2].replace(/<[^>]+>/g, " "));
       const url = new URL(decodeEntities(match[1]), baseUrl);
-      if (url.hostname !== new URL(baseUrl).hostname || !PAGE_HINT.test(`${label} ${url.pathname}`)) continue;
+      const exactPerson = people.find((person) => person?.name && label.includes(person.name));
+      const sameHost = url.hostname === base.hostname;
+      const sameOfficialFamily = officialSiteFamily(url.hostname) === officialSiteFamily(base.hostname);
+      if ((!sameHost && !(exactPerson && sameOfficialFamily)) || (!exactPerson && !PAGE_HINT.test(`${label} ${decodeURIComponent(url.pathname)}`))) continue;
       url.hash = "";
       urls.push(url.toString());
     } catch {}
@@ -120,6 +131,11 @@ function labeledPhoto(html, person, pageUrl, pagePeople) {
       if (!matchMethod && roleSeen && distance <= 1_200 && nearbyPeople.size === 1 && nearbyPeople.has(person.directoryPersonId)) {
         score += 100;
         matchMethod = "single_named_person_card";
+      }
+      const pageHeading = clean((html.match(/<(?:title|h1)\b[^>]*>([\s\S]*?)<\/(?:title|h1)>/i)?.[1] ?? "").replace(/<[^>]+>/g, " "));
+      if (!matchMethod && pageHeading.includes(person.name) && PAGE_HINT.test(`${pageHeading} ${decodeURIComponent(new URL(pageUrl).pathname)}`) && distance <= 2_500) {
+        score += 120;
+        matchMethod = "dedicated_official_profile";
       }
       if (new URL(image.imageUrl).hostname === new URL(pageUrl).hostname) score += 10;
       scored.push({ ...image, score, distance, matchMethod });
@@ -172,7 +188,7 @@ async function main() {
       for (const url of [`https://${host}/`, `http://${host}/`, `https://${host}/sitemap.xml`, `http://${host}/sitemap.xml`]) {
         try {
           const { response, bytes } = await fetchLimited(url, options.timeoutMs, 1_500_000, "text/html,application/xml,text/xml");
-          found.push(...relatedPageUrls(new TextDecoder().decode(bytes), response.url));
+          found.push(...relatedPageUrls(new TextDecoder().decode(bytes), response.url, [...hostPeople.get(host).values()]));
           if (found.length >= 20) break;
         } catch {}
       }
@@ -233,7 +249,9 @@ async function main() {
         if (!type.startsWith("image/")) throw new Error("not_an_image");
         const metadata = await sharp(bytes, { animated: false }).metadata();
         const width = Number(metadata.width), height = Number(metadata.height), aspectRatio = width / height;
-        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 120 || height < 140 || aspectRatio < 0.42 || aspectRatio > 1.25) throw new Error("not_single_person_portrait_shape");
+        const evidence = [...bestByPerson.values()].find((match) => match.imageUrl === imageUrl);
+        const wideOfficialProfile = evidence?.matchMethod === "dedicated_official_profile" && aspectRatio <= 3;
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width < 120 || height < 140 || aspectRatio < 0.42 || (aspectRatio > 1.25 && !wideOfficialProfile)) throw new Error("not_single_person_portrait_shape");
         checkpoint.images[imageUrl] = { status: "verified", checkedAt: iso(), finalUrl: response.url, contentType: type.split(";")[0], byteLength: bytes.byteLength, width, height, aspectRatio: Number(aspectRatio.toFixed(4)), sha256: sha256(bytes) };
       } catch (error) { checkpoint.images[imageUrl] = { status: "failed", checkedAt: iso(), failureType: error?.cause?.code ?? error.message }; }
     }
