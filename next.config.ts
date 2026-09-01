@@ -5,19 +5,19 @@ const nextConfig: NextConfig = {
     return [
     {
       source: "/",
-      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+      headers: [{ key: "Cache-Control", value: "no-store" }],
     },
     {
       source: "/:page(about|community-guidelines|privacy|copyright|terms|saved)",
-      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+      headers: [{ key: "Cache-Control", value: "no-store" }],
     },
     {
       source: "/:page(contact|review)",
-      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+      headers: [{ key: "Cache-Control", value: "no-store" }],
     },
     {
       source: "/pastor/join",
-      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=86400" }],
+      headers: [{ key: "Cache-Control", value: "no-store" }],
     },
     {
       source: "/sitemap.xml",
