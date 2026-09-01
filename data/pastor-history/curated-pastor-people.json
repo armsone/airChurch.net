@@ -8,11 +8,9 @@
     "privateDataIncluded": false,
     "people": 1,
     "roles": 2,
-    "identityLinks": 0,
+    "nameBasedExclusions": 0,
     "photosPrepared": 0,
-    "photosAutomaticallyPublishable": 0,
-    "homonymRecordsExcluded": 0,
-    "identityLinksAutomaticallyMerged": 0
+    "photosAutomaticallyPublishable": 0
   },
   "people": [
     {
@@ -59,6 +57,5 @@
       "sourceUrl": "https://kwangsung.org/Page/Index/13",
       "reviewStatus": "pending"
     }
-  ],
-  "identityLinks": []
+  ]
 }

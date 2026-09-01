@@ -12,7 +12,6 @@ run("scripts/prepare-collected-pastor-import.mjs",[
   "out/pastor-history/collected-pastor-import-plan.json",
   "out/pastor-history/collected-pastor-review-queue.json",
   "out/pastor-history/national-collection-v2/photos-strict/photos.json",
-  "out/pastor-history/national-collection-v2/photos-strict/identity-links.json",
 ]);
 run("scripts/combine-pastor-import-plans.mjs");
 run("scripts/build-pastor-d1-import.mjs",[

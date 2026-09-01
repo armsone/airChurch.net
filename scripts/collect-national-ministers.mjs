@@ -270,7 +270,7 @@ function summarize(results, baseline, startedAt) {
     roleCounts,
     roleStatusCounts,
     statusCounts,
-    homonymHolds: 0,
+    nameBasedExclusions: 0,
     churchFailureCounts,
     requestFailureCounts: failureCounts,
     protocolFallbackRecoveries: results.filter((result) => result.pages?.length && result.failures?.length).length,
@@ -285,7 +285,6 @@ async function main() {
   const checkpointPath = path.join(options.outputDir, "checkpoint.json");
   const candidatesPath = path.join(options.outputDir, "candidates.json");
   const holdsPath = path.join(options.outputDir, "review-holds.json");
-  const identityLinksPath = path.join(options.outputDir, "identity-link-candidates.json");
   const importPath = path.join(options.outputDir, "import-ready.json");
   const reportPath = path.join(options.outputDir, "report.json");
   const baseline = await readJson(options.input);
@@ -317,33 +316,6 @@ async function main() {
   const existingPersonKeys = new Set(baseline.ministers.map((person) => identityKey(person.name, person.directoryChurchId)));
   const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [identityKey(person.name, person.directoryChurchId, person.roleTitle, person.roleStatus), person])).values()]
     .filter((person) => !existingPersonKeys.has(identityKey(person.name, person.directoryChurchId)));
-  const nameChurches = new Map();
-  for (const person of candidates) {
-    const key = identityKey(person.name);
-    if (!nameChurches.has(key)) nameChurches.set(key, new Set());
-    nameChurches.get(key).add(person.directoryChurchId);
-  }
-  const sameNameGroups = new Map();
-  for (const person of candidates) {
-    const key = identityKey(person.name);
-    if (nameChurches.get(key).size <= 1) continue;
-    if (!sameNameGroups.has(key)) sameNameGroups.set(key, { name: person.name, people: new Map() });
-    sameNameGroups.get(key).people.set(person.directoryPersonId, {
-      directoryPersonId: person.directoryPersonId,
-      churchId: person.directoryChurchId,
-      churchName: person.churchName,
-      denomination: person.denomination,
-      region: person.region,
-      sourceUrl: person.sourceUrl,
-    });
-  }
-  const identityLinkCandidates = [...sameNameGroups.values()].map((group) => ({
-    name: group.name,
-    resolution: "keep_as_distinct_people",
-    mergeAllowed: false,
-    reason: "same_name_is_not_identity_evidence",
-    people: [...group.people.values()],
-  }));
   const readyRelationships = candidates.map((person) => ({ ...person, reviewStatus: "source_review_required" }));
   const readyPeople = [...new Map(readyRelationships.map((person) => [person.directoryPersonId, {
     directoryPersonId: person.directoryPersonId,
@@ -353,10 +325,7 @@ async function main() {
     identityStatus: "provisional_official_source",
     reviewStatus: "source_review_required",
   }])).values()];
-  report.homonymHolds = 0;
-  report.homonymExcludedPeople = 0;
-  report.sameNameLinkCandidateGroups = identityLinkCandidates.length;
-  report.sameNameDistinctPeople = new Set(identityLinkCandidates.flatMap((group) => group.people.map((person) => person.directoryPersonId))).size;
+  report.nameBasedExclusions = 0;
   report.importReadyPeopleAfterHolds = readyPeople.length;
   report.importReadyRelationshipsAfterHolds = readyRelationships.length;
   const candidatePeople = [...new Map(candidates.map((person) => [person.directoryPersonId, {
@@ -368,8 +337,7 @@ async function main() {
     reviewStatus: "candidate",
   }])).values()];
   await atomicJson(candidatesPath, { metadata: report, people: candidatePeople, ministryRelationships: candidates });
-  await atomicJson(holdsPath, { metadata: report, relationshipHolds: [], note: "Same names are kept as distinct church-scoped people and are never excluded." });
-  await atomicJson(identityLinksPath, { metadata: report, groups: identityLinkCandidates });
+  await atomicJson(holdsPath, { metadata: report, relationshipHolds: [], note: "Every valid person is preserved by directory ID; names affect search only." });
   await atomicJson(importPath, { metadata: report, databaseWrites: 0, people: readyPeople, ministryRelationships: readyRelationships });
   await atomicJson(reportPath, report);
   console.log(JSON.stringify({ ...report, outputDir: options.outputDir }));

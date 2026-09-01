@@ -251,20 +251,11 @@ async function main() {
   const strictPhotos = photos.filter((photo) => !ambiguousHashes.has(photo.imageSha256));
   const photoPeople = new Set(strictPhotos.map((photo) => photo.directoryPersonId));
   const missing = people.filter((person) => !photoPeople.has(person.directoryPersonId)).map((person) => ({ directoryPersonId: person.directoryPersonId, name: person.name, denomination: person.denomination, region: person.region, reason: "no_verified_labeled_official_photo" }));
-  const sameHash = new Map();
-  for (const photo of strictPhotos) {
-    const person = personMap.get(photo.directoryPersonId);
-    const key = `${clean(person.name)}|${photo.imageSha256}`;
-    if (!sameHash.has(key)) sameHash.set(key, []);
-    sameHash.get(key).push(photo.directoryPersonId);
-  }
-  const identityLinks = [...sameHash.entries()].filter(([, ids]) => new Set(ids).size > 1).map(([key, ids]) => ({ name: key.split("|")[0], imageSha256: key.split("|")[1], directoryPersonIds: [...new Set(ids)], evidence: "same_name_and_exact_official_photo_file" }));
   const failureCounts = {};
   for (const source of Object.values(checkpoint.sources)) if (source.failureType) failureCounts[source.failureType] = (failureCounts[source.failureType] ?? 0) + 1;
-  const report = { generatedAt: iso(), totalPeople: people.length, officialLabeledPhotos: strictPhotos.length, missingPhotos: missing.length, coveragePercent: Number((strictPhotos.length / people.length * 100).toFixed(2)), ambiguousRepeatedPhotoAssignmentsRejected: photos.length - strictPhotos.length, officialSourcePagesAttempted: Object.keys(checkpoint.sources).length, exactPhotoIdentityLinks: identityLinks.length, failureCounts };
+  const report = { generatedAt: iso(), totalPeople: people.length, officialLabeledPhotos: strictPhotos.length, missingPhotos: missing.length, coveragePercent: Number((strictPhotos.length / people.length * 100).toFixed(2)), ambiguousRepeatedPhotoAssignmentsRejected: photos.length - strictPhotos.length, officialSourcePagesAttempted: Object.keys(checkpoint.sources).length, failureCounts };
   await atomicJson(path.join(options.outputDir, "photos.json"), { metadata: report, photos: strictPhotos });
   await atomicJson(path.join(options.outputDir, "missing.json"), { metadata: report, people: missing });
-  await atomicJson(path.join(options.outputDir, "identity-links.json"), { metadata: report, links: identityLinks });
   await atomicJson(path.join(options.outputDir, "report.json"), report);
   console.log(JSON.stringify({ ...report, outputDir: options.outputDir }));
 }

@@ -15,23 +15,22 @@ const collectNonUrlText=(value,found=[])=>{if(typeof value==="string"){if(!isHtt
 
 const collectionFile=argument("--pastors","out/pastor-history/national-collection-v2/candidates.json");
 const photoFile=argument("--photos","out/pastor-history/national-collection-v2/photos-strict/photos.json");
-const identityFile=argument("--identities","out/pastor-history/national-collection-v2/photos-strict/identity-links.json");
 const importPlanFile=argument("--import-plan","out/pastor-history/collected-pastor-import-plan.json");
 const manifestFile=argument("--manifest","out/pastor-history/d1-import-collected/manifest.json");
 const worshipReportFile=argument("--worship-report","data/worship-schedules/all-report.json");
 const worshipReviewSummaryFile=argument("--worship-review-summary","out/worship-review-batches/summary.json");
 const worshipReviewsFile=argument("--worship-reviews","out/worship-reviews.merged.json");
 
-const [collection,photoBundle,identityBundle,importPlan,manifest,worshipReport,worshipReviewSummary,worshipReviews]=await Promise.all([
-  readJson(collectionFile),readJson(photoFile),readJson(identityFile),readJson(importPlanFile),readJson(manifestFile),readJson(worshipReportFile),readJson(worshipReviewSummaryFile),readJson(worshipReviewsFile),
+const [collection,photoBundle,importPlan,manifest,worshipReport,worshipReviewSummary,worshipReviews]=await Promise.all([
+  readJson(collectionFile),readJson(photoFile),readJson(importPlanFile),readJson(manifestFile),readJson(worshipReportFile),readJson(worshipReviewSummaryFile),readJson(worshipReviewsFile),
 ]);
-const people=collection.people??[],roles=collection.ministryRelationships??[],photos=photoBundle.photos??[],links=identityBundle.links??[];
+const people=collection.people??[],roles=collection.ministryRelationships??[],photos=photoBundle.photos??[];
 const peopleIds=new Set(people.map((person)=>person.directoryPersonId));
 const roleKeys=roles.map((role)=>[role.directoryPersonId,role.directoryChurchId,role.roleTitle,role.roleStatus,role.sourceUrl].join("|"));
 const photoIds=photos.map((photo)=>photo.directoryPersonId);
 const importPeople=importPlan.people??[],importRoles=importPlan.roles??[];
 const worshipReviewRows=worshipReviews.reviews??[],worshipReviewIds=worshipReviewRows.map((item)=>item.record_id);
-const serializedPublicText=collectNonUrlText({people,roles,photos,links,importPeople,importRoles}).join("\n");
+const serializedPublicText=collectNonUrlText({people,roles,photos,importPeople,importRoles}).join("\n");
 const chunkDir=manifestFile.slice(0,manifestFile.lastIndexOf("/"));
 const chunkChecks=await Promise.all((manifest.chunks??[]).map(async(chunk)=>{
   const content=await readFile(`${chunkDir}/${chunk.file}`,"utf8");
@@ -43,17 +42,17 @@ const checks={
   worship_review_queue_complete:Number(worshipReviewSummary.candidate_records??-1)===Number(worshipReport.schedule_candidates_pending_review??0)+Number(worshipReport.profile_candidates_pending_review??0)&&worshipReviewRows.length===Number(worshipReviewSummary.candidate_records??-1),
   worship_review_queue_duplicate_free:new Set(worshipReviewIds).size===worshipReviewIds.length&&Number(worshipReviewSummary.duplicate_candidates??-1)===0,
   worship_review_is_manual_and_batched:worshipReviewSummary.automatic_approval===false&&worshipReviews.metadata?.automatic_publication===false&&Number(worshipReviewSummary.batch_count??0)>0&&Number(worshipReviewSummary.batch_count)<=20,
-  people_preserved:people.length>0&&Number(collection.metadata?.homonymExcludedPeople??-1)===0,
+  people_preserved:people.length>0,
   every_role_has_person:roles.every((role)=>peopleIds.has(role.directoryPersonId)),
   official_role_sources_present:roles.every((role)=>isHttp(role.sourceUrl)),
   exact_role_duplicates_absent:new Set(roleKeys).size===roleKeys.length,
-  private_fields_absent:findPrivateKeys({people,roles,photos,links}).length===0,
+  private_fields_absent:findPrivateKeys({people,roles,photos}).length===0,
   sensitive_values_absent:(serializedPublicText.match(sensitivePattern)??[]).length===0,
   photos_are_optional:photos.length<=people.length&&Number(photoBundle.metadata?.missingPhotos??0)>=0,
   photo_people_are_known:photoIds.every((id)=>peopleIds.has(id)),
   photo_duplicates_absent:new Set(photoIds).size===photoIds.length,
   photo_sources_and_hashes_complete:photos.every((photo)=>isHttp(photo.imageUrl)&&isHttp(photo.sourcePageUrl)&&/^[a-f0-9]{64}$/.test(photo.imageSha256??"")&&photo.identityUse==="official_labeled_photo_evidence"),
-  identity_links_are_non_destructive:links.every((link)=>link.evidence==="same_name_and_exact_official_photo_file"&&(link.directoryPersonIds??[]).length>=2&&(link.directoryPersonIds??[]).every((id)=>peopleIds.has(id))),
+  no_name_based_linkage:!("identityLinks" in importPlan)&&Number(importPlan.metadata?.nameBasedExclusions??-1)===0,
   photos_not_auto_publishable:Number(importPlan.metadata?.photosAutomaticallyPublishable??0)===0,
   import_plan_matches_collection:importPeople.length===people.length&&importRoles.length===roles.length,
   people_and_roles_pending:importPeople.every((person)=>person.reviewStatus==="pending")&&importRoles.every((role)=>role.reviewStatus==="pending"),
@@ -62,5 +61,5 @@ const checks={
   low_load_chunks:Number(manifest.batchSize??0)>0&&Number(manifest.batchSize)<=200&&(manifest.chunks??[]).length>0&&chunkChecks.every((chunk)=>chunk.hashMatches&&chunk.withinBatch),
 };
 const failed=Object.entries(checks).filter(([,passed])=>!passed).map(([name])=>name);
-console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,missingPhotos:Number(photoBundle.metadata?.missingPhotos??0),identityLinkGroups:links.length,homonymsExcluded:Number(collection.metadata?.homonymExcludedPeople??-1),worshipChurches:Number(worshipReport.registered_churches??0),worshipReviewCandidates:worshipReviewRows.length,worshipReviewBatches:Number(worshipReviewSummary.batch_count??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,identityFile,importPlanFile,manifestFile,worshipReportFile,worshipReviewSummaryFile,worshipReviewsFile}},null,2));
+console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,missingPhotos:Number(photoBundle.metadata?.missingPhotos??0),nameBasedLinks:0,worshipChurches:Number(worshipReport.registered_churches??0),worshipReviewCandidates:worshipReviewRows.length,worshipReviewBatches:Number(worshipReviewSummary.batch_count??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,importPlanFile,manifestFile,worshipReportFile,worshipReviewSummaryFile,worshipReviewsFile}},null,2));
 if(failed.length)process.exitCode=1;
