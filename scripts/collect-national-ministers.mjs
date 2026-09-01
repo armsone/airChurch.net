@@ -87,7 +87,8 @@ function candidateLinks(html, baseUrl) {
       if (BLOCKED_PATH.test(url.pathname) || !LINK_HINT.test(`${label} ${url.pathname}`)) continue;
       url.hash = "";
       const clue = `${label} ${decodeURIComponent(url.pathname)}`;
-      const priority = /교역자|목회자|사역자|섬기는|staff|pastor|minister|servant/i.test(clue) ? 100
+      const priority = /교역자|목회자|사역자|섬기는|staff|pastor|minister|servant/i.test(clue)
+        || /^\s*-?\s*(?:목사|전도사)\s*$/u.test(label) ? 100
         : /원로|은퇴|역대|개척|연혁|history/i.test(clue) ? 80
           : /인사말|약력|소개|greeting|profile|bio/i.test(clue) ? 60 : 20;
       found.push({ url: url.toString(), label, priority });
@@ -122,9 +123,17 @@ function genericPastorRoster(html) {
   return cards.length >= 3;
 }
 
+function historicalMinistryPage(html, sourceUrl) {
+  const heading = htmlText((html.match(/<title\b[^>]*>[\s\S]*?<\/title>/i)?.[0] ?? "")
+    + " " + (html.match(/<h[1-3]\b[^>]*>[\s\S]*?<\/h[1-3]>/i)?.[0] ?? ""));
+  const clue = `${heading} ${decodeURIComponent(sourceUrl)}`;
+  return /(?:부서\s*)?목회자\s*연혁|교회\s*연혁|교역자\s*연혁|역대\s*(?:담임|교역자|목회자)|ministry\s*history|pastor\s*history/i.test(clue);
+}
+
 function extractMinisters(html, church, sourceUrl, checkedAt) {
   const text = htmlText(html);
   const allowGenericPastor = genericPastorRoster(html);
+  const forceFormer = historicalMinistryPage(html, sourceUrl);
   const people = [];
   for (const match of text.matchAll(ROLE_RE)) {
     const role = clean(match[1] ?? match[4]);
@@ -143,7 +152,7 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
       directoryPersonId: `person-${digest(personKey)}`,
       name,
       ...normalized,
-      roleStatus: /원로|은퇴/.test(role) || isFormer ? "former" : "current",
+      roleStatus: forceFormer || /원로|은퇴/.test(role) || isFormer ? "former" : "current",
       directoryChurchId: church.directoryChurchId,
       churchName: church.name,
       denomination: church.denomination,
