@@ -178,7 +178,10 @@ export function validateNoSensitiveData(value, location = "root") {
   if (!value || typeof value !== "object") return;
   for (const [key, item] of Object.entries(value)) {
     if (FORBIDDEN_KEYS.test(key)) throw new Error(`forbidden_field:${location}.${key}`);
-    if (["factSummary", "role", "organization"].includes(key) && (SENSITIVE_TEXT.test(String(item ?? "")) || CONTACT_VALUE_TEXT.test(String(item ?? "")))) {
+    const text=String(item??"");
+    const sensitiveSummary=key==="factSummary"&&(SENSITIVE_TEXT.test(text)||CONTACT_VALUE_TEXT.test(text));
+    const contactInIdentity=["role","organization"].includes(key)&&CONTACT_VALUE_TEXT.test(text);
+    if (sensitiveSummary||contactInIdentity) {
       throw new Error(`sensitive_text:${location}.${key}`);
     }
     validateNoSensitiveData(item, `${location}.${key}`);

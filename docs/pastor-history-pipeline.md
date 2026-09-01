@@ -22,7 +22,7 @@
 
 전국 목회자 검색부터 시작하지 않는다. [`selection-policy.json`](../data/pastor-history/selection-policy.json)에 따라 airChurch에서 이미 검토 승인된 국내 교회를 기준점으로 삼는다. 공식 출처에서 확인되는 담임·위임·대표·부·교육·협동·원로·은퇴목사를 각각 별도 후보로 다룬다. 초청 설교자와 행사 강사는 대상이 아니다. 국내 범위는 서울부터 제주까지 17개 시·도 접두어로 제한하며 해외 지역은 별도 보류한다.
 
-교회 명부의 단일 `pastor` 값은 현재 주된 목회자 후보를 만드는 단서일 뿐 직책의 증거가 아니다. 추가 역할은 `pastors` 배열에 이름·직책·current/former 상태·가능한 시작/종료일을 별도 행으로 제공한다. 명부 주장은 `roleTitleClaim`, `roleStatusClaim`, `startDateClaim`, `endDateClaim`으로만 보존하며 공식 출처 두 곳에서 확인하기 전에는 항상 `needs_source_curation`, `confidence: unverified`, `publicationEligible: false`다.
+교회 명부의 단일 `pastor` 값은 현재 주된 목회자 후보를 만드는 단서일 뿐 직책의 증거가 아니다. 추가 역할은 `pastors` 배열에 이름·직책·current/former 상태·가능한 시작/종료일을 별도 행으로 제공한다. 담임·위임·대표뿐 아니라 부·수석부·행정·목양·교육목사, 강도사, 전임·교육전도사, 전도사, 협동·원로·은퇴 교역자를 한 교회에 여러 명 연결할 수 있다. 명부 주장은 `roleTitleClaim`, `roleStatusClaim`, `startDateClaim`, `endDateClaim`으로만 보존하며 공식 출처 두 곳에서 확인하기 전에는 항상 `needs_source_curation`, `confidence: unverified`, `publicationEligible: false`다.
 
 역할은 `current_primary`, `associate`, `education`, `cooperating`, `emeritus`, `retired`로 나눈다. 같은 사람이 여러 역할을 가졌으면 역할·기관·기간·current/former 상태별로 별도 레코드를 만든다. 승계나 재직 기간은 추정하지 않는다. 모든 역할의 `searchPriorityWeight`와 `publicationPriorityWeight`는 동일한 1이며, 담임목사라는 이유로 더 높은 검색·공개 우선순위를 주지 않는다.
 
@@ -76,6 +76,8 @@ npm run pastor-history:import:dry-run -- --approval-template out/pastor-history/
 ```
 
 첫 명령은 승인 교회에서 1단계 대상 큐를 만들 뿐 네트워크나 DB에 접근하지 않는다. 결과는 `out/pastor-history/roster.json`이며, 사람이 각 후보의 공식 출처와 짧은 사실 주장을 source manifest에 추가해야 한다.
+
+공식 홈페이지가 아직 등록되지 않은 교회도 ID·교회명·대표 교역자 후보와 동일 우선순위를 유지한다. 이 경우 `transportReview: source_discovery_required`로 표시하고 교회·교단·노회의 공식 공개 출처 찾기를 후속 과제로 남긴다. 정보 부족 자체는 보류·감점·삭제 사유가 아니며 공식 확인 전에는 공개 이력만 비워 둔다.
 
 전국용 source manifest는 `policy.pilotOnly`를 사용하지 않고 `policy.selectionPolicyId`를 roster와 같게 지정하며, 각 `subjects[].id`와 `identity`도 roster 후보와 정확히 같아야 한다. 전국 수집은 반드시 roster를 함께 전달한다.
 

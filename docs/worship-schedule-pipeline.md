@@ -13,7 +13,7 @@
 
 ## 정규화 형식
 
-각 예배 후보는 `record_id`, `church_id`, `church_name`, `service_type`, `day_of_week`(MON~SUN 배열), `start_time`(24시간 HH:mm), `venue_audience`, `source_text`, `source_url`, `collected_at`, `source_last_modified`, `confidence`, `review_status`, `flags`를 가집니다. 교회 프로필 후보는 `profile_id`, `church_id`, `church_name`, `slogan`, `vision`, `summary`, `address`, `phone`과 동일한 출처·검토 필드를 가집니다.
+각 예배 후보는 `record_id`, `church_id`, `church_name`, `service_type`, `day_of_week`(MON~SUN 배열), `start_time`(24시간 HH:mm), `venue_audience`, `source_text`, `source_url`, `collected_at`, `source_last_modified`, `confidence`, `review_status`, `flags`를 가집니다. 교회 프로필 후보는 `profile_id`, `church_id`, `church_name`, `slogan`, `vision`, `summary`, `address`와 동일한 출처·검토 필드를 가집니다. 연락처는 공개 프로필에서 분리합니다.
 
 같은 교회·예배 종류·요일·시각·장소는 동일한 `record_id`로 중복 제거합니다. 재수집 시 더 최근 `collected_at`만 남깁니다. 페이지 갱신일을 알 수 없거나 표현이 모호한 후보는 자동 승인하지 않습니다. 검토자는 출처 URL과 원문 표기를 직접 대조해야 합니다.
 

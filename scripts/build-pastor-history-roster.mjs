@@ -11,16 +11,16 @@ const MAX_INPUT_BYTES = 20_000_000;
 const MAX_RECORDS = 50_000;
 const ROLE_CATEGORIES = {
   current_primary: ["담임목사", "위임목사", "대표목사"],
-  associate: ["부목사"],
-  education: ["교육목사"],
+  associate: ["부목사", "수석부목사", "행정목사", "목양목사"],
+  education: ["교육목사", "강도사", "전임전도사", "교육전도사", "전도사"],
   cooperating: ["협동목사"],
   emeritus: ["원로목사"],
   retired: ["은퇴목사"],
 };
 const ROLE_BY_TITLE = new Map(Object.entries(ROLE_CATEGORIES).flatMap(([category, titles]) => titles.map((title) => [title, category])));
-const UNSUPPORTED_ROLE = /(?:기관)\s*목사|선교사|전도사|강도사|장로|사모/u;
+const UNSUPPORTED_ROLE = /(?:기관)\s*목사|선교사|장로|사모/u;
 const MULTIPLE_PEOPLE = /(?:[,/&·ㆍ]|\s외(?:\s*\d+명)?$|\s및\s)/u;
-const GENERIC_NAME = /^(?:(?:교육|협동|원로|은퇴|담임|위임|대표|부)\s*)?목사(?:님)?$|^(?:미상|없음|공석|청빙중)$/u;
+const GENERIC_NAME = /^(?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*)?목사(?:님)?$|^(?:강도사|전임전도사|교육전도사|전도사)(?:님)?$|^(?:미상|없음|공석|청빙중)$/u;
 
 function parseArgs(argv) {
   const value = (name, fallback = null) => { const index = argv.indexOf(name); return index >= 0 ? argv[index + 1] : fallback; };
@@ -49,8 +49,8 @@ function parsePastorLabel(value, explicitRole = null, requireExplicitRole = fals
   let roleTitleClaim = normalizeRoleTitle(explicitRole);
   let name = label;
   if (!roleTitleClaim) {
-    const prefix = label.match(/^((?:교육|협동|원로|은퇴|담임|위임|대표|부)\s*목사)(?:님)?\s+(.+)$/u);
-    const suffix = label.match(/^(.+?)\s+((?:교육|협동|원로|은퇴|담임|위임|대표|부)\s*목사)(?:님)?$/u);
+    const prefix = label.match(/^((?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?\s+(.+)$/u);
+    const suffix = label.match(/^(.+?)\s+((?:(?:교육|협동|원로|은퇴|담임|위임|대표|부|수석부|행정|목양)\s*목사|강도사|전임전도사|교육전도사|전도사))(?:님)?$/u);
     if (prefix) { roleTitleClaim = normalizeRoleTitle(prefix[1]); name = prefix[2]; }
     else if (suffix) { name = suffix[1]; roleTitleClaim = normalizeRoleTitle(suffix[2]); }
     else name = label.replace(/\s*목사(?:님)?$/u, "");
@@ -95,9 +95,9 @@ function dateClaim(value) {
 
 function inputRecords(input) {
   if (Array.isArray(input)) return { records: input, approvedOnly: false };
-  const records = Array.isArray(input?.items) ? input.items : Array.isArray(input?.records) ? input.records : null;
+  const records = Array.isArray(input?.items) ? input.items : Array.isArray(input?.records) ? input.records : Array.isArray(input?.churches) ? input.churches : null;
   if (!records) throw new Error("church_records_array_required");
-  return { records, approvedOnly: input.metadata?.approvedOnly === true };
+  return { records, approvedOnly: input.metadata?.approvedOnly === true || input.metadata?.approved_only === true };
 }
 
 function approvedRecord(record, approvedOnly) {
@@ -152,12 +152,13 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
       continue;
     }
     const rawHomepage = clean(recordValue(record, "homepageUrl", "homepage_url", "homepage"), 500);
-    let homepageUrl;
-    try { homepageUrl = validateSourceUrl(rawHomepage, "official_church").toString(); } catch (error) {
-      holds.push(hold(record, "official_public_homepage_required", error.message));
-      continue;
+    let homepageUrl = null,homepageSourceIssue=null;
+    if (rawHomepage) {
+      try { homepageUrl = validateSourceUrl(rawHomepage, "official_church").toString(); } catch (error) {
+        homepageSourceIssue=error.message;
+      }
     }
-    const homepageTransport = transportReview(homepageUrl);
+    const homepageTransport = homepageUrl ? transportReview(homepageUrl) : { transportSecurity: "unknown", transportWarning: null, transportReview: "source_discovery_required" };
     const rawChannelId = clean(recordValue(record, "youtubeChannelId", "youtube_channel_id", "channelId"), 80);
     const youtubeChannelCandidateUrl = /^UC[\w-]{20,}$/.test(rawChannelId) ? `https://www.youtube.com/channel/${rawChannelId}` : null;
     const churchId = Number(recordValue(record, "id", "churchId", "church_id"));
@@ -167,6 +168,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
       churchId: Number.isInteger(churchId) && churchId > 0 ? churchId : null,
       church: { churchName, denomination, region },
       officialHomepageUrl: homepageUrl,
+      homepageSourceIssue,
       ...homepageTransport,
       roleCategoriesToDiscover: ["associate", "education", "cooperating", "emeritus", "retired"],
       reviewStatus: "needs_official_role_discovery",
@@ -175,7 +177,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
       searchPriorityWeight: 1,
       publicationPriorityWeight: 1,
       fairnessPolicy: "equal_across_role_categories",
-      nextAction: "공식 교역자·섬기는 사람들·연혁 페이지에서 각 목사 이름·직책·current/former 상태를 별도 행으로 확인한다.",
+      nextAction: homepageUrl ? "공식 교역자·섬기는 사람들·연혁 페이지에서 각 목사 이름·직책·current/former 상태를 별도 행으로 확인한다." : "교회·교단·노회의 공식 공개 출처를 먼저 찾아 교역자 이름과 직책을 확인한다.",
     });
     const entries = roleEntries(record);
     if (!entries.length) { holds.push(hold(record, "pastor_name_missing")); continue; }
@@ -210,6 +212,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
         startDateClaim,
         endDateClaim,
         officialHomepageUrl: homepageUrl,
+        homepageSourceIssue,
         ...homepageTransport,
         youtubeChannelCandidateUrl,
         requiredOfficialIdentitySources: Math.max(2, Number(policy.minimumOfficialIdentitySources ?? 2)),
@@ -219,7 +222,7 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
         searchPriorityWeight: 1,
         publicationPriorityWeight: 1,
         fairnessPolicy: "equal_across_role_categories",
-        nextAction: "공식 페이지 두 곳에서 이름·교회·교단·지역·직책과 current/former 상태를 각각 확인한다.",
+        nextAction: homepageUrl ? "공식 페이지 두 곳에서 이름·교회·교단·지역·직책과 current/former 상태를 각각 확인한다." : "교회·교단·노회의 공식 공개 출처를 찾아 이름·교회·교단·지역·직책을 확인한다.",
       });
     }
   }

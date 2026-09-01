@@ -106,6 +106,7 @@ const output = {
     schema_version: 1,
     generated_at: new Date().toISOString(),
     source: `${baseUrl}/api/churches`,
+    approved_only: true,
     expected_total: expectedTotal,
     exported_total: churches.length,
     with_homepage: withHomepage,

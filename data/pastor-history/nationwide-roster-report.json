@@ -1,0 +1,19 @@
+{
+  "generated_at": "2026-09-01T01:30:45.170Z",
+  "input_approved_churches": 1782,
+  "pastor_candidates": 1770,
+  "role_discovery_queue": 1772,
+  "candidates_without_homepage": 1149,
+  "equal_priority_verified": true,
+  "automatic_publication": false,
+  "public_contact_fields": 0,
+  "sensitive_findings": 0,
+  "http_source_warnings": 273,
+  "holds": {
+    "outside_korea_first_phase": 10,
+    "invalid_pastor_name": 2
+  },
+  "selection_policy_id": "approved-church-all-official-pastors-v3",
+  "selection_policy_sha256": "e8ea30818d0f5b673e7cbb0f11f46b90997fd1de86bfd29578697d5287778fb4",
+  "operating_database_writes": 0
+}

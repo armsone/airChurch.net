@@ -3,6 +3,7 @@
     "schema_version": 1,
     "generated_at": "2026-09-01T00:33:24.570Z",
     "source": "https://airchurch.net/api/churches",
+    "approved_only": true,
     "expected_total": 1782,
     "exported_total": 1782,
     "with_homepage": 630,

@@ -36,7 +36,7 @@ const selectionPolicy = {
   phase: "all_official_church_pastors",
   roleCategories: {
     current_primary: ["담임목사", "위임목사", "대표목사"],
-    associate: ["부목사"], education: ["교육목사"], cooperating: ["협동목사"], emeritus: ["원로목사"], retired: ["은퇴목사"],
+    associate: ["부목사", "수석부목사", "행정목사", "목양목사"], education: ["교육목사", "강도사", "전임전도사", "교육전도사", "전도사"], cooperating: ["협동목사"], emeritus: ["원로목사"], retired: ["은퇴목사"],
   },
   requiredIdentityAxes: ["pastor", "church", "denomination", "region", "role"],
   allowedRegionPrefixes: ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
@@ -142,6 +142,36 @@ test("does not trust a status-free church list unless the export declares approv
   const roster = buildPastorRoster({ items: [church] }, selectionPolicy, "2026-09-01T00:00:00.000Z");
   assert.equal(roster.candidates.length, 0);
   assert.equal(roster.holds[0].reason, "church_not_approved");
+});
+
+test("accepts the nationwide approved churches export shape", () => {
+  const roster=buildPastorRoster({metadata:{approved_only:true},churches:[{
+    church_id:10,church_name:"공식교회",pastor:"김공개 목사",denomination:"공식교단",region:"서울 종로구",homepage_url:"https://official.example/church/",
+  }]},selectionPolicy,"2026-09-01T00:00:00.000Z");
+  assert.equal(roster.metadata.inputRecords,1);
+  assert.equal(roster.metadata.candidates,1);
+});
+
+test("keeps a basic equal-priority candidate when an approved church has no homepage", () => {
+  const roster=buildPastorRoster({metadata:{approved_only:true},churches:[{
+    church_id:12,church_name:"정보대기교회",pastor:"이응원 목사",denomination:"공식교단",region:"경기 수원",
+  }]},selectionPolicy,"2026-09-01T00:00:00.000Z");
+  assert.equal(roster.metadata.candidates,1);
+  assert.equal(roster.metadata.held,0);
+  assert.equal(roster.candidates[0].officialHomepageUrl,null);
+  assert.equal(roster.candidates[0].transportReview,"source_discovery_required");
+  assert.equal(roster.candidates[0].searchPriorityWeight,1);
+  assert.equal(roster.candidates[0].publicationEligible,false);
+});
+
+test("rejects a social or YouTube homepage as evidence without dropping the church candidate",()=>{
+  const roster=buildPastorRoster({metadata:{approved_only:true},churches:[{
+    church_id:13,church_name:"출처대기교회",pastor:"박기다 목사",denomination:"공식교단",region:"부산 수영",homepage_url:"https://www.youtube.com/@ExampleChurch",
+  }]},selectionPolicy,"2026-09-01T00:00:00.000Z");
+  assert.equal(roster.metadata.candidates,1);
+  assert.equal(roster.metadata.held,0);
+  assert.equal(roster.candidates[0].officialHomepageUrl,null);
+  assert.equal(roster.candidates[0].homepageSourceIssue,"source_type_host_mismatch");
 });
 
 test("keeps overseas churches outside the first nationwide Korea scope", () => {
@@ -426,4 +456,10 @@ test("rejects sensitive fields from staged artifacts", () => {
   assert.throws(() => validateNoSensitiveData({ factSummary: "배우자와 자녀 정보" }), /sensitive_text/);
   assert.throws(() => validateNoSensitiveData({ factSummary: "문의 02-1234-5678" }), /sensitive_text/);
   assert.throws(() => validateNoSensitiveData({ factSummary: "후원 123-456-789012" }), /sensitive_text/);
+});
+
+test("does not mistake an official church name containing family or health words for private data",()=>{
+  assert.doesNotThrow(()=>validateNoSensitiveData({organization:"청라예수가족교회",role:"담임목사"}));
+  assert.doesNotThrow(()=>validateNoSensitiveData({organization:"건강한교회",role:"담임목사"}));
+  assert.throws(()=>validateNoSensitiveData({organization:"공식교회 010-1234-5678",role:"담임목사"}),/sensitive_text/);
 });
