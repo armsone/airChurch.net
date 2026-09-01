@@ -4,6 +4,8 @@ import {readFile,writeFile,mkdir,rename} from "node:fs/promises";
 import path from "node:path";
 
 const axes=["pastor","church","denomination","region","role"];
+const normalized=(value)=>String(value??"").toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/목사(?:님)?$/u,"");
+const evidenceMatches=(values,expected)=>{const target=normalized(expected);return (values??[]).some((value)=>{const item=normalized(value);return item&&target&&(item.includes(target)||target.includes(item));});};
 const camelSource=(source)=>({type:source.type,url:source.url,recrawlDays:Number(source.recrawl_days??30),identityContribution:source.identity_contribution,identityEvidence:source.identity_evidence,assertions:(source.assertions??[]).map((item)=>({eventType:item.event_type,role:item.role,roleCategory:item.role_category,roleStatus:item.role_status,organization:item.organization,startDate:item.start_date??null,endDate:item.end_date??null,factSummary:item.fact_summary,evidenceAll:item.evidence_all,isPrimaryRole:item.is_primary_role===true}))});
 export function buildPastorSourceManifest(review,roster){
   if(review?.metadata?.mode!=="official_source_curation_review"||review?.metadata?.automatic_publication!==false||roster?.metadata?.dryRun!==true||roster?.metadata?.published!==false)throw new Error("unsafe_source_manifest_input");
@@ -15,10 +17,12 @@ export function buildPastorSourceManifest(review,roster){
     for(const source of task.official_sources??[]){
       source.identity_contribution.forEach((axis)=>covered.add(axis));
       if((source.assertions?.length??0)>0&&!["pastor","church","role"].every((axis)=>source.identity_contribution.includes(axis)))throw new Error("assertion_source_missing_core_identity");
+      if((source.assertions?.length??0)>0&&(!evidenceMatches(source.identity_evidence?.pastor,task.pastor_name)||!evidenceMatches(source.identity_evidence?.church,task.church_name)))throw new Error("assertion_source_identity_mismatch");
       const url=new URL(source.url),policy=source.site_policy,site={host:url.hostname,collectionAllowed:true,sourceTypes:[source.type],allowedPathPrefixes:policy.allowed_path_prefixes,minimumDelayMs:Math.max(1500,Number(policy.minimum_delay_ms??2500)),policyReviewedAt:policy.policy_reviewed_at,policyUrl:policy.policy_url,note:String(policy.note??"공식 공개 페이지의 사실 확인 범위만 순차 수집한다.").slice(0,200)};
       const existing=sites.get(url.hostname);if(existing){existing.sourceTypes=[...new Set([...existing.sourceTypes,...site.sourceTypes])].sort();existing.allowedPathPrefixes=[...new Set([...existing.allowedPathPrefixes,...site.allowedPathPrefixes])].sort();if(existing.policyReviewedAt!==site.policyReviewedAt||existing.policyUrl!==site.policyUrl)throw new Error("conflicting_site_policy");}else sites.set(url.hostname,site);
     }
     if(axes.some((axis)=>!covered.has(axis)))throw new Error("incomplete_five_axis_identity");
+    if(!evidenceMatches((task.official_sources??[]).flatMap((source)=>source.identity_evidence?.pastor??[]),task.pastor_name)||!evidenceMatches((task.official_sources??[]).flatMap((source)=>source.identity_evidence?.church??[]),task.church_name))throw new Error("official_source_identity_mismatch");
     const complementary=!task.official_sources.some((source)=>axes.every((axis)=>source.identity_contribution.includes(axis)));
     subjects.push({id:task.subject_id,churchId:task.church_id,identity:{pastorName:task.pastor_name,churchName:task.church_name,denomination:task.denomination,region:task.region},role:{category:task.role_category,title:task.confirmed_role_title,status:task.confirmed_role_status},...(complementary?{identityEvidenceMode:"complementary"}:{}),minimumIdentitySources:complementary?Math.max(2,task.official_sources.length):1,sources:task.official_sources.map(camelSource)});
   }

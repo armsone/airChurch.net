@@ -19,6 +19,7 @@ const DEFAULT_ADMIN_CONTACTS_OUTPUT = "out/pastor-history/admin-contact-candidat
 const MAX_BODY_BYTES = 1_000_000;
 const TIMEOUT_MS = 15_000;
 const CACHE_VERSION = 5;
+export const isSupportedOfficialContentType=(contentType)=>/(?:text\/html|application\/xhtml\+xml|text\/plain|application\/(?:[\w.+-]+\+)?json)/i.test(contentType??"");
 
 function parseArgs(argv) {
   const value = (name, fallback) => { const index = argv.indexOf(name); return index >= 0 ? argv[index + 1] : fallback; };
@@ -182,8 +183,7 @@ export async function collectPastorHistory(manifest, {
     }
     if (!response.ok) throw new Error(`source_http_${response.status}`);
     const contentType = response.headers.get("content-type") ?? "";
-    const officialJson=url.pathname.startsWith("/wp-json/")&&/application\/json/i.test(contentType);
-    if (!officialJson&&!/(?:text\/html|application\/xhtml\+xml|text\/plain)/i.test(contentType)) throw new Error("unsupported_content_type");
+    if (!isSupportedOfficialContentType(contentType)) throw new Error("unsupported_content_type");
     return { html: await limitedText(response), finalUrl: url.toString(), status: response.status };
   }
 

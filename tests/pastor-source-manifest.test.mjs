@@ -14,4 +14,5 @@ test("builds a roster-bound complementary official collection manifest",()=>{
 test("rejects roster mismatch and missing identity axes",()=>{
   const mismatch=structuredClone(review);mismatch.tasks[0].pastor_name="다른 이름";assert.throws(()=>buildPastorSourceManifest(mismatch,roster),/roster_mismatch/);
   const incomplete=structuredClone(review);incomplete.tasks[0].official_sources.pop();assert.throws(()=>buildPastorSourceManifest(incomplete,roster),/five_axis/);
+  const misplaced=structuredClone(review);misplaced.tasks[0].official_sources[0].identity_evidence.pastor=["다른목사"];assert.throws(()=>buildPastorSourceManifest(misplaced,roster),/identity_mismatch/);
 });

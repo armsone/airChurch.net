@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { collectPastorHistory } from "../scripts/collect-pastor-history.mjs";
+import { collectPastorHistory,isSupportedOfficialContentType } from "../scripts/collect-pastor-history.mjs";
 import { buildPastorRoster } from "../scripts/build-pastor-history-roster.mjs";
 import { buildApprovalTemplate, buildImportPlan } from "../scripts/dry-run-pastor-history-import.mjs";
 import {
@@ -12,6 +12,12 @@ import {
   validateNoSensitiveData,
   validateSourceUrl,
 } from "../scripts/pastor-history-core.mjs";
+
+test("accepts bounded JSON from an explicitly approved official source",()=>{
+  assert.equal(isSupportedOfficialContentType("application/json; charset=utf-8"),true);
+  assert.equal(isSupportedOfficialContentType("application/problem+json"),true);
+  assert.equal(isSupportedOfficialContentType("application/octet-stream"),false);
+});
 
 const subject = {
   id: "official-church-pastor",
