@@ -47,6 +47,15 @@ test("provides a scheduled low-load path independent of visitor traffic",async()
   assert.match(retention,/maybeRunDataRetention\(database\(\)\)/);
 });
 
+test("records pipeline attempts and failures instead of hiding one behind another",async()=>{
+  const [sermons,praises,admin]=await Promise.all([read("../app/api/sermons/sync/route.ts"),read("../app/api/praises/sync/route.ts"),read("../app/admin/page.tsx")]);
+  for(const [route,name] of [[sermons,"sermon"],[praises,"praise"]]){assert.match(route,new RegExp(`youtube-${name}-last-attempt`));assert.match(route,new RegExp(`youtube-${name}-last-failure`));}
+  assert.match(admin,/sermon_failure_at/);
+  assert.match(admin,/praise_failure_at/);
+  assert.match(admin,/sermonSyncEpoch>=sermonFailureEpoch/);
+  assert.match(admin,/praiseSyncEpoch>=praiseFailureEpoch/);
+});
+
 test("unified search promotes approved pastor profiles before videos",async()=>{
   const search=await read("../app/search/page.tsx");
   assert.match(search,/FROM church_ministry_profiles p JOIN churches c/);

@@ -479,6 +479,7 @@ export async function POST(request:Request) {
   const leaseInsert=await db.prepare("INSERT OR IGNORE INTO sync_state (key,last_synced_at) VALUES (?,CURRENT_TIMESTAMP)").bind(leaseKey).run();
   const leaseUpdate=Number(leaseInsert.meta?.changes??0)===0?await db.prepare("UPDATE sync_state SET last_synced_at=CURRENT_TIMESTAMP WHERE key=? AND last_synced_at<datetime('now','-30 minutes')").bind(leaseKey).run():null;
   if(Number(leaseInsert.meta?.changes??0)===0&&Number(leaseUpdate?.meta?.changes??0)===0)return Response.json({ok:true,imported:0,skipped:"sync_in_progress"});
+  await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-sermon-last-attempt',CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").run();
   try {
   let imported=0;
   let verified=0;
@@ -554,8 +555,12 @@ export async function POST(request:Request) {
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(cursorKey,String(nextCursor)).run();
   if(nextCursor===0&&checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(syncKey,new Date().toISOString()).run();
   if(checked>0) await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-sermon-last-success',?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").bind(new Date().toISOString()).run();
+  if(failed>0)await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-sermon-last-failure',CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").run();
   const approved=await db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL").first<{count:number}>();
   return Response.json({ok:true,scope,checked,failed,verified,approved:approved?.count??0,removed,imported,resetShorts:resetShortsResult?.meta.changes??0,nextStart:nextCursor||null});
+  } catch(error) {
+    await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-sermon-last-failure',CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").run().catch(()=>undefined);
+    throw error;
   } finally {
     // A failed network or D1 operation must not leave collection blocked until
     // the stale-lease timeout. Releasing here also covers unexpected throws.
