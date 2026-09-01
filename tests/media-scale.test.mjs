@@ -20,6 +20,8 @@ test("archives more items from one fetched playlist in one bounded database batc
   assert.doesNotMatch(sync,/for\(const item of recentSermons\.slice/);
   assert.doesNotMatch(sync,/UPDATE churches SET review_status='removed'/);
   assert.match(sync,/missing or quiet YouTube channel is a collection gap/);
+  assert.match(sync,/finally \{/);
+  assert.match(sync,/DELETE FROM sync_state WHERE key=\?/);
 });
 
 test("admin health reports catalog and church coverage rather than only freshness",async()=>{

@@ -36,6 +36,7 @@ const checks={
   approved_person_search_only:searchPage.includes("p.review_status='approved'")&&searchPage.includes('id="pastor-results"'),
   media_gap_does_not_hold_church:syncRoute.includes("missing or quiet YouTube channel is a collection gap")&&!syncRoute.includes("UPDATE churches SET review_status='removed'"),
   expanded_archive_is_batched:syncRoute.includes("recentSermons.slice(0,18)")&&syncRoute.includes("recentShorts.slice(0,12)")&&syncRoute.includes("recentPraises.slice(0,12)")&&syncRoute.includes("await db.batch(mediaStatements)"),
+  collection_lease_released_on_failure:syncRoute.includes("finally {")&&syncRoute.includes('DELETE FROM sync_state WHERE key=?')&&syncRoute.includes(".catch(()=>undefined)"),
   edge_cache_keeps_stale_content:mediaRoutes.every((route)=>route.includes("cdn-cache-control")&&route.includes("stale-while-revalidate=3600")&&!route.includes("s-maxage")),
   offline_person_coverage_report:coverageReport.includes('mode:"offline_read_only"')&&coverageReport.includes("network_requests:0")&&coverageReport.includes("database_writes:0")&&coverageReport.includes("isSermonAttributedTo"),
   bounded_low_load:importRoute.includes("operations.length>100")&&importRoute.includes("offset+=50")&&churchPage.includes("LIMIT 80"),
