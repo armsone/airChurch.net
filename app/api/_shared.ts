@@ -244,7 +244,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v21' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v22' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -389,6 +389,9 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await db.prepare(`${kwangsungExtendedStaff} INSERT OR IGNORE INTO pastor_church_roles(pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,source_url,review_status) SELECT p.id,c.id,c.name,c.denomination,c.region,staff.role_title,staff.role_category,'current',staff.source_url,'approved' FROM staff JOIN pastor_people p ON REPLACE(TRIM(p.name),' ','')=REPLACE(staff.name,' ','') JOIN churches c ON REPLACE(TRIM(c.name),' ','')='거룩한빛광성교회' WHERE p.review_status='approved'`).run();
   await db.prepare("UPDATE churches SET pastor='곽승현' WHERE REPLACE(TRIM(name),' ','')='거룩한빛광성교회'").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v21',CURRENT_TIMESTAMP)").run();
+  await db.prepare(`WITH ranked AS (SELECT r.id,ROW_NUMBER() OVER(PARTITION BY REPLACE(TRIM(p.name),' ',''),r.church_id,r.role_title ORDER BY CASE WHEN p.directory_id LIKE 'kwangsung-official-%' THEN 0 ELSE 1 END,p.id,r.id) AS duplicate_rank FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.review_status='approved' AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')='거룩한빛광성교회') DELETE FROM pastor_church_roles WHERE id IN (SELECT id FROM ranked WHERE duplicate_rank>1)`).run();
+  await db.prepare("DELETE FROM pastor_people WHERE directory_id LIKE 'kwangsung-official-%' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id)").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v22',CURRENT_TIMESTAMP)").run();
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
