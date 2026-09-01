@@ -9,6 +9,8 @@ import { safeHttpUrl } from "../safe-url";
 import ReviewerResolutionControls from "./reviewer-resolution-controls";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensureAdminTables } from "../api/_shared";
+import PrivateContactList from "../private-contact-list";
+import { readPrivateContacts } from "../private-contact-vault";
 
 export const dynamic = "force-dynamic";
 export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
@@ -46,6 +48,7 @@ export default async function AdminPage() {
 
   const db = database();
   await ensureAdminTables(db);
+  const privateContacts=await readPrivateContacts(db,{role:"admin",reviewerId:0});
   const [today, week, month, active, hourly, daily, monthly, churches, heldChurches, recommendations, pendingCommunity, publicChurchRows, heldChurchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),
@@ -98,6 +101,8 @@ export default async function AdminPage() {
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>
     </section>
     <section className="admin-operations action-center-cards"><a className="admin-operation-card opinion" href="#reviewer-queue"><small>목사님 요청</small><strong>{changeRequestRows.results.length+pendingConcernGroups.length}</strong><span>{pendingRequestCount||pendingConcernGroups.length?`처리할 요청 ${pendingRequestCount+pendingConcernGroups.length}건 ↓`:"새 요청 없음"}</span></a><a className="admin-operation-card" href="#contact-requests"><small>운영 문의</small><strong>{pendingContactCount}</strong><span>권리자·정보 수정 요청 확인 ↓</span></a><a className="admin-operation-card" href="#pending-posts"><small>익명 글 검토</small><strong>{pendingCommunity?.count??0}</strong><span>새 글·신고 누적 글 결정 ↓</span></a><a className="admin-operation-card" href="#reviewer-accounts"><small>가입 승인 대기</small><strong>{pendingReviewerCount}</strong><span>목회자 계정 확인 ↓</span></a><a className="admin-operation-card" href="#church-recommendations"><small>교회 추천 검토</small><strong>{recommendations?.count ?? 0}</strong><span>등록 결정 ↓</span></a><a className="admin-operation-card" href="#church-management"><small>전체 교회</small><strong>{churches?.count ?? 0}</strong><span>검색·수정·보류·삭제 ↓</span></a></section>
+
+    <PrivateContactList items={privateContacts} viewer="관리자"/>
 
     <section className="admin-panel reviewer-queue" id="reviewer-queue"><div className="admin-panel-title"><div><small>PASTOR REQUESTS</small><h2>목사님 요청 결정</h2><p>요청 내용을 그대로 승인하거나, 반려해 목사님이 다시 보게 하거나, 일단 보류만 결정합니다.</p></div><span>{changeRequestRows.results.length}건</span></div><div className="reviewer-queue-list">{changeRequestRows.results.length?changeRequestRows.results.map((request)=><article className="is-concern" key={request.id}><div className="admin-record-heading"><div><strong>{request.church_name}</strong><small><b>{pastorLabel(request.church_pastor)}</b> · {request.church_region} · {request.church_denomination}</small></div><div className="admin-record-status"><span className="reviewer-concern">{request.request_type==="edit"?"수정 요청":request.request_type==="hold"?"보류 요청":"삭제 요청"}</span><span>{request.reviewer_name}</span></div></div><ChurchReferenceLinks name={request.church_name} homepageUrl={request.church_homepage_url} youtubeChannelId={request.church_youtube_channel_id}/><div className="reviewer-opinion-copy"><time>{koreanTime(request.created_at)}</time><p>{request.reason}</p>{request.request_type==="edit"&&<p><strong>변경안</strong> · {request.proposed_name} · {request.proposed_pastor} · {request.proposed_region} · {request.proposed_denomination}</p>}{request.status==="deferred"&&request.admin_note&&<p className="admin-follow-up-note">일단 보류 · {request.admin_note}</p>}</div><ChurchRequestResolution id={request.id}/></article>):<div className="reviewer-queue-empty"><strong>지금 처리할 목사님 요청이 없습니다</strong><p>새 요청이 접수되면 이곳에 표시됩니다.</p></div>}</div></section>
 

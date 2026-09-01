@@ -178,6 +178,18 @@ export const ensureSubmissionRateTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-submission-rate-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
+export const ensurePrivateContactTables=memoizeEnsure(async(db:D1Database)=>{
+  await ensureMaintenanceState(db);
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-private-contacts-v1' LIMIT 1").first<{key:string}>();
+  if(ready)return;
+  await db.batch([
+    db.prepare("CREATE TABLE IF NOT EXISTS private_church_contacts (id INTEGER PRIMARY KEY AUTOINCREMENT,church_id INTEGER NOT NULL REFERENCES churches(id),contact_type TEXT NOT NULL,encrypted_value TEXT NOT NULL,value_digest TEXT NOT NULL,scope TEXT NOT NULL DEFAULT 'organization',source_url TEXT NOT NULL,review_status TEXT NOT NULL DEFAULT 'approved',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE(church_id,contact_type,value_digest))"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_private_church_contacts_church ON private_church_contacts(church_id,review_status,contact_type)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS private_contact_access_events (id INTEGER PRIMARY KEY AUTOINCREMENT,actor_role TEXT NOT NULL,actor_id INTEGER NOT NULL DEFAULT 0,record_count INTEGER NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_private_contact_access_created ON private_contact_access_events(created_at DESC)"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-private-contacts-v1',CURRENT_TIMESTAMP)"),
+  ]);
+});
 const schemaBundleReady=async(db:D1Database,keys:string[])=>{
   await ensureMaintenanceState(db);
   const placeholders=keys.map(()=>"?").join(",");
@@ -195,9 +207,9 @@ export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1"];
   if(await schemaBundleReady(db,keys))return;
-  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
+  await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db)]);
 });
 let retentionCheckAfter=0;
 let retentionPromise:Promise<void>|null=null;
@@ -224,6 +236,7 @@ export async function maybeRunDataRetention(db:D1Database){
     if(tables.has("admin_login_attempts"))statements.push(db.prepare("DELETE FROM admin_login_attempts WHERE window_started<datetime('now','-2 days')"));
     if(tables.has("access_sessions"))statements.push(db.prepare("DELETE FROM access_sessions WHERE expires_at<datetime('now','-2 days')"));
     if(tables.has("submission_rate_limits"))statements.push(db.prepare("DELETE FROM submission_rate_limits WHERE window_started<datetime('now','-2 days')"));
+    if(tables.has("private_contact_access_events"))statements.push(db.prepare("DELETE FROM private_contact_access_events WHERE created_at<datetime('now','-180 days')"));
     if(statements.length)try{await db.batch(statements);}catch(error){await db.prepare("UPDATE maintenance_state SET completed_at=datetime('now','-2 days') WHERE key='personal-data-retention-v1'").run().catch(()=>{});throw error;}
   })().catch(()=>{retentionCheckAfter=Date.now()+60*1000;}).finally(()=>{retentionPromise=null;});
   await retentionPromise;
