@@ -40,7 +40,7 @@ const selectionPolicy = {
   },
   requiredIdentityAxes: ["pastor", "church", "denomination", "region", "role"],
   allowedRegionPrefixes: ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
-  minimumOfficialIdentitySources: 2,
+  minimumOfficialIdentitySources: 1,
   allowsPublicHttpRead: true,
   visibilityPriorityPolicy: "equal_across_role_categories",
   publicationDefault: false,
@@ -80,7 +80,7 @@ test("builds non-public pastor candidates only from explicitly approved churches
   assert.equal(roster.candidates[0].reviewStatus, "needs_source_curation");
   assert.equal(roster.candidates[0].confidence, "unverified");
   assert.equal(roster.candidates[0].publicationEligible, false);
-  assert.equal(roster.candidates[0].requiredOfficialIdentitySources, 2);
+  assert.equal(roster.candidates[0].requiredOfficialIdentitySources, 1);
   assert.equal(roster.candidates[0].roleCategory, "current_primary");
   assert.deepEqual(roster.candidates[0].eligibleRoleTitles, ["담임목사", "위임목사", "대표목사"]);
   assert.equal(roster.candidates[0].searchPriorityWeight, 1);

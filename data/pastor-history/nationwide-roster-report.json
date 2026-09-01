@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T01:30:45.170Z",
+  "generated_at": "2026-09-01T01:35:23.215Z",
   "input_approved_churches": 1782,
   "pastor_candidates": 1770,
   "role_discovery_queue": 1772,
@@ -14,6 +14,6 @@
     "invalid_pastor_name": 2
   },
   "selection_policy_id": "approved-church-all-official-pastors-v3",
-  "selection_policy_sha256": "e8ea30818d0f5b673e7cbb0f11f46b90997fd1de86bfd29578697d5287778fb4",
+  "selection_policy_sha256": "87785d2997e10318b5babbade99fdd6daabe0ecef233371928f27888f6853c67",
   "operating_database_writes": 0
 }

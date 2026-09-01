@@ -14,7 +14,7 @@
   "allowedRegionPrefixes": ["서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종", "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"],
   "excludedAppearances": ["초청 설교자", "행사 강사", "집회 인도자", "개인 SNS에서만 소속을 주장한 사람"],
   "requiredIdentityAxes": ["pastor", "church", "denomination", "region", "role"],
-  "minimumOfficialIdentitySources": 2,
+  "minimumOfficialIdentitySources": 1,
   "allowsPublicHttpRead": true,
   "visibilityPriorityPolicy": "equal_across_role_categories",
   "publicationDefault": false

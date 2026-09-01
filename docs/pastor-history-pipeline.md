@@ -16,13 +16,13 @@
 
 공식 교회·교단 페이지에 공개된 교역자 이메일·전화번호·계좌번호도 공개 이력 산출물이나 일반 수집 캐시에는 한 글자도 넣지 않는다. 검증된 후보는 별도 관리자 입력 파일 `out/pastor-history/admin-contact-candidates.json`에만 저장한다. 각 후보의 필수 필드는 `churchId`, `type`(`email`, `phone`, `account`), `value`, `scope: official_role`, 공식 `sourceUrl`이다. 추가로 `reviewStatus: pending`, `visibility: admin_only`, `revealPolicy: masked_audited`, `publicationEligible: false`를 붙인다. 운영 DB와 암호화 키는 이 파이프라인이 다루지 않으며, 팀장이 후보를 승인한 뒤 운영 암호화 입력 절차를 별도로 수행한다. 개인 SNS나 비공식 출처의 연락정보는 후보가 될 수 없다.
 
-동명이인 방지를 위해 각 출처에서 목사 이름·교회명·교단·지역·역할 다섯 축을 모두 확인하고, 기본적으로 공식 출처 두 곳 이상이 같은 신원을 지지해야 한다. 한 축이라도 빠지거나 현재 주된 직책이 충돌하면 이력은 비워 두고 보류 사유만 기록한다. 근거가 약해 빈 결과가 되는 것은 정상적인 성공이다.
+동명이인 방지를 위해 각 출처에서 목사 이름·교회명·교단·지역·역할 다섯 축을 확인한다. 공식 교회·교단·노회 공개 페이지 한 곳에서 이름·교회·직책이 함께 확인되면 기본 후보 근거로 충분하다. 동명이인 가능성이 있거나 직책·기간이 충돌할 때만 두 번째 공식 출처를 요구한다. 한 축이라도 빠지거나 충돌이 해결되지 않으면 이력은 비워 두고 보류 사유만 기록한다. 근거가 약해 빈 결과가 되는 것은 정상적인 성공이다.
 
 ## 전국 대상 선정
 
 전국 목회자 검색부터 시작하지 않는다. [`selection-policy.json`](../data/pastor-history/selection-policy.json)에 따라 airChurch에서 이미 검토 승인된 국내 교회를 기준점으로 삼는다. 공식 출처에서 확인되는 담임·위임·대표·부·교육·협동·원로·은퇴목사를 각각 별도 후보로 다룬다. 초청 설교자와 행사 강사는 대상이 아니다. 국내 범위는 서울부터 제주까지 17개 시·도 접두어로 제한하며 해외 지역은 별도 보류한다.
 
-교회 명부의 단일 `pastor` 값은 현재 주된 목회자 후보를 만드는 단서일 뿐 직책의 증거가 아니다. 추가 역할은 `pastors` 배열에 이름·직책·current/former 상태·가능한 시작/종료일을 별도 행으로 제공한다. 담임·위임·대표뿐 아니라 부·수석부·행정·목양·교육목사, 강도사, 전임·교육전도사, 전도사, 협동·원로·은퇴 교역자를 한 교회에 여러 명 연결할 수 있다. 명부 주장은 `roleTitleClaim`, `roleStatusClaim`, `startDateClaim`, `endDateClaim`으로만 보존하며 공식 출처 두 곳에서 확인하기 전에는 항상 `needs_source_curation`, `confidence: unverified`, `publicationEligible: false`다.
+교회 명부의 단일 `pastor` 값은 현재 주된 목회자 후보를 만드는 단서일 뿐 직책의 증거가 아니다. 추가 역할은 `pastors` 배열에 이름·직책·current/former 상태·가능한 시작/종료일을 별도 행으로 제공한다. 담임·위임·대표뿐 아니라 부·수석부·행정·목양·교육목사, 강도사, 전임·교육전도사, 전도사, 협동·원로·은퇴 교역자를 한 교회에 여러 명 연결할 수 있다. 명부 주장은 `roleTitleClaim`, `roleStatusClaim`, `startDateClaim`, `endDateClaim`으로만 보존하며 공식 출처 검토 전에는 항상 `needs_source_curation`, `confidence: unverified`, `publicationEligible: false`다.
 
 역할은 `current_primary`, `associate`, `education`, `cooperating`, `emeritus`, `retired`로 나눈다. 같은 사람이 여러 역할을 가졌으면 역할·기관·기간·current/former 상태별로 별도 레코드를 만든다. 승계나 재직 기간은 추정하지 않는다. 모든 역할의 `searchPriorityWeight`와 `publicationPriorityWeight`는 동일한 1이며, 담임목사라는 이유로 더 높은 검색·공개 우선순위를 주지 않는다.
 

@@ -215,14 +215,14 @@ export function buildPastorRoster(input, policy, generatedAt = new Date().toISOS
         homepageSourceIssue,
         ...homepageTransport,
         youtubeChannelCandidateUrl,
-        requiredOfficialIdentitySources: Math.max(2, Number(policy.minimumOfficialIdentitySources ?? 2)),
+        requiredOfficialIdentitySources: Math.max(1, Number(policy.minimumOfficialIdentitySources ?? 1)),
         reviewStatus: "needs_source_curation",
         confidence: "unverified",
         publicationEligible: false,
         searchPriorityWeight: 1,
         publicationPriorityWeight: 1,
         fairnessPolicy: "equal_across_role_categories",
-        nextAction: homepageUrl ? "공식 페이지 두 곳에서 이름·교회·교단·지역·직책과 current/former 상태를 각각 확인한다." : "교회·교단·노회의 공식 공개 출처를 찾아 이름·교회·교단·지역·직책을 확인한다.",
+        nextAction: homepageUrl ? "공식 페이지에서 이름·교회·직책을 확인하고, 동명이인이나 직책·기간 충돌 때만 두 번째 공식 출처를 확인한다." : "교회·교단·노회의 공식 공개 출처를 찾아 이름·교회·직책을 확인한다.",
       });
     }
   }

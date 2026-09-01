@@ -315,7 +315,8 @@ function eventKey(event) {
 
 export function finalizeSubject(subject, sourceResults) {
   const verifiedSources = new Set(sourceResults.filter((result) => result.identityMatched).map((result) => result.sourceUrl));
-  const minimum = Math.max(2, Number(subject.minimumIdentitySources ?? 2));
+  const ambiguous=subject.identityAmbiguous===true||subject.identityConflict===true||subject.requiresAdditionalIdentitySource===true;
+  const minimum = ambiguous?Math.max(2,Number(subject.minimumIdentitySources??2)):Math.max(1,Number(subject.minimumIdentitySources??1));
   const inheritedHolds = sourceResults.flatMap((result) => result.holds ?? []).map((hold) => ({ ...hold, confidence: "low", reviewStatus: "hold" }));
   if (verifiedSources.size < minimum) {
     return {

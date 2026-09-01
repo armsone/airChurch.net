@@ -18,7 +18,7 @@ for (const profile of (input.approved_profiles || []).filter((row) => row.review
   operations.push({ action: "upsert_reviewed_church_profile", key: profile.profile_id, values: profile });
 }
 const payload = JSON.stringify(operations);
-const output = { metadata: { generated_at: new Date().toISOString(), dry_run: true, operation_count: operations.length, source_collection_hold_count: input.collection_held?.length || 0, source_collection_error_count: input.collection_errors?.length || 0, sha256: createHash("sha256").update(payload).digest("hex"), requires_separate_apply_authorization: true }, operations };
+const output = { metadata: { generated_at: new Date().toISOString(), dry_run: true, operation_count: operations.length, source_collection_hold_count: input.collection_held?.length || 0, source_collection_error_count: input.collection_errors?.length || 0, sha256: createHash("sha256").update(payload).digest("hex"), approvalVerified:input.metadata?.approvalVerified===true,approvalDigest:input.metadata?.approvalDigest??null,privacyScan:input.metadata?.privacyScan??null,transportReview:input.metadata?.transportReview??null, requires_separate_apply_authorization: true }, operations };
 await mkdir(dirname(outputPath), { recursive: true }); const temp = `${outputPath}.tmp`;
 await writeFile(temp, `${JSON.stringify(output, null, 2)}\n`, "utf8"); await rename(temp, outputPath);
 console.log(JSON.stringify(output.metadata));
