@@ -10,8 +10,8 @@ export function buildGapckPastorReviewUpdate(task,review){
   const region=task.region.split(/\s+/).filter(Boolean),churchQuery=encodeURIComponent(task.church_name),pastorQuery=encodeURIComponent(task.pastor_name),base={subject_id:task.subject_id,church_id:task.church_id,pastor_name:task.pastor_name,church_name:task.church_name,denomination:task.denomination,region:task.region,role_category:task.role_category};
   const event={event_type:"position",role:"담임목사",role_category:"current_primary",role_status:"current",organization:task.church_name,start_date:null,end_date:null,fact_summary:`${task.church_name} 공식 교단 명부가 ${task.pastor_name}을 담임교역자로 연결한다.`,evidence_all:[task.pastor_name,task.church_name,"pastor"],is_primary_role:true};
   return {...base,decision:"ready",reviewed_at:review.reviewed_at,note:review.note,confirmed_role_title:"담임목사",confirmed_role_status:"current",discovered_roles:[],official_sources:[
-    source(`https://gapck.org/api/v1/eMBER_USER_HOMEPAGE_LIST?skip=0&limit=10&sort=15&search_type=minister&mber_nm=${pastorQuery}`,["pastor","church","region"],{pastor:[task.pastor_name],church:[task.church_name],region}),
-    source(`https://gapck.org/api/v1/eORG_USER_HOMEPAGE_CHURCH_LIST?skip=0&limit=10&sort=1&org_nm=${churchQuery}`,["pastor","church","region","role"],{pastor:[task.pastor_name],church:[task.church_name],region,role:["pastor"]},[event]),
+    source(`https://gapck.org/api/v1/eMBER_USER_HOMEPAGE_LIST?skip=0&limit=100&sort=15&search_type=minister&mber_nm=${pastorQuery}`,["pastor","church","region"],{pastor:[task.pastor_name],church:[task.church_name],region}),
+    source(`https://gapck.org/api/v1/eORG_USER_HOMEPAGE_CHURCH_LIST?skip=0&limit=100&sort=1&org_nm=${churchQuery}`,["pastor","church","region","role"],{pastor:[task.pastor_name],church:[task.church_name],region,role:["pastor"]},[event]),
     source("https://gapck.org/history?cat=ideology",["denomination"],{denomination:["대한예수교장로회총회"]}),
   ]};
 }
