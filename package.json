@@ -26,6 +26,7 @@
     "worship:plan-all": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/all-validated-dry-run.json --output data/worship-schedules/all-import-plan.json",
     "worship:report-all": "node scripts/worship-schedules/report.mjs",
     "ministry:verify-release": "node scripts/verify-ministry-release.mjs",
+    "test:ministry-release": "node --test tests/church-detail-import.test.mjs tests/encouragements.test.mjs tests/ministry-profiles.test.mjs tests/pastor-history-pipeline.test.mjs tests/worship-schedule-pipeline.test.mjs && node --test --test-name-pattern='applies every migration' tests/rendered-html.test.mjs && npm run ministry:verify-release && npm run build",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

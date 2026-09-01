@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -279,14 +279,15 @@ test("gives pastors a searchable request desk and administrators a focused decis
 });
 
 test("applies every migration to a fresh database including reviewer workflow tables", async () => {
-  const migrationFiles=["0000_public_joseph.sql","0001_condemned_toxin.sql","0002_thankful_storm.sql","0003_chilly_chamber.sql","0004_fuzzy_slayback.sql","0005_medical_shadowcat.sql","0006_legal_stranger.sql","0007_pinup_priority.sql","0008_fat_silverclaw.sql","0009_church_change_requests.sql","0010_church_shorts.sql","0011_charming_rawhide_kid.sql","0012_easy_rumiko_fujikawa.sql"];
+  const migrationDirectory=new URL("../drizzle/",import.meta.url);
+  const migrationFiles=(await readdir(migrationDirectory)).filter((file)=>/^\d{4}_.+\.sql$/.test(file)).sort();
   const sql=(await Promise.all(migrationFiles.map((file)=>readFile(new URL(`../drizzle/${file}`,import.meta.url),"utf8")))).join("\n");
   const directory=await mkdtemp(join(tmpdir(),"airchurch-migrations-"));
   const databasePath=join(directory,"fresh.sqlite");
   try {
     const migrated=spawnSync("sqlite3",[databasePath],{input:sql,encoding:"utf8"});
     assert.equal(migrated.status,0,migrated.stderr);
-    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests','church_shorts','church_profiles','worship_schedules') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches); PRAGMA table_info(church_shorts); PRAGMA table_info(church_profiles); PRAGMA table_info(worship_schedules);"],{encoding:"utf8"});
+    const checked=spawnSync("sqlite3",[databasePath,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('reviewer_accounts','reviewer_church_reviews','church_change_requests','church_shorts','church_profiles','worship_schedules','encouragement_messages','church_ministry_profiles','ministry_profile_suggestions') ORDER BY name; PRAGMA table_info(reviewer_church_reviews); PRAGMA table_info(church_change_requests); PRAGMA table_info(churches); PRAGMA table_info(church_shorts); PRAGMA table_info(church_profiles); PRAGMA table_info(worship_schedules); PRAGMA table_info(encouragement_messages); PRAGMA table_info(church_ministry_profiles); PRAGMA table_info(ministry_profile_suggestions);"],{encoding:"utf8"});
     assert.equal(checked.status,0,checked.stderr);
     assert.match(checked.stdout,/reviewer_accounts/);
     assert.match(checked.stdout,/reviewer_church_reviews/);
@@ -294,12 +295,18 @@ test("applies every migration to a fresh database including reviewer workflow ta
     assert.match(checked.stdout,/church_shorts/);
     assert.match(checked.stdout,/church_profiles/);
     assert.match(checked.stdout,/worship_schedules/);
+    assert.match(checked.stdout,/encouragement_messages/);
+    assert.match(checked.stdout,/church_ministry_profiles/);
+    assert.match(checked.stdout,/ministry_profile_suggestions/);
     assert.match(checked.stdout,/request_type/);
     assert.match(checked.stdout,/admin_resolution/);
     assert.match(checked.stdout,/review_resolution_token/);
     assert.match(checked.stdout,/youtube_id/);
     assert.match(checked.stdout,/slogan/);
     assert.match(checked.stdout,/service_type/);
+    assert.match(checked.stdout,/target_ref/);
+    assert.match(checked.stdout,/role_category/);
+    assert.match(checked.stdout,/fingerprint/);
   } finally {
     await rm(directory,{recursive:true,force:true});
   }
