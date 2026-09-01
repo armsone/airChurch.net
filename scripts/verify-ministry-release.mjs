@@ -5,8 +5,8 @@ import {readFile} from "node:fs/promises";
 
 const read=async(path)=>JSON.parse(await readFile(path,"utf8"));
 const text=async(path)=>readFile(path,"utf8");
-const [roster,policy,worship,report,churchPage,pastorPage,attribution,suggestionRoute,importRoute]=await Promise.all([
-  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/pastor-sermon-attribution.ts"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),
+const [roster,policy,worship,report,churchPage,pastorPage,attribution,suggestionRoute,importRoute,dryRunImporter,searchPage,syncRoute,coverageReport,...mediaRoutes]=await Promise.all([
+  read("data/pastor-history/nationwide-roster-report.json"),read("data/pastor-history/selection-policy.json"),read("data/worship-schedules/pilot-approved-import-plan.json"),read("data/worship-schedules/all-report.json"),text("app/church/[id]/page.tsx"),text("app/pastors/[id]/page.tsx"),text("app/pastor-sermon-attribution.ts"),text("app/api/ministry-suggestions/route.ts"),text("app/api/admin/church-details/import/route.ts"),text("scripts/dry-run-pastor-history-import.mjs"),text("app/search/page.tsx"),text("app/api/sermons/sync/route.ts"),text("scripts/report-pastor-media-coverage.mjs"),text("app/api/sermons/route.ts"),text("app/api/praises/route.ts"),text("app/api/shorts/route.ts"),
 ]);
 const publicOperations=JSON.stringify(worship.operations);
 const privateContactArtifact="data/worship-schedules/all-contact-candidates.review.json";
@@ -32,6 +32,12 @@ const checks={
   duplicate_free:new Set(worship.operations.map((item)=>item.key)).size===worship.operations.length,
   approved_only_queries:churchPage.includes("church_ministry_profiles WHERE church_id=? AND review_status='approved'")&&pastorPage.includes("church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved'")&&pastorPage.includes("FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved'"),
   guarded_sermon_attribution:pastorPage.includes("isSermonAttributedTo(sermon.title,displayName,!minister)")&&attribution.includes("isPrimary&&named.length===0")&&attribution.includes("named.includes(subject)"),
+  reviewed_pastor_import_is_guarded:dryRunImporter.includes('action:"upsert_reviewed_ministry_profile"')&&dryRunImporter.includes('action:"upsert_reviewed_ministry_appearance"')&&dryRunImporter.includes("requires_separate_apply_authorization: true")&&importRoute.includes("calculated=await digest(operations)")&&importRoute.includes("declared!==calculated"),
+  approved_person_search_only:searchPage.includes("p.review_status='approved'")&&searchPage.includes('id="pastor-results"'),
+  media_gap_does_not_hold_church:syncRoute.includes("missing or quiet YouTube channel is a collection gap")&&!syncRoute.includes("UPDATE churches SET review_status='removed'"),
+  expanded_archive_is_batched:syncRoute.includes("recentSermons.slice(0,18)")&&syncRoute.includes("recentShorts.slice(0,12)")&&syncRoute.includes("recentPraises.slice(0,12)")&&syncRoute.includes("await db.batch(mediaStatements)"),
+  edge_cache_keeps_stale_content:mediaRoutes.every((route)=>route.includes("cdn-cache-control")&&route.includes("stale-while-revalidate=3600")&&!route.includes("s-maxage")),
+  offline_person_coverage_report:coverageReport.includes('mode:"offline_read_only"')&&coverageReport.includes("network_requests:0")&&coverageReport.includes("database_writes:0")&&coverageReport.includes("isSermonAttributedTo"),
   bounded_low_load:importRoute.includes("operations.length>100")&&importRoute.includes("offset+=50")&&churchPage.includes("LIMIT 80"),
   operating_db_writes_before_authorization:roster.operating_database_writes===0,
 };

@@ -1,6 +1,6 @@
 # 목사 공개 이력 수집 파이프라인
 
-이 파이프라인은 airChurch 공개 프로필에 바로 쓰지 않는 검토 전용 도구다. 공식 공개 페이지에서 사전에 정의한 짧은 사실을 확인해 `pending` 기록으로 만들고, 모든 결과는 기본적으로 `dryRun: true`, `published: false`다. 운영 DB나 공개 API에 쓰는 코드는 포함하지 않는다.
+이 파이프라인은 공식 공개 페이지에서 사전에 정의한 짧은 사실을 확인해 `pending` 기록으로 만드는 검토 우선 도구다. 모든 수집 결과는 기본적으로 `dryRun: true`, `published: false`이며 자동 공개하지 않는다. 사람이 정확한 산출물 해시와 전체 사건을 승인한 뒤에도 별도 관리자 업로드와 같은 해시 재확인을 거쳐야 운영 DB에 반영된다.
 
 ## 수집 경계
 
@@ -20,7 +20,7 @@
 
 ## 전국 대상 선정
 
-전국 목회자 검색부터 시작하지 않는다. [`selection-policy.json`](../data/pastor-history/selection-policy.json)에 따라 airChurch에서 이미 검토 승인된 국내 교회를 기준점으로 삼는다. 공식 출처에서 확인되는 담임·위임·대표·부·교육·협동·원로·은퇴목사를 각각 별도 후보로 다룬다. 초청 설교자와 행사 강사는 대상이 아니다. 국내 범위는 서울부터 제주까지 17개 시·도 접두어로 제한하며 해외 지역은 별도 보류한다.
+전국 목회자 검색부터 시작하지 않는다. [`selection-policy.json`](../data/pastor-history/selection-policy.json)에 따라 airChurch에서 이미 검토 승인된 국내 교회를 기준점으로 삼는다. 공식 출처에서 확인되는 담임·위임·대표·부·교육·협동·원로·은퇴목사를 각각 별도 후보로 다룬다. 교회 명부와 무관한 초청 설교자·행사 강사를 이름만으로 새 인물 후보로 자동 생성하지는 않는다. 다만 이미 교회 및 역할과 연결되어 검증된 목회자가 다른 교회에서 설교·집회·세미나를 한 공식 기록은 별도 `ministry_appearance` 이력으로 연결할 수 있다. 국내 범위는 서울부터 제주까지 17개 시·도 접두어로 제한하며 해외 지역은 별도 보류한다.
 
 교회 명부의 단일 `pastor` 값은 현재 주된 목회자 후보를 만드는 단서일 뿐 직책의 증거가 아니다. 추가 역할은 `pastors` 배열에 이름·직책·current/former 상태·가능한 시작/종료일을 별도 행으로 제공한다. 담임·위임·대표뿐 아니라 부·수석부·행정·목양·교육목사, 강도사, 전임·교육전도사, 전도사, 협동·원로·은퇴 교역자를 한 교회에 여러 명 연결할 수 있다. 명부 주장은 `roleTitleClaim`, `roleStatusClaim`, `startDateClaim`, `endDateClaim`으로만 보존하며 공식 출처 검토 전에는 항상 `needs_source_curation`, `confidence: unverified`, `publicationEligible: false`다.
 
@@ -93,6 +93,13 @@ roster가 없거나 후보 신원이 다르면 네트워크 요청 전에 중단
 
 세 번째 명령은 공개 이력 JSON만 받아 DB에 쓰지 않고 `out/pastor-history/import-plan.json`만 만든다. 관리자 연락처 후보 파일을 읽거나 포함하지 않는다. `--apply`, `--publish`, `--write-db`는 의도적으로 지원하지 않는다. 승인 템플릿은 승인서가 아니며 기본 결정값이 `pending`이다.
 
+수집 대상별 검색은 이름 하나로 끝내지 않는다. 다음 네 갈래를 교회명·교단·지역과 함께 교차 검색하고, 공식 출처만 manifest에 등록한다.
+
+- 신원·현재 역할: 교역자, 섬기는 사람들, 조직
+- 이동·승계 이력: 개척, 부임, 사임, 은퇴, 원로 추대
+- 외부 사역: 초청 설교, 특별 집회, 부흥회, 세미나
+- 교단 이력: 교단·노회 공식 인사 및 연혁
+
 사람이 모든 사실과 출처를 확인한 경우에만 승인 파일에 다음을 기록한다.
 
 - `decision: "approved"`
@@ -106,7 +113,23 @@ roster가 없거나 후보 신원이 다르면 네트워크 요청 전에 중단
 npm run pastor-history:import:dry-run -- --approval out/pastor-history/approval.json
 ```
 
-승인이 정확히 일치해도 이 도구는 `publicationEligible: true`인 계획만 만들며, DB 쓰기와 공개는 여전히 0건이다. 실제 게시 기능을 별도로 만들 때도 이 승인 digest 검증과 `human_approved` 상태를 서버 측에서 다시 요구해야 한다.
+승인이 정확히 일치하면 이 도구는 `publicationEligible: true`인 계획과 `upsert_reviewed_ministry_profile`·`upsert_reviewed_ministry_appearance` 작업을 만든다. 이 단계의 DB 쓰기와 공개는 여전히 0건이다. 관리자가 `/admin`의 검토 자료 가져오기에서 해당 JSON을 선택하고, 표시된 작업 수와 SHA-256 해시를 다시 입력해야만 승인 레코드가 반영된다. 서버는 관리자 권한, 요청 출처, 최대 100개 작업, 50개 단위 배치, 승인 교회, 공식 HTTP(S) 출처, 민감정보 없음, 허용 역할·날짜를 다시 검사한다.
+
+## 영상 연결 원칙
+
+- 현재 담임목사의 교회 공식 채널 설교는 제목에 다른 목회자가 명시되지 않은 경우 그 담임목사의 영상으로 본다.
+- 부·협동·원로·은퇴목사는 제목에 해당 인물 이름과 `목사` 표기가 명시된 영상만 자동 연결한다.
+- 제목에 다른 목회자가 명시된 초청 설교는 현재 담임목사 영상에서 제외한다.
+- 다른 교회의 공식 기록은 승인된 `ministry_appearance`로만 연결하며, 동명이인은 교회·역할·교단·지역 근거가 맞지 않으면 보류한다.
+- 영상 파일과 썸네일을 airChurch에 복제하지 않고 YouTube 식별자와 최소 메타데이터만 저장한다.
+
+전체 영상 수보다 ‘승인된 목회자 중 검증된 영상이 한 편 이상 연결된 비율’을 우선한다. 운영 내보내기로 이 비율을 점검할 때는 다음 오프라인 명령을 사용한다.
+
+```bash
+npm run pastor-media:coverage -- --input reviewed-media-export.json --output out/pastor-media-coverage.json
+```
+
+입력은 `churches`, `ministryProfiles`, `sermons`, `ministryAppearances` 배열을 담은 JSON이다. 이 도구는 네트워크와 DB에 접근하지 않고 담임목사 기본 귀속, 비담임 제목 명시, 승인된 외부 사역을 같은 규칙으로 계산한다. 사람·교회·역할별 커버리지와 영상이 없는 검토 큐만 출력한다.
 
 ## 운영 원칙
 
