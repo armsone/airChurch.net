@@ -16,6 +16,7 @@ const BAD_IMAGE = /(?:logo|icon|sub[_-]?top|header|title[_-]?bg|sprite|loading|s
 const DISCOVERY_VERSION = 5;
 const PAGE_HINT = /프로필|약력|인사말|대표|소개|교역자|목회자|사역자|섬기는|원로|은퇴|담임|부목사|설교|말씀|영상|profile|bio(?:graphy)?|staff|pastor|minister|servant|leadership|clergy|sermon|preach|video/i;
 const DISCOVERY_HINT = /프로필|약력|인사말|대표|소개|교역자|목회자|사역자|섬기는|원로|은퇴|추대|개척|담임|부목사|전도사|노회|총회|동문|임직|부임|연감|주소록|profile|bio(?:graphy)?|staff|pastor|minister|servant|leadership|clergy|member|directory/i;
+const NON_OFFICIAL_HOST = /(?:youtube|youtu\.be|facebook|instagram|naver|daum|kakao|google|bing|twitter|tiktok)\./i;
 
 function parseArgs(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -109,6 +110,25 @@ function relatedPageUrls(html, baseUrl, people = []) {
     } catch {}
   }
   return [...new Map(urls.toSorted((left, right) => right.priority - left.priority).map((item) => [item.url, item])).values()].map((item) => item.url);
+}
+
+function officialChurchLinks(html, baseUrl, people = []) {
+  const base = new URL(baseUrl), grouped = new Map();
+  for (const match of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
+    try {
+      const url = new URL(decodeEntities(match[1]), baseUrl);
+      if (!new Set(["http:", "https:"]).has(url.protocol) || url.hostname === base.hostname || NON_OFFICIAL_HOST.test(url.hostname)) continue;
+      const at = match.index ?? 0;
+      const context = clean(html.slice(Math.max(0, at - 500), Math.min(html.length, at + match[0].length + 500)).replace(/<[^>]+>/g, " "));
+      const matched = people.filter((person) => person.churchName && context.replace(/\s+/g, "").includes(clean(person.churchName).replace(/\s+/g, "")));
+      if (!matched.length) continue;
+      url.hash = "";
+      const key = `${url.origin}${url.pathname === "/" ? "/" : url.pathname}`;
+      if (!grouped.has(key)) grouped.set(key, { url: url.toString(), people: new Map() });
+      for (const person of matched) grouped.get(key).people.set(person.directoryPersonId, person);
+    } catch {}
+  }
+  return [...grouped.values()].map((item) => ({ url: item.url, people: [...item.people.values()] }));
 }
 
 function labeledPhoto(html, person, pageUrl, pagePeople) {
@@ -211,6 +231,15 @@ async function main() {
     for (const url of discovery.urls ?? []) if (!sourceGroups.has(url)) sourceGroups.set(url, peopleForHost);
   }
   const jobs = [...sourceGroups.entries()].filter(([sourceUrl]) => !checkpoint.sources[sourceUrl]);
+  const queued = new Set([...sourceGroups.keys(), ...Object.keys(checkpoint.sources)]);
+  const depthByUrl = new Map(jobs.map(([sourceUrl]) => [sourceUrl, 0]));
+  const enqueue = (sourceUrl, sourcePeople, depth) => {
+    if (queued.has(sourceUrl) || !sourcePeople.length) return;
+    queued.add(sourceUrl);
+    depthByUrl.set(sourceUrl, depth);
+    sourceGroups.set(sourceUrl, sourcePeople);
+    jobs.push([sourceUrl, sourcePeople]);
+  };
   const hostReadyAt = new Map();
   let cursor = 0;
   async function paced(url) {
@@ -222,6 +251,7 @@ async function main() {
   const workers = Array.from({ length: Math.min(options.concurrency, Math.max(1, jobs.length)) }, async () => {
     while (cursor < jobs.length) {
       const [sourceUrl, sourcePeople] = jobs[cursor++];
+      const depth = depthByUrl.get(sourceUrl) ?? 0;
       const checkedAt = iso();
       try {
         await paced(sourceUrl);
@@ -229,6 +259,10 @@ async function main() {
         const type = response.headers.get("content-type") ?? "";
         if (!/html|xhtml/i.test(type)) throw new Error("unsupported_content_type");
         const html = new TextDecoder().decode(bytes);
+        if (depth < 2) {
+          for (const discoveredUrl of relatedPageUrls(html, response.url, sourcePeople).slice(0, 10)) enqueue(discoveredUrl, sourcePeople, depth + 1);
+          for (const linked of officialChurchLinks(html, response.url, sourcePeople).slice(0, 20)) enqueue(linked.url, linked.people, depth + 1);
+        }
         const matches = [];
         for (const person of sourcePeople) {
           const candidate = labeledPhoto(html, person, response.url, sourcePeople);
