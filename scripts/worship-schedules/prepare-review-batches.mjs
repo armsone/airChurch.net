@@ -7,7 +7,8 @@ import path from "node:path";
 const sensitivePattern=/(?:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}|(?<!\d)01[016789][- .]?\d{3,4}[- .]?\d{4}(?!\d)|(?:계좌|account)\s*[:：]?\s*\d[\d -]{7,})/gi;
 const safeText=(value,max)=>String(value??"").trim().slice(0,max);
 const digest=(value)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
-export const immutableWorshipReviewRecord=(review)=>({record_id:review.record_id,candidate_type:review.candidate_type,church_id:review.church_id,church_name:review.church_name,service_type:review.service_type,day_of_week:review.day_of_week,start_time:review.start_time,venue_audience:review.venue_audience,slogan:review.slogan,vision:review.vision,summary:review.summary,source_url:review.source_url,confidence:review.confidence,flags:review.flags});
+export const worshipReviewLane=(record)=>{const flags=new Set(record.flags??[]);if(flags.has("privacy_redacted")||flags.has("possibly_stale"))return "careful";return record.confidence==="high"?"quick":"standard";};
+export const immutableWorshipReviewRecord=(review)=>({record_id:review.record_id,candidate_type:review.candidate_type,church_id:review.church_id,church_name:review.church_name,service_type:review.service_type,day_of_week:review.day_of_week,start_time:review.start_time,venue_audience:review.venue_audience,slogan:review.slogan,vision:review.vision,summary:review.summary,source_url:review.source_url,confidence:review.confidence,flags:review.flags,review_lane:review.review_lane});
 export const worshipReviewCandidateDigest=(reviews)=>digest(reviews.map(immutableWorshipReviewRecord));
 
 export function buildWorshipReviewBatches(bundle,batchChurchLimit=25){
@@ -22,14 +23,16 @@ export function buildWorshipReviewBatches(bundle,batchChurchLimit=25){
     if(sensitivePattern.test(publicText))throw new Error("sensitive_value_in_review_packet");
     sensitivePattern.lastIndex=0;ids.add(id);
     const group=groups.get(churchId)??{church_id:churchId,church_name:safeText(record.church_name,100),records:[]};
-    group.records.push({record_id:id,decision:"pending",candidate_type:record.candidate_type,church_id:churchId,church_name:safeText(record.church_name,100),service_type:safeText(record.service_type,80)||null,day_of_week:record.day_of_week??null,start_time:safeText(record.start_time,8)||null,venue_audience:safeText(record.venue_audience,180)||null,slogan:safeText(record.slogan,180)||null,vision:safeText(record.vision,300)||null,summary:safeText(record.summary,500)||null,source_url:sourceUrl,confidence:safeText(record.confidence,20)||"unknown",flags:Array.isArray(record.flags)?record.flags.slice(0,20):[],reviewed_at:"",note:""});
+    const review={record_id:id,decision:"pending",candidate_type:record.candidate_type,church_id:churchId,church_name:safeText(record.church_name,100),service_type:safeText(record.service_type,80)||null,day_of_week:record.day_of_week??null,start_time:safeText(record.start_time,8)||null,venue_audience:safeText(record.venue_audience,180)||null,slogan:safeText(record.slogan,180)||null,vision:safeText(record.vision,300)||null,summary:safeText(record.summary,500)||null,source_url:sourceUrl,confidence:safeText(record.confidence,20)||"unknown",flags:Array.isArray(record.flags)?record.flags.slice(0,20):[],reviewed_at:"",note:""};
+    review.review_lane=worshipReviewLane(review);group.records.push(review);
     groups.set(churchId,group);
   }
   const churches=[...groups.values()].sort((a,b)=>a.church_name.localeCompare(b.church_name,"ko")||a.church_id-b.church_id);
   const batches=[];
   for(let offset=0;offset<churches.length;offset+=batchChurchLimit){
     const selected=churches.slice(offset,offset+batchChurchLimit),reviews=selected.flatMap((item)=>item.records);
-    batches.push({metadata:{schema_version:1,mode:"human_review_only",automatic_approval:false,church_count:selected.length,review_count:reviews.length,http_source_count:reviews.filter((item)=>item.source_url.startsWith("http://")).length,candidate_sha256:worshipReviewCandidateDigest(reviews),privacy_scan:{status:"passed",sensitive_findings:0,raw_html_stored:false}},reviews});
+    const review_lane_counts=Object.fromEntries(["quick","standard","careful"].map((lane)=>[lane,reviews.filter((item)=>item.review_lane===lane).length]));
+    batches.push({metadata:{schema_version:1,mode:"human_review_only",automatic_approval:false,church_count:selected.length,review_count:reviews.length,review_lane_counts,http_source_count:reviews.filter((item)=>item.source_url.startsWith("http://")).length,candidate_sha256:worshipReviewCandidateDigest(reviews),privacy_scan:{status:"passed",sensitive_findings:0,raw_html_stored:false}},reviews});
   }
   return {summary:{candidate_records:records.length,candidate_churches:churches.length,batch_count:batches.length,duplicate_candidates:0,automatic_approval:false},batches};
 }

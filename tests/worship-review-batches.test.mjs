@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {buildWorshipReviewBatches,worshipReviewCandidateDigest} from "../scripts/worship-schedules/prepare-review-batches.mjs";
+import {buildWorshipReviewBatches,worshipReviewCandidateDigest,worshipReviewLane} from "../scripts/worship-schedules/prepare-review-batches.mjs";
 import {mergeWorshipReviewBatches} from "../scripts/worship-schedules/merge-review-batches.mjs";
 
 const bundle={metadata:{complete:true,automatic_publication:false},candidates:[{record_id:"a",church_id:2,church_name:"나교회",service_type:"주일예배",day_of_week:["SUN"],start_time:"11:00",source_url:"https://b.example/worship",confidence:"high"},{record_id:"b",church_id:1,church_name:"가교회",service_type:"주일예배",day_of_week:["SUN"],start_time:"09:00",source_url:"http://a.example/worship",confidence:"medium"},{record_id:"c",church_id:1,church_name:"가교회",service_type:"수요예배",day_of_week:["WED"],start_time:"19:30",source_url:"http://a.example/worship",confidence:"medium"}],profiles:[]};
@@ -11,7 +11,14 @@ test("keeps every church together and produces pending digest-bound review batch
   assert.deepEqual(result.batches.map((batch)=>batch.reviews.length),[2,1]);
   assert.ok(result.batches.every((batch)=>batch.reviews.every((review)=>review.decision==="pending")));
   assert.equal(result.batches[0].metadata.http_source_count,2);
+  assert.deepEqual(result.batches[0].metadata.review_lane_counts,{quick:0,standard:2,careful:0});
   assert.match(result.batches[0].metadata.candidate_sha256,/^[a-f0-9]{64}$/);
+});
+
+test("review lanes prioritize clear evidence without penalizing HTTP churches",()=>{
+  assert.equal(worshipReviewLane({confidence:"high",flags:["unencrypted_transport"]}),"quick");
+  assert.equal(worshipReviewLane({confidence:"medium",flags:[]}),"standard");
+  assert.equal(worshipReviewLane({confidence:"high",flags:["privacy_redacted"]}),"careful");
 });
 
 test("allows decisions to change but rejects changed candidate evidence, gaps, and duplicates",()=>{
