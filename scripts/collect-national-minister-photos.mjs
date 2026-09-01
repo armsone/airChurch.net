@@ -157,8 +157,14 @@ async function fetchLimited(url, timeoutMs, maximum, accept) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const input = await readJson(options.input);
-  const people = input?.people ?? [];
-  const relationships = input?.ministryRelationships ?? [];
+  const people = (input?.people ?? []).map((person) => ({
+    ...person,
+    directoryPersonId: person.directoryPersonId ?? person.directoryId,
+  }));
+  const relationships = (input?.ministryRelationships ?? input?.roles ?? []).map((relationship) => ({
+    ...relationship,
+    directoryPersonId: relationship.directoryPersonId ?? relationship.personDirectoryId,
+  }));
   if (!people.length || !relationships.length) throw new Error("invalid_people_and_relationships_input");
   const personMap = new Map(people.map((person) => [person.directoryPersonId, person]));
   const sourceGroups = new Map();
