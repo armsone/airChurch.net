@@ -16,8 +16,13 @@ export function buildMinistryDataReadiness({worshipReport,worshipCollection,appr
   const sourceOps=[...worshipOps,...pastorOps].filter((item)=>item.values?.source_url);
   const worshipAttemptComplete=worshipReport?.complete===true&&worshipReport.attempted_churches===worshipReport.registered_churches;
   const pastorCandidates=pastorRoster?.candidates?.length??0,roleQueue=pastorRoster?.roleDiscoveryQueue?.length??0;
-  const pastorCollectionPresent=Boolean(pastorCollected?.metadata?.dryRun===true&&pastorCollected?.metadata?.published===false);
-  const pastorEvents=Array.isArray(pastorCollected?.events)?pastorCollected.events.length:Array.isArray(pastorCollected?.records)?pastorCollected.records.length:0;
+  const collectionIsDry=Boolean(pastorCollected?.metadata?.dryRun===true&&pastorCollected?.metadata?.published===false);
+  const collectionMode=pastorCollected?.metadata?.selectionMode??null;
+  const pastorCollectionPresent=collectionIsDry&&collectionMode==="approved_church_roster";
+  const collectedSubjects=Array.isArray(pastorCollected?.subjects)?pastorCollected.subjects:[];
+  const allPastorEvents=Array.isArray(pastorCollected?.events)?pastorCollected.events.length:Array.isArray(pastorCollected?.records)?pastorCollected.records.length:collectedSubjects.reduce((total,subject)=>total+(subject.events?.length??0),0);
+  const pilotVerifiedPastors=collectionIsDry&&collectionMode==="official_sample_pilot"?collectedSubjects.filter((subject)=>subject.identityStatus==="verified").length:0;
+  const pastorEvents=pastorCollectionPresent?allPastorEvents:0;
   const checks={
     nationwide_worship_attempt_complete:worshipAttemptComplete,
     worship_collection_has_no_errors:(worshipReport?.collection_errors??-1)===0,
@@ -40,7 +45,7 @@ export function buildMinistryDataReadiness({worshipReport,worshipCollection,appr
     version:1,
     status:blocking.length?"in_progress":"release_ready",
     checks,
-    coverage:{registered_churches:worshipReport?.registered_churches??0,worship_collection_attempted:worshipReport?.attempted_churches??0,worship_candidate_churches:worshipReport?.churches_with_schedule_candidates??0,approved_worship_operations:scheduleOps,approved_worship_churches:uniqueChurches(worshipOps,"upsert_reviewed_worship_schedule"),pastor_candidates:pastorCandidates,pastor_role_discovery_tasks:roleQueue,verified_pastor_events:pastorEvents,approved_pastor_profiles:pastorOps.filter((item)=>item.action==="upsert_reviewed_ministry_profile").length,approved_ministry_appearances:pastorOps.filter((item)=>item.action==="upsert_reviewed_ministry_appearance").length},
+    coverage:{registered_churches:worshipReport?.registered_churches??0,worship_collection_attempted:worshipReport?.attempted_churches??0,worship_candidate_churches:worshipReport?.churches_with_schedule_candidates??0,approved_worship_operations:scheduleOps,approved_worship_churches:uniqueChurches(worshipOps,"upsert_reviewed_worship_schedule"),pastor_candidates:pastorCandidates,pastor_role_discovery_tasks:roleQueue,pilot_verified_pastors:pilotVerifiedPastors,pilot_verified_events:pilotVerifiedPastors?allPastorEvents:0,verified_pastor_events:pastorEvents,approved_pastor_profiles:pastorOps.filter((item)=>item.action==="upsert_reviewed_ministry_profile").length,approved_ministry_appearances:pastorOps.filter((item)=>item.action==="upsert_reviewed_ministry_appearance").length},
     holds:{worship_collection_holds:worshipReport?.collection_holds??0,worship_missing_homepage:worshipReport?.hold_reasons?.missing_homepage??0,pastor_roster_holds:pastorRoster?.holds?.length??0},
     blocking,
   };
