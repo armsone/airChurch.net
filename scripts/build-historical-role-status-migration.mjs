@@ -17,52 +17,22 @@ const targets = newData.ministryRelationships
 
 const uniqueTargets = [...new Map(targets.map((target) => [JSON.stringify(target), target])).values()];
 const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
-const values = uniqueTargets.map((target) => `  (${quote(target.name)}, ${quote(target.churchName)}, ${quote(target.roleTitle)}, ${quote(target.sourceUrl)})`).join(",\n");
 const sql = `-- Official history pages previously misclassified as current ministry rosters.
 -- People remain published; only their matching church-role relationship becomes former.
-CREATE TEMP TABLE historical_role_status_targets (
-  pastor_name TEXT NOT NULL,
-  church_name TEXT NOT NULL,
-  role_title TEXT NOT NULL,
-  source_url TEXT NOT NULL
-);
-
-INSERT INTO historical_role_status_targets (pastor_name, church_name, role_title, source_url) VALUES
-${values};
-
-DELETE FROM pastor_church_roles AS current_role
-WHERE current_role.role_status = 'current'
-  AND EXISTS (
-    SELECT 1
-    FROM pastor_people AS person
-    JOIN historical_role_status_targets AS target
-      ON target.pastor_name = person.name
-     AND target.church_name = current_role.church_name
-     AND target.role_title = current_role.role_title
-     AND target.source_url = current_role.source_url
-    JOIN pastor_church_roles AS former_role
-      ON former_role.pastor_id = current_role.pastor_id
-     AND former_role.church_name = current_role.church_name
-     AND former_role.role_title = current_role.role_title
-     AND former_role.role_status = 'former'
-    WHERE person.id = current_role.pastor_id
-  );
-
+${uniqueTargets.map((target) => `DELETE FROM pastor_church_roles AS current_role
+WHERE current_role.role_status='current'
+  AND current_role.church_name=${quote(target.churchName)}
+  AND current_role.role_title=${quote(target.roleTitle)}
+  AND current_role.source_url=${quote(target.sourceUrl)}
+  AND EXISTS (SELECT 1 FROM pastor_people AS person WHERE person.id=current_role.pastor_id AND person.name=${quote(target.name)})
+  AND EXISTS (SELECT 1 FROM pastor_church_roles AS former_role WHERE former_role.pastor_id=current_role.pastor_id AND COALESCE(former_role.church_id,-1)=COALESCE(current_role.church_id,-1) AND former_role.church_name=current_role.church_name AND former_role.role_title=current_role.role_title AND former_role.role_status='former' AND COALESCE(former_role.start_date,'')=COALESCE(current_role.start_date,'') AND COALESCE(former_role.end_date,'')=COALESCE(current_role.end_date,''));
 UPDATE pastor_church_roles AS role
-SET role_status = 'former', updated_at = CURRENT_TIMESTAMP
-WHERE role.role_status = 'current'
-  AND EXISTS (
-    SELECT 1
-    FROM pastor_people AS person
-    JOIN historical_role_status_targets AS target
-      ON target.pastor_name = person.name
-     AND target.church_name = role.church_name
-     AND target.role_title = role.role_title
-     AND target.source_url = role.source_url
-    WHERE person.id = role.pastor_id
-  );
-
-DROP TABLE historical_role_status_targets;
+SET role_status='former',updated_at=CURRENT_TIMESTAMP
+WHERE role.role_status='current'
+  AND role.church_name=${quote(target.churchName)}
+  AND role.role_title=${quote(target.roleTitle)}
+  AND role.source_url=${quote(target.sourceUrl)}
+  AND EXISTS (SELECT 1 FROM pastor_people AS person WHERE person.id=role.pastor_id AND person.name=${quote(target.name)});`).join("\n")}
 `;
 
 await writeFile(outputPath, sql, "utf8");
