@@ -9,12 +9,12 @@ export const denominationAliases:Record<string,string[]>={
 
 const regionPrefixes=["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
 export const MAX_SEARCH_TERMS=8;
-const conversationalSearchWords=new Set(["교회","찾아줘","찾아주세요","알려줘","알려주세요","보여줘","보여주세요","있는","근처","주변","추천","추천해줘","추천해주세요","해줘","해주세요","주세요"]);
+const conversationalSearchWords=new Set(["교회","목사","목사님","설교","말씀","영상","찾아줘","찾아주세요","알려줘","알려주세요","보여줘","보여주세요","있는","근처","주변","추천","추천해줘","추천해주세요","해줘","해주세요","주세요"]);
 
 export const normalizeSearchValue=(value:string)=>value.toLowerCase().replace(/[^\p{L}\p{N}]/gu,"").replace(/(?:담임)?목사(?:님)?$/,"");
 export const expandSearchTerm=(term:string)=>denominationAliases[normalizeSearchValue(term)]??[normalizeSearchValue(term)];
-const naturalSearchTerm=(value:string)=>{const normalized=normalizeSearchValue(value);if(conversationalSearchWords.has(normalized))return "";const stripped=normalized.replace(/(?:에서|으로|에는|에게|한테|에|로|의|을|를|이|가|은|는)$/u,"");return stripped.length>=2?stripped:normalized;};
-const preparedSearchTerms=(query:string)=>query.toLowerCase().split(/\s+/).map(naturalSearchTerm).filter(Boolean).flatMap((term)=>{if(term.length<5)return [term];const prefix=[...regionPrefixes,...Object.keys(denominationAliases).sort((a,b)=>b.length-a.length)].find((candidate)=>term.startsWith(candidate)&&term.slice(candidate.length).length>=3);return prefix?[prefix,term.slice(prefix.length)]:[term];});
+const naturalSearchTerm=(value:string)=>{const normalized=normalizeSearchValue(value).replace(/(?:에서|에)?있는/gu,"");if(conversationalSearchWords.has(normalized))return "";const stripped=normalized.replace(/(?:에서|으로|에는|에게|한테|에|로|의|을|를|이|가|은|는)$/u,"");if(conversationalSearchWords.has(stripped))return "";return stripped.length>=2?stripped:normalized;};
+const preparedSearchTerms=(query:string)=>query.toLowerCase().split(/\s+/).map(naturalSearchTerm).filter(Boolean).flatMap((term)=>{if(term.length<5)return [term];const prefix=[...regionPrefixes,...Object.keys(denominationAliases).sort((a,b)=>b.length-a.length)].find((candidate)=>term.startsWith(candidate)&&term.slice(candidate.length).length>=3);return prefix?[prefix,naturalSearchTerm(term.slice(prefix.length))].filter(Boolean):[term];});
 export const searchTermCount=(query:string)=>preparedSearchTerms(query).length;
 export const tokenizeSearchQuery=(query:string)=>preparedSearchTerms(query).slice(0,MAX_SEARCH_TERMS);
 export const matchesSearchTerms=(haystack:string,query:string)=>tokenizeSearchQuery(query).every((term)=>expandSearchTerm(term).some((candidate)=>haystack.includes(candidate)));
