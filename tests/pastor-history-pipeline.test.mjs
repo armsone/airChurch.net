@@ -222,6 +222,28 @@ test("extracts only manifest-authored facts after five-axis identity and role ve
   assert.throws(() => evaluateOfficialSource({ subject, source: copied, html: officialHtml, checkedAt: "2026-09-01T00:00:00.000Z" }), /fact_summary_must_be_paraphrased/);
 });
 
+test("allows two official pages to complement identity axes without weakening assertion identity", () => {
+  const complementarySubject={...subject,identityEvidenceMode:"complementary"};
+  const roleSource=source("https://official.example/church/appointment");
+  roleSource.identityContribution=["pastor","church","role"];
+  roleSource.identityEvidence={pastor:["김공개"],church:["공식교회"],role:["담임목사"]};
+  const contextSource={
+    type:"official_church",url:"https://official.example/church/about",identityContribution:["church","denomination","region"],
+    identityEvidence:{church:["공식교회"],denomination:["공식교단"],region:["서울","종로구"]},assertions:[],
+  };
+  const role=evaluateOfficialSource({subject:complementarySubject,source:roleSource,html:"<p>김공개 공식교회 담임목사</p>",checkedAt:"2026-09-01T00:00:00.000Z"});
+  const context=evaluateOfficialSource({subject:complementarySubject,source:contextSource,html:"<p>공식교회 공식교단 서울 종로구</p>",checkedAt:"2026-09-01T00:00:00.000Z"});
+  const verified=finalizeSubject(complementarySubject,[role,context]);
+  assert.equal(verified.identityStatus,"verified");
+  assert.equal(verified.events.length,1);
+
+  const incompleteContext=evaluateOfficialSource({subject:complementarySubject,source:contextSource,html:"<p>공식교회 공식교단</p>",checkedAt:"2026-09-01T00:00:00.000Z"});
+  const held=finalizeSubject(complementarySubject,[role,incompleteContext]);
+  assert.equal(held.identityStatus,"hold");
+  assert.equal(held.holds.at(-1).reason,"incomplete_complementary_identity");
+  assert.throws(()=>evaluateOfficialSource({subject:complementarySubject,source:{...roleSource,identityContribution:["church"]},html:officialHtml,checkedAt:"2026-09-01T00:00:00.000Z"}),/assertion_source_requires_person_church_role_identity/);
+});
+
 test("separates official contact candidates from history as masked admin-only review data", () => {
   const contactSource = source("https://official.example/church/contact");
   contactSource.contactCandidates = [

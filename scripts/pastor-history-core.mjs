@@ -12,6 +12,7 @@ export const SOURCE_TYPES = new Set([
 export const ROLE_CATEGORIES = new Set(["current_primary", "associate", "education", "cooperating", "emeritus", "retired"]);
 export const ROLE_STATUSES = new Set(["current", "former", "unverified"]);
 export const OFFICIAL_CONTACT_TYPES = new Set(["email", "phone", "account"]);
+const IDENTITY_AXES = ["pastor", "church", "denomination", "region", "role"];
 
 const DENIED_HOSTS = [
   /(^|\.)facebook\.com$/i,
@@ -55,7 +56,8 @@ function decodeEntities(value) {
 }
 
 export function visibleText(html) {
-  return decodeEntities(String(html ?? "")
+  const decodedUnicode=String(html??"").replace(/\\u([0-9a-f]{4})/gi,(_,hex)=>String.fromCharCode(Number.parseInt(hex,16)));
+  return decodeEntities(decodedUnicode
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<(?:script|style|noscript|template)\b[^>]*>[\s\S]*?<\/(?:script|style|noscript|template)>/gi, " ")
     .replace(/<[^>]+>/g, " "))
@@ -250,14 +252,17 @@ export function evaluateOfficialSource({ subject, source, html, checkedAt }) {
   const text = visibleText(html);
   const transport = transportReview(source.url);
   const officialChannelUrls = source.type === "official_youtube" ? [] : officialYouTubeChannelUrls(html, source.url);
-  const axes = ["pastor", "church", "denomination", "region", "role"];
-  const identityMatches = Object.fromEntries(axes.map((axis) => [axis, hasAllEvidence(text, source.identityEvidence?.[axis])]));
-  const missingAxes = axes.filter((axis) => !identityMatches[axis]);
+  const contributedAxes = source.identityContribution ?? IDENTITY_AXES;
+  if (!Array.isArray(contributedAxes) || !contributedAxes.length || contributedAxes.some((axis) => !IDENTITY_AXES.includes(axis)) || new Set(contributedAxes).size !== contributedAxes.length) throw new Error("invalid_identity_contribution");
+  if ((source.assertions?.length ?? 0) > 0 && !["pastor", "church", "role"].every((axis) => contributedAxes.includes(axis))) throw new Error("assertion_source_requires_person_church_role_identity");
+  const identityMatches = Object.fromEntries(IDENTITY_AXES.map((axis) => [axis, hasAllEvidence(text, source.identityEvidence?.[axis])]));
+  const missingAxes = contributedAxes.filter((axis) => !identityMatches[axis]);
   if (missingAxes.length) {
     return {
       sourceUrl: source.url,
       identityMatched: false,
       identityMatches,
+      contributedAxes,
       officialChannelUrls,
       ...transport,
       events: [],
@@ -306,7 +311,7 @@ export function evaluateOfficialSource({ subject, source, html, checkedAt }) {
     validateNoSensitiveData(event, `subjects.${subject.id}.assertions[${index}]`);
     events.push(event);
   }
-  return { sourceUrl: source.url, identityMatched: true, identityMatches, officialChannelUrls, ...transport, events, adminContactCandidates: adminContacts.contacts, holds };
+  return { sourceUrl: source.url, identityMatched: true, identityMatches, contributedAxes, officialChannelUrls, ...transport, events, adminContactCandidates: adminContacts.contacts, holds };
 }
 
 function eventKey(event) {
@@ -316,9 +321,13 @@ function eventKey(event) {
 export function finalizeSubject(subject, sourceResults) {
   const verifiedSources = new Set(sourceResults.filter((result) => result.identityMatched).map((result) => result.sourceUrl));
   const ambiguous=subject.identityAmbiguous===true||subject.identityConflict===true||subject.requiresAdditionalIdentitySource===true;
-  const minimum = ambiguous?Math.max(2,Number(subject.minimumIdentitySources??2)):Math.max(1,Number(subject.minimumIdentitySources??1));
+  const complementary=subject.identityEvidenceMode==="complementary";
+  if (subject.identityEvidenceMode != null && !complementary) throw new Error("invalid_identity_evidence_mode");
+  const minimum = complementary||ambiguous?Math.max(2,Number(subject.minimumIdentitySources??2)):Math.max(1,Number(subject.minimumIdentitySources??1));
   const inheritedHolds = sourceResults.flatMap((result) => result.holds ?? []).map((hold) => ({ ...hold, confidence: "low", reviewStatus: "hold" }));
-  if (verifiedSources.size < minimum) {
+  const coveredAxes=new Set(sourceResults.filter((result)=>result.identityMatched).flatMap((result)=>(result.contributedAxes??IDENTITY_AXES).filter((axis)=>result.identityMatches?.[axis])));
+  const missingCombinedAxes=complementary?IDENTITY_AXES.filter((axis)=>!coveredAxes.has(axis)):[];
+  if (verifiedSources.size < minimum || missingCombinedAxes.length) {
     return {
       subjectId: subject.id,
       churchId: subject.churchId ?? null,
@@ -327,7 +336,7 @@ export function finalizeSubject(subject, sourceResults) {
       identityStatus: "hold",
       verifiedSourceCount: verifiedSources.size,
       events: [],
-      holds: [...inheritedHolds, { subjectId: subject.id, reason: "insufficient_cross_verification", details: { required: minimum, found: verifiedSources.size }, confidence: "low", reviewStatus: "hold" }],
+      holds: [...inheritedHolds, { subjectId: subject.id, reason: missingCombinedAxes.length?"incomplete_complementary_identity":"insufficient_cross_verification", details: missingCombinedAxes.length?{missingAxes:missingCombinedAxes}:{ required: minimum, found: verifiedSources.size }, confidence: "low", reviewStatus: "hold" }],
     };
   }
   const merged = new Map();
