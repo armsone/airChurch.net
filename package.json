@@ -20,6 +20,7 @@
     "pastor-history:prepare-source-review": "node scripts/prepare-pastor-source-review-batches.mjs",
     "pastor-history:merge-source-review": "node scripts/merge-pastor-source-review-batches.mjs",
     "pastor-history:build-source-manifest": "node scripts/build-pastor-source-manifest.mjs",
+    "pastor-history:seed-verified-pilot": "node scripts/seed-verified-pastor-source-reviews.mjs",
     "ministry:data-readiness": "node scripts/report-ministry-data-readiness.mjs",
     "worship:collect": "node scripts/worship-schedules/collect.mjs --input data/worship-schedules/pilot-churches.json --policy data/worship-schedules/policies.json --output data/worship-schedules/pilot-output.json",
     "worship:validate": "node scripts/worship-schedules/validate.mjs --input data/worship-schedules/pilot-output.json --output data/worship-schedules/validated-dry-run.json",
@@ -33,7 +34,7 @@
     "worship:prepare-review-batches": "node scripts/worship-schedules/prepare-review-batches.mjs",
     "worship:merge-review-batches": "node scripts/worship-schedules/merge-review-batches.mjs",
     "ministry:verify-release": "node scripts/verify-ministry-release.mjs",
-    "test:ministry-release": "node --test tests/church-detail-import.test.mjs tests/encouragements.test.mjs tests/media-scale.test.mjs tests/ministry-data-readiness.test.mjs tests/ministry-profiles.test.mjs tests/pastor-history-pipeline.test.mjs tests/pastor-media-coverage.test.mjs tests/pastor-sermon-attribution.test.mjs tests/pastor-source-manifest.test.mjs tests/pastor-source-review-batches.test.mjs tests/pastor-source-review-merge.test.mjs tests/responsive-content-grid.test.mjs tests/reviewer-affiliation.test.mjs tests/search-domain.test.mjs tests/worship-review-batches.test.mjs tests/worship-schedules.test.mjs && node --test --test-name-pattern='applies every migration' tests/rendered-html.test.mjs && npm run ministry:data-readiness && npm run ministry:verify-release && npm run build",
+    "test:ministry-release": "node --test tests/church-detail-import.test.mjs tests/encouragements.test.mjs tests/media-scale.test.mjs tests/ministry-data-readiness.test.mjs tests/ministry-profiles.test.mjs tests/pastor-history-pipeline.test.mjs tests/pastor-media-coverage.test.mjs tests/pastor-sermon-attribution.test.mjs tests/pastor-source-manifest.test.mjs tests/pastor-source-review-batches.test.mjs tests/pastor-source-review-merge.test.mjs tests/pastor-source-seed.test.mjs tests/responsive-content-grid.test.mjs tests/reviewer-affiliation.test.mjs tests/search-domain.test.mjs tests/worship-review-batches.test.mjs tests/worship-schedules.test.mjs && node --test --test-name-pattern='applies every migration' tests/rendered-html.test.mjs && npm run ministry:data-readiness && npm run ministry:verify-release && npm run build",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
