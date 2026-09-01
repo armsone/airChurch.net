@@ -8,13 +8,14 @@ const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
 const COLLECTOR_VERSION = 2;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
-const ROLE_PATTERN = "수석부목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|설립목사|창립목사|개척목사|부목사|부교역자|교육목사|행정목사|목양목사|협동목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
-const ROLE_RE = new RegExp(`(?:(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})|([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN}))`, "gu");
-const LINK_HINT = /교역자|목회자|사역자|섬기는|교회소개|연혁|조직|staff|pastor|ministry|servant|history/i;
-const BLOCKED_PATH = /(?:login|logout|member|admin|mypage|signup|register|privacy|contact|donation|offering)/i;
+const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사";
+const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
+const LINK_HINT = /교역자|목회자|사역자|섬기는|섬김|교회소개|인사말|목사|약력|소개|연혁|조직|staff|pastor|ministry|servant|history|greeting|about|intro/i;
+const BLOCKED_PATH = /(?:login|logout|admin|mypage|signup|register|privacy|contact|donation|offering)/i;
 const NAME_DENY = new Set(["교회소개", "예배안내", "섬기는", "사람들", "목회자", "교역자", "부교역자", "전도사", "담임목사", "위임목사", "원로목사", "은퇴목사", "교육목사", "협동목사", "오시는길", "대한예수", "예수교장", "기독교대한", "하나님의", "말씀으로", "복음으로", "사랑으로", "성령으로", "하나님을", "예수님을", "교회학교", "교육부서", "청년부를"]);
-const SURNAME = /^(?:김|이|박|최|정|강|조|윤|장|임|한|오|서|신|권|황|안|송|전|홍|유|고|문|양|손|배|백|허|남|심|노|하|곽|성|차|주|우|구|민|진|지|엄|채|원|천|방|공|현|함|변|염|여|추|도|소|석|선|설|마|길|연|위|표|명|기|반|왕|금|옥|육|인|맹|제|모|탁|국|어|은|편|용|남궁|황보|제갈|선우|독고|사공)/u;
-const NON_PERSON = /^(?:하나|박사|권사|강도사|선교사|여전도사|조사|인사|인사말|공지|공지사항|기도회|위원회|고문위원|이사장|원로|원로장로|현재|성년부|소년부|어린이부|유소년부|장년부|장애인부|주강사|강사로|강사도|안수후|안수하여|인허받고|인허받다|인허식|위임건|위임식|위임식을|위임을|추대를|추대식|추대식을|추대와|추대의|사공집)$/u;
+const SURNAME = /^(?:김|이|박|최|정|강|조|윤|장|임|한|오|서|신|권|황|안|송|전|홍|유|류|라|나|고|문|양|손|배|백|허|남|심|노|하|곽|성|차|주|우|구|민|진|지|엄|채|원|천|방|공|현|함|변|염|여|추|도|소|석|선|설|마|길|연|위|표|명|기|반|왕|금|옥|육|인|맹|제|모|탁|국|어|은|편|용|봉|태|빈|시|계|피|목|남궁|황보|제갈|선우|독고|사공)/u;
+const COMPOUND_SURNAME = /^(?:남궁|황보|제갈|선우|독고|사공)/u;
+const NON_PERSON = /^(?:하나|박사|권사|강도사|선교사|여전도사|조사|인사|인사말|공지|공지사항|기도회|위원회|고문위원|이사장|원로|원로장로|현재|성년부|소년부|어린이부|유소년부|장년부|장애인부|주강사|강사로|강사도|안수후|안수하여|인허받고|인허받다|인허식|위임건|위임식|위임식을|위임을|추대를|추대식|추대식을|추대와|추대의|사공집|은퇴|퇴임|소천|별세|청빙|후임|시무|취임|이임|성도|장로|권찰|설교|명예|안식년|인턴|이들)$/u;
 
 function args(argv) {
   const value = (name, fallback) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : fallback; };
@@ -28,6 +29,8 @@ function args(argv) {
     timeoutMs: Math.max(2_000, Number(value("--timeout-ms", 8_000))),
     delayMs: Math.max(750, Number(value("--delay-ms", 900))),
     pagesPerChurch: Math.max(1, Math.min(4, Number(value("--pages-per-church", 3)))),
+    retryStatuses: new Set(clean(value("--retry-statuses", "")).split(",").filter(Boolean)),
+    retryFailureTypes: new Set(clean(value("--retry-failure-types", "")).split(",").filter(Boolean)),
   };
 }
 
@@ -86,17 +89,19 @@ function candidateLinks(html, baseUrl) {
 
 function normalizeRole(title) {
   if (/^(?:수석|교육|행정|목양)부목사$/.test(title)) return { roleTitle: title, roleCategory: title === "교육부목사" ? "education" : "associate" };
-  if (/^(?:설립|창립|개척)목사$/.test(title)) return { roleTitle: title, roleCategory: "founding" };
+  if (/^(?:설립|창립|개척|초대|초대담임)목사$/.test(title)) return { roleTitle: title, roleCategory: "founding" };
   if (/^(?:담임|위임|대표)목사$/.test(title)) return { roleTitle: title, roleCategory: "current_primary" };
-  if (/^(?:부목사|부교역자|행정목사|목양목사)$/.test(title)) return { roleTitle: title, roleCategory: "associate" };
+  if (/^(?:수석부목사|부담임목사|부목사|부교역자|행정목사|목양목사|선교목사|찬양목사)$/.test(title)) return { roleTitle: title, roleCategory: "associate" };
   if (/^(?:교육목사|강도사|전임전도사|교육전도사|전도사)$/.test(title)) return { roleTitle: title, roleCategory: "education" };
   if (title === "협동목사") return { roleTitle: title, roleCategory: "cooperating" };
   if (title === "원로목사") return { roleTitle: title, roleCategory: "emeritus" };
-  return { roleTitle: title, roleCategory: "retired" };
+  if (/^(?:은퇴|명예|공로)목사$/.test(title)) return { roleTitle: title, roleCategory: "retired" };
+  return { roleTitle: title, roleCategory: "other" };
 }
 
 function validName(name) {
-  return name.length >= 2 && name.length <= 4 && SURNAME.test(name) && !NAME_DENY.has(name)
+  const maximumLength = COMPOUND_SURNAME.test(name) ? 5 : 4;
+  return name.length >= 2 && name.length <= maximumLength && SURNAME.test(name) && !NAME_DENY.has(name)
     && !NON_PERSON.test(name)
     && !/(교회|목사|전도|예배|교육|사역|부서|소개|말씀|하나님|예수님|학교|노회|성경|전도회|심방|전임|전담|인허|위임|추대|안수|주년|사임|사면|부임|유년부|유치부|초등부|중등부|고등부|대학부|청년부|장립집사|현재까지|에서|부)$/u.test(name);
 }
@@ -111,9 +116,10 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
     const normalized = normalizeRole(role);
     const at = match.index ?? 0;
     const evidence = clean(text.slice(Math.max(0, at - 36), Math.min(text.length, at + match[0].length + 36)));
-    const years = [...evidence.matchAll(/(?:19|20)\d{2}/g)].map((item) => Number(item[0]));
-    const isFormer = /사임|사면|은퇴|퇴임|이임|소천|별세/u.test(evidence) || (years.length > 0 && Math.max(...years) < new Date().getFullYear() - 1);
-    const personKey = identityKey(name, church.directoryChurchId);
+    const isFormer = /사임|사면|은퇴|퇴임|이임|소천|별세|역대/u.test(evidence)
+      || /(?:~|–|—|부터)\s*(?:19|20)\d{2}(?:년)?(?:까지)?/u.test(evidence)
+      || /(?:19|20)\d{2}년?\s*(?:까지|사임|은퇴|퇴임|이임)/u.test(evidence);
+    const personKey = identityKey(name, church.directoryChurchId, role, sourceUrl);
     people.push({
       discoveryId: `discovery-${digest(identityKey(name, church.directoryChurchId, role, sourceUrl))}`,
       directoryPersonId: `person-${digest(personKey)}`,
@@ -132,7 +138,7 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
       publicationEligible: false,
     });
   }
-  return [...new Map(people.map((person) => [identityKey(person.name, person.directoryChurchId, person.roleTitle, person.roleStatus), person])).values()];
+  return [...new Map(people.map((person) => [person.directoryPersonId, person])).values()];
 }
 
 function failureType(error) {
@@ -158,15 +164,22 @@ async function fetchPage(url, timeoutMs) {
   if (!/(?:text\/html|application\/xhtml\+xml|text\/plain)/i.test(type)) throw new Error("unsupported_content_type");
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > 1_500_000) throw new Error("source_too_large");
-  const body = await response.text();
-  if (Buffer.byteLength(body) > 1_500_000) throw new Error("source_too_large");
-  return { html: body, finalUrl: response.url, status: response.status };
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > 1_500_000) throw new Error("source_too_large");
+  const headerCharset = type.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1];
+  const asciiHead = new TextDecoder("latin1").decode(bytes.subarray(0, Math.min(bytes.length, 8192)));
+  const metaCharset = asciiHead.match(/<meta[^>]+charset\s*=\s*["']?([^\s"'/>;]+)/i)?.[1]
+    ?? asciiHead.match(/<meta[^>]+content\s*=\s*["'][^"']*charset\s*=\s*([^\s"';>]+)/i)?.[1];
+  const declaredCharset = clean(headerCharset ?? metaCharset ?? "utf-8").toLowerCase();
+  const charset = /(?:euc[-_]?kr|ks_c_5601|cp949)/i.test(declaredCharset) ? "euc-kr" : "utf-8";
+  const body = new TextDecoder(charset).decode(bytes);
+  return { html: body, finalUrl: response.url, status: response.status, charset };
 }
 
 function robotsAllows(body, url) {
   const pathName = new URL(url).pathname;
   let applies = false;
-  const disallow = [];
+  const rules = [];
   for (const raw of body.split(/\r?\n/)) {
     const line = raw.replace(/#.*/, "").trim();
     const separator = line.indexOf(":");
@@ -174,9 +187,10 @@ function robotsAllows(body, url) {
     const key = line.slice(0, separator).trim().toLowerCase();
     const value = line.slice(separator + 1).trim();
     if (key === "user-agent") applies = value === "*" || value.toLowerCase().includes("airchurch-public-directory");
-    else if (applies && key === "disallow" && value) disallow.push(value);
+    else if (applies && (key === "allow" || key === "disallow") && value) rules.push({ type: key, prefix: value });
   }
-  return !disallow.some((prefix) => pathName.startsWith(prefix));
+  const match = rules.filter((rule) => pathName.startsWith(rule.prefix)).sort((left, right) => right.prefix.length - left.prefix.length)[0];
+  return !match || match.type === "allow";
 }
 
 async function crawlChurch(church, options) {
@@ -199,11 +213,12 @@ async function crawlChurch(church, options) {
   }
   if (!root) return { church, checkedAt, status: "failed", failureType: failures.at(-1)?.type ?? "network_failure", failures, pages, ministers: [] };
 
-  let robotsStatus = "not_found";
+  let robotsStatus = "not_found", robotsBody = "";
   try {
     const robotsUrl = new URL("/robots.txt", root.finalUrl);
     const robots = await fetchPage(robotsUrl.toString(), options.timeoutMs);
-    robotsStatus = robotsAllows(robots.html, root.finalUrl) ? "allowed" : "disallowed";
+    robotsBody = robots.html;
+    robotsStatus = robotsAllows(robotsBody, root.finalUrl) ? "allowed" : "disallowed";
   } catch (error) {
     robotsStatus = error.message === "http_404" ? "not_found" : `unavailable:${error.message}`;
   }
@@ -215,31 +230,27 @@ async function crawlChurch(church, options) {
   for (const link of links) {
     await new Promise((resolve) => setTimeout(resolve, options.delayMs));
     try {
-      if (robotsStatus === "allowed") {
-        const robots = await fetchPage(new URL("/robots.txt", link.url).toString(), options.timeoutMs);
-        if (!robotsAllows(robots.html, link.url)) { failures.push({ url: link.url, type: "robots_disallowed", detail: null }); continue; }
-      }
+      if (robotsStatus === "allowed" && !robotsAllows(robotsBody, link.url)) { failures.push({ url: link.url, type: "robots_disallowed", detail: null }); continue; }
       const page = await fetchPage(link.url, options.timeoutMs);
       pages.push({ url: page.finalUrl, status: page.status, contentSha256: digest(page.html, 64) });
       ministers.push(...extractMinisters(page.html, church, page.finalUrl, checkedAt));
     } catch (error) { failures.push({ url: link.url, type: error.message, detail: error.detail ?? null }); }
   }
-  ministers = [...new Map(ministers.map((person) => [identityKey(person.name, person.directoryChurchId, person.roleTitle, person.roleStatus), person])).values()];
+  ministers = [...new Map(ministers.map((person) => [person.directoryPersonId, person])).values()];
   return { church, checkedAt, status: ministers.length ? "people_found" : "no_people_found", failureType: null, robotsStatus, failures, pages, ministers };
 }
 
-function summarize(results, baseline, startedAt) {
+function summarize(results, baseline, registered, startedAt) {
   const all = results.flatMap((result) => result.ministers ?? []);
-  const existingPersonKeys = new Set(baseline.ministers.map((person) => identityKey(person.name, person.directoryChurchId)));
-  const discovered = [...new Map(all.map((person) => [identityKey(person.name, person.directoryChurchId, person.roleTitle, person.roleStatus), person])).values()];
-  const additionalRelationships = discovered.filter((person) => !existingPersonKeys.has(identityKey(person.name, person.directoryChurchId)));
-  const additionalPeople = [...new Map(additionalRelationships.map((person) => [identityKey(person.name, person.directoryChurchId), person])).values()];
+  const discovered = [...new Map(all.map((person) => [person.directoryPersonId, person])).values()];
+  const additionalRelationships = discovered;
+  const additionalPeople = discovered;
   const roleCounts = {};
   const roleStatusCounts = {};
   const statusCounts = {};
   const rolePeople = new Set();
   for (const person of additionalRelationships) {
-    const key = identityKey(person.name, person.directoryChurchId, person.roleTitle);
+    const key = identityKey(person.directoryPersonId, person.roleTitle);
     if (rolePeople.has(key)) continue;
     rolePeople.add(key);
     roleCounts[person.roleTitle] = (roleCounts[person.roleTitle] ?? 0) + 1;
@@ -254,9 +265,41 @@ function summarize(results, baseline, startedAt) {
     for (const failure of result.failures ?? []) failureCounts[failure.type] = (failureCounts[failure.type] ?? 0) + 1;
   }
   const churchesWithAdditional = new Set(additionalPeople.map((person) => person.directoryChurchId)).size;
+  const registeredResultsById = new Map();
+  const statusRank = { failed: 0, no_people_found: 1, people_found: 2 };
+  for (const result of results) {
+    const existingChurchId = Number(result.church?.existingChurchId);
+    if (!Number.isInteger(existingChurchId) || existingChurchId < 1) continue;
+    const current = registeredResultsById.get(existingChurchId);
+    if (!current || (statusRank[result.status] ?? -1) > (statusRank[current.status] ?? -1)) registeredResultsById.set(existingChurchId, result);
+  }
+  const registeredResults = [...registeredResultsById.values()];
+  const registeredRelationships = registeredResults.flatMap((result) => result.ministers ?? []);
+  const registeredRoleCounts = {};
+  const registeredFailureCounts = {};
+  for (const person of registeredRelationships) registeredRoleCounts[person.roleTitle] = (registeredRoleCounts[person.roleTitle] ?? 0) + 1;
+  for (const result of registeredResults) if (result.failureType) registeredFailureCounts[result.failureType] = (registeredFailureCounts[result.failureType] ?? 0) + 1;
+  const registeredHomepageChurches = (registered.churches ?? []).filter((church) => clean(church.homepage_url)).length;
+  const registeredChurches = (registered.churches ?? []).length;
   return {
     generatedAt: nowIso(), startedAt, published: false,
     baselineChurches: baseline.churches.length,
+    registeredChurches,
+    registeredHomepageChurches,
+    registeredMissingHomepageChurches: registeredChurches - registeredHomepageChurches,
+    registeredResults: {
+      attempted: registeredResults.length,
+      reached: registeredResults.filter((result) => result.pages?.length).length,
+      peopleFoundChurches: registeredResults.filter((result) => result.status === "people_found").length,
+      noPeopleFoundChurches: registeredResults.filter((result) => result.status === "no_people_found").length,
+      failedChurches: registeredResults.filter((result) => result.status === "failed").length,
+      people: new Set(registeredRelationships.map((person) => person.directoryPersonId)).size,
+      relationships: registeredRelationships.length,
+      roleCounts: registeredRoleCounts,
+      failureCounts: registeredFailureCounts,
+      pendingOfficialHomepage: registeredChurches - registeredHomepageChurches,
+      pendingOfficialSourceComplement: registeredChurches - registeredResults.filter((result) => result.status === "people_found").length,
+    },
     baselineMinisters: baseline.ministers.length,
     homepageChurches: baseline.churches.filter((church) => church.homepageUrl).length,
     churchesAttempted: results.length,
@@ -320,6 +363,9 @@ async function main() {
   const fingerprint = digest(JSON.stringify({ collectorVersion: COLLECTOR_VERSION, churches: baseline.churches.map((c) => [c.directoryChurchId, c.homepageUrl]), ministers: baseline.ministers.map((p) => p.directoryMinisterId) }), 64);
   let checkpoint = await readJson(checkpointPath, { version: 1, inputFingerprint: fingerprint, startedAt: nowIso(), results: {} });
   if (checkpoint.inputFingerprint !== fingerprint) throw new Error("checkpoint_input_changed_use_new_output_dir");
+  for (const [churchId, result] of Object.entries(checkpoint.results)) {
+    if (options.retryStatuses.has(result.status) || (result.failureType && options.retryFailureTypes.has(result.failureType))) delete checkpoint.results[churchId];
+  }
   let churches = baseline.churches.filter((church) => church.homepageUrl).slice(options.offset);
   if (options.limit) churches = churches.slice(0, options.limit);
   churches = churches.filter((church) => !checkpoint.results[church.directoryChurchId]);
@@ -339,11 +385,9 @@ async function main() {
   const rawResults = Object.values(checkpoint.results);
   const parserRejectedNonPerson = rawResults.reduce((sum, result) => sum + (result.ministers ?? []).filter((person) => !validName(person.name)).length, 0);
   const results = rawResults.map((result) => ({ ...result, ministers: (result.ministers ?? []).filter((person) => validName(person.name)) }));
-  const report = summarize(results, baseline, checkpoint.startedAt);
+  const report = summarize(results, baseline, registered, checkpoint.startedAt);
   report.parserRejectedNonPerson = parserRejectedNonPerson;
-  const existingPersonKeys = new Set(baseline.ministers.map((person) => identityKey(person.name, person.directoryChurchId)));
-  const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [identityKey(person.name, person.directoryChurchId, person.roleTitle, person.roleStatus), person])).values()]
-    .filter((person) => !existingPersonKeys.has(identityKey(person.name, person.directoryChurchId)));
+  const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [person.directoryPersonId, person])).values()];
   const readyRelationships = candidates.map((person) => ({ ...person, reviewStatus: "source_review_required" }));
   const readyPeople = [...new Map(readyRelationships.map((person) => [person.directoryPersonId, {
     directoryPersonId: person.directoryPersonId,

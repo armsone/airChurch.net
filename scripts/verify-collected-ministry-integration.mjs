@@ -24,8 +24,9 @@ const worshipReviewsFile=argument("--worship-reviews","out/worship-reviews.merge
 const [collection,photoBundle,importPlan,manifest,worshipReport,worshipReviewSummary,worshipReviews]=await Promise.all([
   readJson(collectionFile),readJson(photoFile),readJson(importPlanFile),readJson(manifestFile),readJson(worshipReportFile),readJson(worshipReviewSummaryFile),readJson(worshipReviewsFile),
 ]);
-const people=collection.people??[],roles=collection.ministryRelationships??[],photos=photoBundle.photos??[];
+const people=collection.people??[],roles=collection.ministryRelationships??[];
 const peopleIds=new Set(people.map((person)=>person.directoryPersonId));
+const suppliedPhotos=photoBundle.photos??[],photos=suppliedPhotos.filter((photo)=>peopleIds.has(photo.directoryPersonId));
 const roleKeys=roles.map((role)=>[role.directoryPersonId,role.directoryChurchId,role.roleTitle,role.roleStatus,role.sourceUrl].join("|"));
 const photoIds=photos.map((photo)=>photo.directoryPersonId);
 const importPeople=importPlan.people??[],importRoles=importPlan.roles??[];
@@ -61,5 +62,5 @@ const checks={
   low_load_chunks:Number(manifest.batchSize??0)>0&&Number(manifest.batchSize)<=200&&(manifest.chunks??[]).length>0&&chunkChecks.every((chunk)=>chunk.hashMatches&&chunk.withinBatch),
 };
 const failed=Object.entries(checks).filter(([,passed])=>!passed).map(([name])=>name);
-console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,missingPhotos:Number(photoBundle.metadata?.missingPhotos??0),nameBasedLinks:0,worshipChurches:Number(worshipReport.registered_churches??0),worshipReviewCandidates:worshipReviewRows.length,worshipReviewBatches:Number(worshipReviewSummary.batch_count??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,importPlanFile,manifestFile,worshipReportFile,worshipReviewSummaryFile,worshipReviewsFile}},null,2));
+console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,ignoredStalePhotos:suppliedPhotos.length-photos.length,missingPhotos:people.length-photos.length,nameBasedLinks:0,worshipChurches:Number(worshipReport.registered_churches??0),worshipReviewCandidates:worshipReviewRows.length,worshipReviewBatches:Number(worshipReviewSummary.batch_count??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,importPlanFile,manifestFile,worshipReportFile,worshipReviewSummaryFile,worshipReviewsFile}},null,2));
 if(failed.length)process.exitCode=1;
