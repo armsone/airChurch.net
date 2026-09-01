@@ -55,8 +55,14 @@ test("church pages expose only approved profile and schedule rows", async () => 
   const page = await readFile(new URL("../app/church/[id]/page.tsx", import.meta.url), "utf8");
   assert.match(page, /FROM church_profiles WHERE church_id=\? AND review_status='approved'/);
   assert.match(page, /FROM worship_schedules WHERE church_id=\? AND review_status='approved'/);
-  assert.match(page, /profile\?\.slogan/);
-  assert.match(page, /profile\?\.vision/);
+  assert.match(page, /profile\.slogan/);
+  assert.match(page, /profile\.vision/);
   assert.match(page, /예배시간/);
   assert.doesNotMatch(page,/SELECT[^\n]*phone[^\n]*FROM church_profiles/);
+  assert.match(page, /\(profile\|\|hasSchedules\)&&<section/);
+  assert.doesNotMatch(page, /검토가 끝난 예배시간이 아직 없습니다/);
+  assert.doesNotMatch(page, /장소는 공식 안내 확인/);
+  assert.doesNotMatch(page, /현재 연결된 말씀이 없습니다/);
+  assert.doesNotMatch(page, /현재 연결된 찬양이 없습니다/);
+  assert.doesNotMatch(page, /연결해 보여드릴 다른 공개 교회가 없습니다/);
 });
