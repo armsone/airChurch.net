@@ -33,11 +33,11 @@ for(const [index,minister] of (plan.ministers??[]).entries()){
   const candidate={directoryId:`role:${personId}:${churchId}:${roleTitle}:${roleStatus}`,personDirectoryId:personId,existingChurchId:Number.isInteger(Number(minister.existingChurchId))?Number(minister.existingChurchId):null,directoryChurchId:churchId,churchName,denomination:normalize(minister.denomination),region:normalize(minister.region),roleTitle,roleCategory,roleStatus,startDate:normalize(minister.startDate)||null,endDate:normalize(minister.endDate)||null,sourceUrl:validSource(sourceUrl)?sourceUrl:null,reviewStatus:"pending"};
   const blocking=issues.filter((issue)=>!["private_data_removed","sensitive_fields_removed"].includes(issue));
   if(blocking.length){review.push({inputIndex:index,personDirectoryId:personId,name,issues,candidate});continue;}
-  if(!people.has(personId))people.set(personId,{directoryId:personId,name,publicSummary:null,reviewStatus:"pending"});
+  if(!people.has(personId))people.set(personId,{directoryId:personId,name,publicSummary:null,photoUrl:null,photoSourceUrl:null,photoSha256:null,photoReviewStatus:"pending",reviewStatus:"pending"});
   roles.push(candidate);
 }
 
 const approvedPeople=new Set(roles.map((role)=>role.personDirectoryId)),importPeople=[...people.values()].filter((person)=>approvedPeople.has(person.directoryId));
-const metadata={generatedAt:new Date().toISOString(),sourceFile:input,published:false,databaseWrites:0,automaticApproval:false,people:importPeople.length,roles:roles.length,reviewQueue:review.length,exactDuplicatesRemoved:duplicates,privateFieldsRemoved,copyrightMode:"structured-facts-only",identityPolicy:"directory-id-and-source; names-never-merged",videoRequired:false};
-await Promise.all([writeJson(output,{metadata,people:importPeople,roles}),writeJson(reviewOutput,{metadata:{generatedAt:metadata.generatedAt,sourceFile:input,items:review.length},items:review})]);
+const metadata={generatedAt:new Date().toISOString(),sourceFile:input,published:false,databaseWrites:0,automaticApproval:false,people:importPeople.length,roles:roles.length,identityLinks:0,reviewQueue:review.length,exactDuplicatesRemoved:duplicates,privateFieldsRemoved,privateDataIncluded:false,photosPrepared:0,photosAutomaticallyPublishable:0,copyrightMode:"structured-facts-only",identityPolicy:"directory-id-and-source; names-never-merged",videoRequired:false};
+await Promise.all([writeJson(output,{metadata,people:importPeople,roles,identityLinks:[]}),writeJson(reviewOutput,{metadata:{generatedAt:metadata.generatedAt,sourceFile:input,items:review.length},items:review})]);
 console.log(JSON.stringify({...metadata,output,reviewOutput}));
