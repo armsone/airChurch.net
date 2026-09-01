@@ -37,7 +37,7 @@ export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
 });
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v4' LIMIT 1").first<{key:string}>();
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v5' LIMIT 1").first<{key:string}>();
   if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS churches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_channel_id TEXT UNIQUE, review_status TEXT NOT NULL DEFAULT 'pending', hold_reason TEXT, hold_note TEXT, held_at TEXT, priority_weight INTEGER NOT NULL DEFAULT 1, reviewer_status TEXT NOT NULL DEFAULT 'unreviewed', reviewer_note TEXT, reviewed_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -57,15 +57,19 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
     await db.prepare("ALTER TABLE sermons ADD COLUMN status TEXT NOT NULL DEFAULT 'published'").run();
   }
   const churchColumns = await db.prepare("PRAGMA table_info(churches)").all<{ name: string }>();
-  if (!churchColumns.results.some((column) => column.name === "reviewer_status")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewer_status TEXT NOT NULL DEFAULT 'unreviewed'").run();
-  if (!churchColumns.results.some((column) => column.name === "reviewer_note")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewer_note TEXT").run();
-  if (!churchColumns.results.some((column) => column.name === "reviewed_at")) await db.prepare("ALTER TABLE churches ADD COLUMN reviewed_at TEXT").run();
-  if (!churchColumns.results.some((column) => column.name === "channel_image_url")) await db.prepare("ALTER TABLE churches ADD COLUMN channel_image_url TEXT").run();
-  if (!churchColumns.results.some((column) => column.name === "homepage_url")) await db.prepare("ALTER TABLE churches ADD COLUMN homepage_url TEXT").run();
+  await addColumnIfMissing(db,churchColumns.results,"hold_reason","ALTER TABLE churches ADD COLUMN hold_reason TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"hold_note","ALTER TABLE churches ADD COLUMN hold_note TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"held_at","ALTER TABLE churches ADD COLUMN held_at TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"priority_weight","ALTER TABLE churches ADD COLUMN priority_weight INTEGER NOT NULL DEFAULT 1");
+  await addColumnIfMissing(db,churchColumns.results,"reviewer_status","ALTER TABLE churches ADD COLUMN reviewer_status TEXT NOT NULL DEFAULT 'unreviewed'");
+  await addColumnIfMissing(db,churchColumns.results,"reviewer_note","ALTER TABLE churches ADD COLUMN reviewer_note TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"reviewed_at","ALTER TABLE churches ADD COLUMN reviewed_at TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"channel_image_url","ALTER TABLE churches ADD COLUMN channel_image_url TEXT");
+  await addColumnIfMissing(db,churchColumns.results,"homepage_url","ALTER TABLE churches ADD COLUMN homepage_url TEXT");
   await addColumnIfMissing(db,churchColumns.results,"review_resolution_token","ALTER TABLE churches ADD COLUMN review_resolution_token TEXT");
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_church_status_published ON sermons(church_id, status, published_at DESC)").run();
-  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v4',CURRENT_TIMESTAMP)").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v5',CURRENT_TIMESTAMP)").run();
 });
 export const ensurePraiseTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
@@ -183,15 +187,15 @@ const schemaBundleReady=async(db:D1Database,keys:string[])=>{
 // Multi-table pages use one exact-version gate per isolate instead of one D1 round trip
 // for every table family. Changing any component schema key automatically invalidates the gate.
 export const ensureMediaTables=memoizeEnsure(async(db:D1Database)=>{
-  if(await schemaBundleReady(db,["schema-sermons-v4","schema-praises-v1"]))return;
+  if(await schemaBundleReady(db,["schema-sermons-v5","schema-praises-v1"]))return;
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
 });
 export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
-  if(await schemaBundleReady(db,["schema-sermons-v4","schema-praises-v1","schema-shorts-v1"]))return;
+  if(await schemaBundleReady(db,["schema-sermons-v5","schema-praises-v1","schema-shorts-v1"]))return;
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v4","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db)]);
 });
