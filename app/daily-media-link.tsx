@@ -2,9 +2,9 @@
 
 import type { MouseEventHandler, ReactNode } from "react";
 
-type DailyStep="sermon"|"praise";
+export type DailyMediaStep="sermon"|"praise";
 
-function recordDailyStep(step:DailyStep) {
+export function recordDailyMediaStep(step:DailyMediaStep) {
   const today=new Date(Date.now()+9*60*60*1000).toISOString().slice(0,10);
   const key=`airchurch:daily:${today}`;
   try {
@@ -16,7 +16,7 @@ function recordDailyStep(step:DailyStep) {
   }
 }
 
-export default function ChurchVideoLink({href,step,className,children}:{href:string;step:DailyStep;className:string;children:ReactNode}) {
-  const handleClick:MouseEventHandler<HTMLAnchorElement>=()=>recordDailyStep(step);
+export default function DailyMediaLink({href,step,className,children}:{href:string;step:DailyMediaStep;className:string;children:ReactNode}) {
+  const handleClick:MouseEventHandler<HTMLAnchorElement>=()=>recordDailyMediaStep(step);
   return <a className={className} href={href} target="_blank" rel="noopener noreferrer" onClick={handleClick}>{children}</a>;
 }
