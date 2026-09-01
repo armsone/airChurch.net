@@ -19,6 +19,20 @@ interface ExecutionContext {
   passThroughOnException(): void;
 }
 
+interface ScheduledController {
+  scheduledTime: number;
+  cron: string;
+}
+
+async function runScheduledMaintenance(env:Env,ctx:ExecutionContext){
+  const requests=[
+    new Request("https://airchurch.internal/api/sermons/sync?scope=database&limit=20",{method:"POST"}),
+    new Request("https://airchurch.internal/api/praises/sync",{method:"POST"}),
+    new Request("https://airchurch.internal/api/maintenance/retention",{method:"POST"}),
+  ];
+  await Promise.allSettled(requests.map((request)=>handler.fetch(request,env,ctx)));
+}
+
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
 // To route SVGs through the optimizer (with security headers), set
@@ -46,6 +60,9 @@ const worker = {
     }
 
     return handler.fetch(request, env, ctx);
+  },
+  async scheduled(_controller:ScheduledController,env:Env,ctx:ExecutionContext):Promise<void>{
+    ctx.waitUntil(runScheduledMaintenance(env,ctx));
   },
 };
 

@@ -31,7 +31,7 @@ async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Pro
 }
 
 export async function POST(request?:Request) {
-  if(request)return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
+  if(request&&new URL(request.url).hostname!=="airchurch.internal")return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const db = database();
   await ensureMediaTables(db);
   const syncKey = "youtube-praise-v1";

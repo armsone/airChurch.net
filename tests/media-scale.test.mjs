@@ -32,8 +32,19 @@ test("admin health reports catalog and church coverage rather than only freshnes
 test("keeps media synchronization internal and releases both collection leases",async()=>{
   const [sermons,praises]=await Promise.all([read("../app/api/sermons/sync/route.ts"),read("../app/api/praises/sync/route.ts")]);
   assert.match(sermons,/hostname!=="airchurch\.internal"/);
-  assert.match(praises,/if\(request\)return Response\.json\(\{error:"Not found"\}/);
+  assert.match(praises,/request&&new URL\(request\.url\)\.hostname!=="airchurch\.internal"/);
   for(const route of [sermons,praises]){assert.match(route,/finally \{/);assert.match(route,/DELETE FROM sync_state WHERE key=\?/);}
+});
+
+test("provides a scheduled low-load path independent of visitor traffic",async()=>{
+  const [worker,retention]=await Promise.all([read("../worker/index.ts"),read("../app/api/maintenance/retention/route.ts")]);
+  assert.match(worker,/async scheduled\(/);
+  assert.match(worker,/scope=database&limit=20/);
+  assert.match(worker,/airchurch\.internal\/api\/praises\/sync/);
+  assert.match(worker,/airchurch\.internal\/api\/maintenance\/retention/);
+  assert.match(worker,/Promise\.allSettled/);
+  assert.match(retention,/hostname!=="airchurch\.internal"/);
+  assert.match(retention,/maybeRunDataRetention\(database\(\)\)/);
 });
 
 test("unified search promotes approved pastor profiles before videos",async()=>{
