@@ -17,12 +17,22 @@ export async function PATCH(request: Request) {
   const id = Number(data.id);
   const kind = clean(data.kind, 40);
   if(role==="reviewer"&&kind!=="church-change-request") return Response.json({error:"교회 정보 요청 권한만 사용할 수 있습니다."},{status:403});
-  if (kind !== "church-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
+  if (kind !== "church-batch" && kind!=="pastor-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
   await ensureAdminTables(db);
 
-  if(kind==="church-batch") {
+  if(kind==="pastor-batch"){
+    if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 묶음 처리할 수 있습니다."},{status:403});
+    const status=clean(data.status,20);if(!["approved","removed"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
+    const ids=[...new Set((Array.isArray(data.ids)?data.ids:[]).map(Number).filter((value)=>Number.isInteger(value)&&value>0))];if(!ids.length||ids.length>100)return Response.json({error:"한 번에 1명 이상 100명 이하만 처리할 수 있습니다."},{status:400});
+    const placeholders=ids.map(()=>"?").join(",");
+    if(status==="approved"){
+      const sourced=await db.prepare(`SELECT COUNT(*) AS count FROM pastor_people p WHERE p.id IN (${placeholders}) AND p.review_status='pending' AND EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=p.id AND TRIM(COALESCE(r.source_url,''))<>'')`).bind(...ids).first<{count:number}>();
+      if(Number(sourced?.count??0)!==ids.length)return Response.json({error:"공식 출처가 없는 목회자가 포함되어 있어 묶음 승인하지 않았습니다."},{status:409,headers:{"cache-control":"no-store"}});
+    }
+    await db.batch([db.prepare(`UPDATE pastor_people SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id IN (${placeholders}) AND review_status='pending'`).bind(status,...ids),db.prepare(`UPDATE pastor_church_roles SET review_status=?,updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (${placeholders}) AND review_status='pending'`).bind(status,...ids)]);
+  } else if(kind==="church-batch") {
     if(role!=="admin") return Response.json({error:"관리자만 교회를 일괄 처리할 수 있습니다."},{status:403});
     const status=clean(data.status,20);
     if(!["approved","removed","deleted"].includes(status)) return Response.json({error:"상태를 확인해 주세요."},{status:400});

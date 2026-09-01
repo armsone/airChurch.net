@@ -381,6 +381,13 @@ export function PastorIdentityControls({id}:{id:number}){
   return <div className="admin-action-row"><button type="button" className="restore" disabled={busy} onClick={()=>void decide("confirmed_same")}>같은 사람으로 연결</button><button type="button" disabled={busy} onClick={()=>void decide("distinct")}>서로 다른 사람</button>{error&&<span className="admin-error">{error}</span>}</div>;
 }
 
+export function PastorBatchControls({ids}:{ids:number[]}){
+  const [busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function apply(status:"approved"|"removed"){if(!ids.length)return;if(!window.confirm(`현재 표시된 목회자 ${ids.length}명과 사역 관계를 ${status==="approved"?"승인":"보류"}할까요?`))return;setBusy(true);setError("");try{await updateAdmin({kind:"pastor-batch",ids,status});}catch(reason){setError((reason as Error).message);setBusy(false);}}
+  if(!ids.length)return null;
+  return <aside className="admin-panel"><div className="admin-panel-title"><div><small>BATCH REVIEW</small><h2>현재 표시된 목회자 묶음 처리</h2><p>아래 각 기록의 공식 출처를 확인한 뒤 한 번에 결정할 수 있습니다. 출처가 없는 기록이 하나라도 섞이면 승인이 중단됩니다.</p></div><span>{ids.length}명</span></div><div className="admin-action-row"><button type="button" className="restore" disabled={busy} onClick={()=>void apply("approved")}>현재 {ids.length}명 승인</button><button type="button" disabled={busy} onClick={()=>void apply("removed")}>현재 {ids.length}명 보류</button>{error&&<span className="admin-error">{error}</span>}</div></aside>;
+}
+
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function setStatus(next:"pending"|"approved"|"rejected"|"deleted") {
