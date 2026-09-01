@@ -1,0 +1,34 @@
+import {accessSession} from "../../../../admin-access";
+import {clean,database,ensurePastorPeopleTables,readLimitedJson,requestOriginIsInvalid} from "../../../_shared";
+import {safeHttpUrl} from "../../../../safe-url";
+
+const ROLE_CATEGORIES=new Set(["current_primary","associate","education","cooperating","emeritus","retired","founding","other"]),ROLE_STATUSES=new Set(["current","former"]),ROLE_TITLES=new Set(["담임목사","위임목사","대표목사","개척목사","수석부목사","부목사","교육부목사","행정목사","목양목사","교육목사","강도사","전임전도사","교육전도사","전도사","부교역자","협동목사","원로목사","은퇴목사"]);
+const personId=(value:unknown)=>{const result=clean(value,40);return /^person-[a-f0-9]{20}$/.test(result)?result:""};
+const date=(value:unknown)=>{const result=clean(value,10);return !result?null:/^\d{4}-\d{2}-\d{2}$/.test(result)?result:false};
+async function digest(value:unknown){const bytes=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(value)));return [...new Uint8Array(bytes)].map((item)=>item.toString(16).padStart(2,"0")).join("")}
+
+export async function POST(request:Request){
+  if(requestOriginIsInvalid(request))return Response.json({error:"요청을 확인할 수 없습니다."},{status:403});
+  const session=await accessSession(request);if(!session||session.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403});
+  const body=await readLimitedJson(request,524_288);if(body.tooLarge)return Response.json({error:"한 묶음이 너무 큽니다."},{status:413});
+  const kind=clean(body.data.kind,20),people=Array.isArray(body.data.people)?body.data.people:[],roles=Array.isArray(body.data.roles)?body.data.roles:[],links=Array.isArray(body.data.links)?body.data.links:[],declared=clean(body.data.digest,64),payload={kind,people,roles,links};
+  if(!/^[a-f0-9]{64}$/.test(declared)||declared!==await digest(payload))return Response.json({error:"가져오기 묶음의 무결성을 확인할 수 없습니다."},{status:409});
+  const db=database();await ensurePastorPeopleTables(db);
+  if(kind==="people"){
+    if(people.length<1||people.length>100||roles.length>250||links.length)return Response.json({error:"한 번에 목회자 1~100명과 해당 사역 관계만 처리할 수 있습니다."},{status:400});
+    const parsedPeople:Array<{id:string;name:string;photoUrl:string|null;photoSource:string|null;photoHash:string|null}>=[];
+    for(const raw of people){const item=raw as Record<string,unknown>,id=personId(item.directoryId),name=clean(item.name,30).replace(/\s*목사(?:님)?$/u,""),photoUrl=safeHttpUrl(clean(item.photoUrl,500)),photoSource=safeHttpUrl(clean(item.photoSourceUrl,500)),photoHash=clean(item.photoSha256,64),hasPhoto=Boolean(photoUrl||photoSource||photoHash);if(!id||!/^[가-힣]{2,5}$/.test(name)||item.publicSummary!==null||item.photoReviewStatus!=="pending"||item.reviewStatus!=="pending"||hasPhoto&&(!photoUrl||!photoSource||!/^[a-f0-9]{64}$/.test(photoHash)))return Response.json({error:"목회자 인물 자료의 형식 또는 사진 근거를 확인해 주세요."},{status:400});parsedPeople.push({id,name,photoUrl:hasPhoto?photoUrl:null,photoSource:hasPhoto?photoSource:null,photoHash:hasPhoto?photoHash:null});}
+    const ids=new Set(parsedPeople.map((item)=>item.id)),parsedRoles:Array<{personId:string;churchId:number|null;churchName:string;denomination:string;region:string;title:string;category:string;status:string;start:string|null;end:string|null;source:string}>=[];
+    for(const raw of roles){const item=raw as Record<string,unknown>,id=personId(item.personDirectoryId),churchId=Number(item.existingChurchId),resolvedChurchId=Number.isInteger(churchId)&&churchId>0?churchId:null,churchName=clean(item.churchName,100),denomination=clean(item.denomination,120),region=clean(item.region,80),title=clean(item.roleTitle,40),category=clean(item.roleCategory,30),status=clean(item.roleStatus,20),start=date(item.startDate),end=date(item.endDate),source=safeHttpUrl(clean(item.sourceUrl,500));if(!ids.has(id)||!churchName||!ROLE_TITLES.has(title)||!ROLE_CATEGORIES.has(category)||!ROLE_STATUSES.has(status)||start===false||end===false||!source||item.reviewStatus!=="pending")return Response.json({error:"사역 관계의 인물·교회·직분·공식 출처를 확인해 주세요."},{status:400});parsedRoles.push({personId:id,churchId:resolvedChurchId,churchName,denomination,region,title,category,status,start,end,source});}
+    for(let offset=0;offset<parsedPeople.length;offset+=50)await db.batch(parsedPeople.slice(offset,offset+50).map((item)=>db.prepare("INSERT INTO pastor_people (directory_id,name,public_summary,photo_url,photo_source_url,photo_sha256,photo_review_status,review_status) VALUES (?,?,NULL,?,?,?,'pending','pending') ON CONFLICT(directory_id) DO UPDATE SET name=excluded.name,photo_url=COALESCE(excluded.photo_url,pastor_people.photo_url),photo_source_url=COALESCE(excluded.photo_source_url,pastor_people.photo_source_url),photo_sha256=COALESCE(excluded.photo_sha256,pastor_people.photo_sha256),updated_at=CURRENT_TIMESTAMP").bind(item.id,item.name,item.photoUrl,item.photoSource,item.photoHash)));
+    for(let offset=0;offset<parsedRoles.length;offset+=50)await db.batch(parsedRoles.slice(offset,offset+50).map((item)=>db.prepare("INSERT OR IGNORE INTO pastor_church_roles (pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,start_date,end_date,source_url,review_status) SELECT id,?,?,?,?,?,?,?,?,?,?,'pending' FROM pastor_people WHERE directory_id=?").bind(item.churchId,item.churchName,item.denomination,item.region,item.title,item.category,item.status,item.start,item.end,item.source,item.personId)));
+    return Response.json({ok:true,people:parsedPeople.length,roles:parsedRoles.length,identityLinks:0},{headers:{"cache-control":"no-store"}});
+  }
+  if(kind==="identities"){
+    if(people.length||roles.length||links.length<1||links.length>100)return Response.json({error:"한 번에 동일인 검토 후보 1~100건만 처리할 수 있습니다."},{status:400});
+    const parsed:Array<{left:string;right:string;evidence:string}>=[];for(const raw of links){const item=raw as Record<string,unknown>,left=personId(item.leftPersonDirectoryId),right=personId(item.rightPersonDirectoryId),evidence=clean(item.evidenceValue,64);if(!left||!right||left===right||item.evidenceType!=="exact_official_photo_sha256"||!/^[a-f0-9]{64}$/.test(evidence)||item.status!=="pending")return Response.json({error:"동일인 검토 근거를 확인해 주세요."},{status:400});parsed.push({left,right,evidence});}
+    for(let offset=0;offset<parsed.length;offset+=50)await db.batch(parsed.slice(offset,offset+50).map((item)=>db.prepare("INSERT OR IGNORE INTO pastor_identity_candidates (left_pastor_id,right_pastor_id,evidence_type,evidence_value,status) SELECT CASE WHEN l.id<r.id THEN l.id ELSE r.id END,CASE WHEN l.id<r.id THEN r.id ELSE l.id END,'exact_official_photo_sha256',?,'pending' FROM pastor_people l,pastor_people r WHERE l.directory_id=? AND r.directory_id=? AND l.id<>r.id").bind(item.evidence,item.left,item.right)));
+    return Response.json({ok:true,people:0,roles:0,identityLinks:parsed.length},{headers:{"cache-control":"no-store"}});
+  }
+  return Response.json({error:"지원하지 않는 가져오기 작업입니다."},{status:400});
+}

@@ -13,6 +13,7 @@ import PrivateContactList from "../private-contact-list";
 import PastorPrivateContactList from "../pastor-private-contact-list";
 import { readAllPastorPrivateContacts,readPrivateContacts } from "../private-contact-vault";
 import ChurchDetailImporter from "./church-detail-importer";
+import PastorDataImporter from "./pastor-data-importer";
 
 export const dynamic = "force-dynamic";
 export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
@@ -144,6 +145,7 @@ export default async function AdminPage() {
     </section>
 
     <ChurchDetailImporter/>
+    <PastorDataImporter/>
     <section className="admin-management-grid">
       <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시하고, 검색할 때 전체 교회에서 필요한 결과만 불러옵니다.</p></div><span>{churches?.count??0}곳</span></div><AdminChurchDirectory variant="public" initialItems={safeChurchRows(publicChurchRows.results)} total={churches?.count??0}/></article>
       <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시하고, 검색할 때 전체 보류 교회에서 필요한 결과만 불러옵니다.</p></div><span>{heldChurches?.count??0}곳</span></div><AdminChurchDirectory variant="held" initialItems={safeChurchRows(heldChurchRows.results)} total={heldChurches?.count??0}/></article>
