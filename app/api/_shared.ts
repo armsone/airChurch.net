@@ -133,7 +133,7 @@ export const ensureContactTables = memoizeEnsure(async (db:D1Database) => {
 });
 export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-reviewers-v3' LIMIT 1").first<{key:string}>();
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-reviewers-v4' LIMIT 1").first<{key:string}>();
   if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS reviewer_accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, contact TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, password_salt TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', fingerprint TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, reviewed_at TEXT)"),
@@ -149,11 +149,13 @@ export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_church_change_requests_reviewer_pending ON church_change_requests(reviewer_id,status,church_id,request_type)"),
   ]);
   const reviewColumns=await db.prepare("PRAGMA table_info(reviewer_church_reviews)").all<{name:string}>();
+  const accountColumns=await db.prepare("PRAGMA table_info(reviewer_accounts)").all<{name:string}>();
+  await addColumnIfMissing(db,accountColumns.results,"church_id","ALTER TABLE reviewer_accounts ADD COLUMN church_id INTEGER REFERENCES churches(id)");
   await addColumnIfMissing(db,reviewColumns.results,"handled_at","ALTER TABLE reviewer_church_reviews ADD COLUMN handled_at TEXT");
   await addColumnIfMissing(db,reviewColumns.results,"admin_resolution","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_resolution TEXT");
   await addColumnIfMissing(db,reviewColumns.results,"admin_note","ALTER TABLE reviewer_church_reviews ADD COLUMN admin_note TEXT");
   await addColumnIfMissing(db,reviewColumns.results,"resolved_by","ALTER TABLE reviewer_church_reviews ADD COLUMN resolved_by TEXT");
-  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-reviewers-v3',CURRENT_TIMESTAMP)").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-reviewers-v4',CURRENT_TIMESTAMP)").run();
 });
 export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);

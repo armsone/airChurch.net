@@ -63,7 +63,7 @@ export async function PATCH(request: Request) {
     const requestType=clean(data.requestType,20),reason=clean(data.reason,500);
     if(!["edit","hold","delete"].includes(requestType)) return Response.json({error:"요청 종류를 확인해 주세요."},{status:400});
     if(reason.length<3) return Response.json({error:"요청 이유를 3자 이상 적어 주세요."},{status:400});
-    const church=await db.prepare("SELECT id FROM churches WHERE id=? AND review_status IN ('approved','removed') LIMIT 1").bind(id).first();
+    const church=await db.prepare("SELECT c.id FROM churches c JOIN reviewer_accounts a ON a.id=? AND a.status='approved' AND a.church_id=c.id WHERE c.id=? AND c.review_status IN ('approved','removed') LIMIT 1").bind(session.reviewerId,id).first();
     if(!church)return Response.json({error:"요청할 교회를 찾을 수 없습니다."},{status:404});
     const name=requestType==="edit"?clean(data.name,100):"",pastor=requestType==="edit"?clean(data.pastor,80):"",region=requestType==="edit"?clean(data.region,80):"",denomination=requestType==="edit"?clean(data.denomination,120):"";
     if(requestType==="edit"&&(!name||!pastor||!region||!denomination)) return Response.json({error:"수정할 교회 정보를 모두 입력해 주세요."},{status:400});
