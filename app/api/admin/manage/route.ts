@@ -185,6 +185,12 @@ export async function PATCH(request: Request) {
     const status = clean(data.status, 20);
     if (!["published", "hidden"].includes(status)) return Response.json({ error: "상태를 확인해 주세요." }, { status: 400 });
     await db.prepare("UPDATE sermons SET status=? WHERE id=?").bind(status, id).run();
+  } else if(kind==="pastor-photo"){
+    if(role!=="admin")return Response.json({error:"관리자만 목회자 사진을 처리할 수 있습니다."},{status:403});
+    const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;
+    if(!["pending","approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
+    if(status==="deleted")await db.prepare("UPDATE pastor_people SET photo_url=NULL,photo_source_url=NULL,photo_sha256=NULL,photo_review_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+    else await db.prepare("UPDATE pastor_people SET photo_review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND photo_url IS NOT NULL AND photo_source_url IS NOT NULL").bind(status,id).run();
   } else if(kind==="pastor-person"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 처리할 수 있습니다."},{status:403});
     const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;
