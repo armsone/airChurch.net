@@ -37,7 +37,7 @@ const checks={
   media_gap_does_not_hold_church:syncRoute.includes("missing or quiet YouTube channel is a collection gap")&&!syncRoute.includes("UPDATE churches SET review_status='removed'"),
   expanded_archive_is_batched:syncRoute.includes("recentSermons.slice(0,18)")&&syncRoute.includes("recentShorts.slice(0,12)")&&syncRoute.includes("recentPraises.slice(0,12)")&&syncRoute.includes("await db.batch(mediaStatements)"),
   collection_lease_released_on_failure:[syncRoute,praiseSyncRoute].every((route)=>route.includes("finally {")&&route.includes('DELETE FROM sync_state WHERE key=?')&&route.includes(".catch(()=>undefined)")),
-  collection_endpoints_are_internal_only:[syncRoute,praiseSyncRoute].every((route)=>route.includes('hostname!=="airchurch.internal"')),
+  collection_endpoints_are_internal_only:[syncRoute,praiseSyncRoute].every((route)=>route.includes("internalTaskRequestAllowed(request)")),
   edge_cache_keeps_stale_content:mediaRoutes.every((route)=>route.includes("cdn-cache-control")&&route.includes("stale-while-revalidate=3600")&&!route.includes("s-maxage")),
   offline_person_coverage_report:coverageReport.includes('mode:"offline_read_only"')&&coverageReport.includes("network_requests:0")&&coverageReport.includes("database_writes:0")&&coverageReport.includes("isSermonAttributedTo"),
   pastor_change_requests_bound_to_affiliation:signupRoute.includes("fingerprint,church_id")&&manageRoute.includes("a.church_id=c.id WHERE c.id=?"),

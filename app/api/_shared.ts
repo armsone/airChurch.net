@@ -1,5 +1,10 @@
 import { env } from "cloudflare:workers";
 export function database() { if (!env.DB) throw new Error("Database unavailable"); return env.DB as D1Database; }
+export function internalTaskRequestAllowed(request:Request){
+  if(new URL(request.url).hostname==="airchurch.internal")return true;
+  const token=(env as unknown as {MAINTENANCE_TOKEN?:string}).MAINTENANCE_TOKEN;
+  return Boolean(token&&token.length>=32&&request.headers.get("authorization")===`Bearer ${token}`);
+}
 async function addColumnIfMissing(db:D1Database,columns:{name:string}[],name:string,sql:string) {
   if(columns.some((column)=>column.name===name)) return;
   try { await db.prepare(sql).run(); }

@@ -3,6 +3,9 @@
 const baseUrl=(process.argv.find((value)=>value.startsWith("--base-url="))?.split("=")[1]||"https://airchurch.net").replace(/\/$/,"");
 const concurrency=Math.max(1,Math.min(3,Number(process.argv.find((value)=>value.startsWith("--concurrency="))?.split("=")[1]||3)));
 const batchSize=20;
+const maintenanceToken=process.env.AIRCHURCH_MAINTENANCE_TOKEN||"";
+if(maintenanceToken.length<32)throw new Error("AIRCHURCH_MAINTENANCE_TOKEN must contain at least 32 characters");
+const internalHeaders={authorization:`Bearer ${maintenanceToken}`};
 
 async function requestJson(url,options) {
   const response=await fetch(url,options);
@@ -21,7 +24,7 @@ async function worker() {
   while(cursor<starts.length) {
     const start=starts[cursor++];
     try {
-      await requestJson(`${baseUrl}/api/sermons/sync?scope=database&start=${start}&limit=${batchSize}`,{method:"POST"});
+      await requestJson(`${baseUrl}/api/sermons/sync?scope=database&start=${start}&limit=${batchSize}`,{method:"POST",headers:internalHeaders});
     } catch(error) {
       failures++;
       console.error(`[실패] ${start+1}~${Math.min(start+batchSize,total)}: ${error instanceof Error?error.message:String(error)}`);

@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { database, ensureMediaCollectionTables } from "../../_shared";
+import { database, ensureMediaCollectionTables, internalTaskRequestAllowed } from "../../_shared";
 import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
 import { isShortCandidate, youtubeDurationSeconds } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
@@ -446,7 +446,7 @@ type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:str
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
 
 export async function POST(request:Request) {
-  if(new URL(request.url).hostname!=="airchurch.internal")return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
+  if(!internalTaskRequestAllowed(request))return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key) return Response.json({error:"YouTube API key not configured"},{status:503,headers:{"cache-control":"no-store"}});
   const db=database(); await ensureMediaCollectionTables(db); await seedHeldSources(db);

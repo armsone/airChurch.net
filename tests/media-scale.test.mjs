@@ -31,8 +31,8 @@ test("admin health reports catalog and church coverage rather than only freshnes
 
 test("keeps media synchronization internal and releases both collection leases",async()=>{
   const [sermons,praises]=await Promise.all([read("../app/api/sermons/sync/route.ts"),read("../app/api/praises/sync/route.ts")]);
-  assert.match(sermons,/hostname!=="airchurch\.internal"/);
-  assert.match(praises,/request&&new URL\(request\.url\)\.hostname!=="airchurch\.internal"/);
+  assert.match(sermons,/internalTaskRequestAllowed\(request\)/);
+  assert.match(praises,/request&&!internalTaskRequestAllowed\(request\)/);
   for(const route of [sermons,praises]){assert.match(route,/finally \{/);assert.match(route,/DELETE FROM sync_state WHERE key=\?/);}
 });
 
@@ -43,8 +43,16 @@ test("provides a scheduled low-load path independent of visitor traffic",async()
   assert.match(worker,/airchurch\.internal\/api\/praises\/sync/);
   assert.match(worker,/airchurch\.internal\/api\/maintenance\/retention/);
   assert.match(worker,/Promise\.allSettled/);
-  assert.match(retention,/hostname!=="airchurch\.internal"/);
+  assert.match(retention,/internalTaskRequestAllowed\(request\)/);
   assert.match(retention,/maybeRunDataRetention\(database\(\)\)/);
+});
+
+test("manual backfill requires a long maintenance token",async()=>{
+  const [backfill,example]=await Promise.all([read("../scripts/backfill-church-media.mjs"),read("../.env.example")]);
+  assert.match(backfill,/AIRCHURCH_MAINTENANCE_TOKEN/);
+  assert.match(backfill,/maintenanceToken\.length<32/);
+  assert.match(backfill,/authorization:`Bearer \$\{maintenanceToken\}`/);
+  assert.match(example,/MAINTENANCE_TOKEN=/);
 });
 
 test("records pipeline attempts and failures instead of hiding one behind another",async()=>{
