@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { kwangsungOfficialPhotos } from "./kwangsung-photos";
 export function database() { if (!env.DB) throw new Error("Database unavailable"); return env.DB as D1Database; }
 export function internalTaskRequestAllowed(request:Request){
   if(new URL(request.url).hostname==="airchurch.internal")return true;
@@ -244,7 +245,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v22' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v23' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -392,6 +393,8 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await db.prepare(`WITH ranked AS (SELECT r.id,ROW_NUMBER() OVER(PARTITION BY REPLACE(TRIM(p.name),' ',''),r.church_id,r.role_title ORDER BY CASE WHEN p.directory_id LIKE 'kwangsung-official-%' THEN 0 ELSE 1 END,p.id,r.id) AS duplicate_rank FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.review_status='approved' AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')='거룩한빛광성교회') DELETE FROM pastor_church_roles WHERE id IN (SELECT id FROM ranked WHERE duplicate_rank>1)`).run();
   await db.prepare("DELETE FROM pastor_people WHERE directory_id LIKE 'kwangsung-official-%' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id)").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v22',CURRENT_TIMESTAMP)").run();
+  await db.batch(kwangsungOfficialPhotos.map((photo)=>db.prepare(`UPDATE pastor_people SET photo_url=?,photo_source_url=?,photo_usage_basis='official_public_clergy_profile',photo_review_status='approved',updated_at=CURRENT_TIMESTAMP WHERE id=(SELECT p.id FROM pastor_people p JOIN pastor_church_roles r ON r.pastor_id=p.id WHERE p.review_status='approved' AND r.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(?,' ','') AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')='거룩한빛광성교회' ORDER BY CASE WHEN p.directory_id LIKE 'kwangsung-official-%' THEN 0 ELSE 1 END,p.id LIMIT 1)`).bind(photo.photoUrl,photo.sourceUrl,photo.name)));
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v23',CURRENT_TIMESTAMP)").run();
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
