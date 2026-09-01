@@ -244,7 +244,7 @@ export const ensureMinistryProfileTables=memoizeEnsure(async(db:D1Database)=>{
 });
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v18' LIMIT 1").first<{key:string}>();if(ready)return;
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v20' LIMIT 1").first<{key:string}>();if(ready)return;
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -374,6 +374,16 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
     db.prepare("DELETE FROM pastor_church_roles WHERE review_status='removed'"),
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v18',CURRENT_TIMESTAMP)"),
   ]);
+  await db.batch([
+    db.prepare("UPDATE pastor_church_roles SET role_status='former',updated_at=CURRENT_TIMESTAMP WHERE review_status='approved' AND TRIM(COALESCE(end_date,''))<>''"),
+    db.prepare("UPDATE pastor_church_roles SET role_status='former',start_date='1962-02-13',end_date='1973-12-31',updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (SELECT id FROM pastor_people WHERE REPLACE(TRIM(name),' ','')='정순례') AND REPLACE(TRIM(COALESCE(church_name,'')),' ','')='광주서림교회' AND role_title='전도사'"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v19',CURRENT_TIMESTAMP)"),
+  ]);
+  const kwangsungStaff="WITH staff(name,role_title,role_category) AS (VALUES ('곽승현','위임목사','current_primary'),('김은찬','부목사','associate'),('이송학','부목사','associate'),('이요한','부목사','associate'),('박정민','부목사','associate'),('임대순','부목사','associate'),('이일현','부목사','associate'),('김진우','부목사','associate'),('장지웅','부목사','associate'),('김민석','부목사','associate'),('김현준','부목사','associate'),('정의주','부목사','associate'),('서성준','부목사','associate'),('여창건','부목사','associate'),('김환','부목사','associate'),('문상원','부목사','associate'),('박성택','부목사','associate'),('한요한','부목사','associate'),('차선우','부목사','associate'),('장재극','부목사','associate'),('방성빈','부목사','associate'),('이재광','부목사','associate'),('윤화평','부목사','associate'),('왕하늘','전도사','education'))";
+  await db.prepare(`${kwangsungStaff} INSERT INTO pastor_people(directory_id,name,review_status) SELECT 'kwangsung-official-'||name,name,'approved' FROM staff WHERE NOT EXISTS (SELECT 1 FROM pastor_people p JOIN pastor_church_roles r ON r.pastor_id=p.id WHERE p.review_status='approved' AND r.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(staff.name,' ','') AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')='거룩한빛광성교회')`).run();
+  await db.prepare(`${kwangsungStaff} INSERT OR IGNORE INTO pastor_church_roles(pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,source_url,review_status) SELECT p.id,c.id,c.name,c.denomination,c.region,staff.role_title,staff.role_category,'current','https://kwangsung.org/Page/Index/15','approved' FROM staff JOIN pastor_people p ON REPLACE(TRIM(p.name),' ','')=REPLACE(staff.name,' ','') JOIN churches c ON REPLACE(TRIM(c.name),' ','')='거룩한빛광성교회' WHERE p.review_status='approved' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=p.id AND r.review_status='approved' AND r.church_id=c.id)`).run();
+  await db.prepare("UPDATE pastor_church_roles SET role_title='위임목사',role_category='current_primary',role_status='current',source_url='https://kwangsung.org/Page/Index/15',updated_at=CURRENT_TIMESTAMP WHERE pastor_id IN (SELECT id FROM pastor_people WHERE REPLACE(TRIM(name),' ','')='곽승현') AND REPLACE(TRIM(COALESCE(church_name,'')),' ','')='거룩한빛광성교회' AND review_status='approved'").run();
+  await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v20',CURRENT_TIMESTAMP)").run();
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
