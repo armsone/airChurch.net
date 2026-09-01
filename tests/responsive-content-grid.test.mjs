@@ -17,3 +17,9 @@ test("keeps four mobile search jump targets in a readable two-by-two grid",async
   const styles=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
   assert.match(styles,/\.search-mobile-jumps\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/s);
 });
+
+test("keeps mobile search controls and result metadata legible",async()=>{
+  const css=await readFile(new URL("../app/globals.css",import.meta.url),"utf8");
+  assert.match(css,/\.search-page-hero input,\.search-page-hero select,\.search-page-hero button\{font-size:14px\}/);
+  assert.match(css,/\.search-church-grid span,\.search-church-grid small,\.search-church-grid em,\.search-result-video small,\.search-result-video em\{font-size:11px\}/);
+});
