@@ -19,15 +19,18 @@ const identityFile=argument("--identities","out/pastor-history/national-collecti
 const importPlanFile=argument("--import-plan","out/pastor-history/collected-pastor-import-plan.json");
 const manifestFile=argument("--manifest","out/pastor-history/d1-import-collected/manifest.json");
 const worshipReportFile=argument("--worship-report","data/worship-schedules/all-report.json");
+const worshipReviewSummaryFile=argument("--worship-review-summary","out/worship-review-batches/summary.json");
+const worshipReviewsFile=argument("--worship-reviews","out/worship-reviews.merged.json");
 
-const [collection,photoBundle,identityBundle,importPlan,manifest,worshipReport]=await Promise.all([
-  readJson(collectionFile),readJson(photoFile),readJson(identityFile),readJson(importPlanFile),readJson(manifestFile),readJson(worshipReportFile),
+const [collection,photoBundle,identityBundle,importPlan,manifest,worshipReport,worshipReviewSummary,worshipReviews]=await Promise.all([
+  readJson(collectionFile),readJson(photoFile),readJson(identityFile),readJson(importPlanFile),readJson(manifestFile),readJson(worshipReportFile),readJson(worshipReviewSummaryFile),readJson(worshipReviewsFile),
 ]);
 const people=collection.people??[],roles=collection.ministryRelationships??[],photos=photoBundle.photos??[],links=identityBundle.links??[];
 const peopleIds=new Set(people.map((person)=>person.directoryPersonId));
 const roleKeys=roles.map((role)=>[role.directoryPersonId,role.directoryChurchId,role.roleTitle,role.roleStatus,role.sourceUrl].join("|"));
 const photoIds=photos.map((photo)=>photo.directoryPersonId);
 const importPeople=importPlan.people??[],importRoles=importPlan.roles??[];
+const worshipReviewRows=worshipReviews.reviews??[],worshipReviewIds=worshipReviewRows.map((item)=>item.record_id);
 const serializedPublicText=collectNonUrlText({people,roles,photos,links,importPeople,importRoles}).join("\n");
 const chunkDir=manifestFile.slice(0,manifestFile.lastIndexOf("/"));
 const chunkChecks=await Promise.all((manifest.chunks??[]).map(async(chunk)=>{
@@ -37,6 +40,9 @@ const chunkChecks=await Promise.all((manifest.chunks??[]).map(async(chunk)=>{
 
 const checks={
   worship_collection_complete:worshipReport.complete===true&&worshipReport.registered_churches===worshipReport.attempted_churches&&Number(worshipReport.collection_errors??0)===0,
+  worship_review_queue_complete:Number(worshipReviewSummary.candidate_records??-1)===Number(worshipReport.schedule_candidates_pending_review??0)+Number(worshipReport.profile_candidates_pending_review??0)&&worshipReviewRows.length===Number(worshipReviewSummary.candidate_records??-1),
+  worship_review_queue_duplicate_free:new Set(worshipReviewIds).size===worshipReviewIds.length&&Number(worshipReviewSummary.duplicate_candidates??-1)===0,
+  worship_review_is_manual_and_batched:worshipReviewSummary.automatic_approval===false&&worshipReviews.metadata?.automatic_publication===false&&Number(worshipReviewSummary.batch_count??0)>0&&Number(worshipReviewSummary.batch_count)<=20,
   people_preserved:people.length>0&&Number(collection.metadata?.homonymExcludedPeople??-1)===0,
   every_role_has_person:roles.every((role)=>peopleIds.has(role.directoryPersonId)),
   official_role_sources_present:roles.every((role)=>isHttp(role.sourceUrl)),
@@ -56,5 +62,5 @@ const checks={
   low_load_chunks:Number(manifest.batchSize??0)>0&&Number(manifest.batchSize)<=200&&(manifest.chunks??[]).length>0&&chunkChecks.every((chunk)=>chunk.hashMatches&&chunk.withinBatch),
 };
 const failed=Object.entries(checks).filter(([,passed])=>!passed).map(([name])=>name);
-console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,missingPhotos:Number(photoBundle.metadata?.missingPhotos??0),identityLinkGroups:links.length,homonymsExcluded:Number(collection.metadata?.homonymExcludedPeople??-1),worshipChurches:Number(worshipReport.registered_churches??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,identityFile,importPlanFile,manifestFile,worshipReportFile}},null,2));
+console.log(JSON.stringify({ok:failed.length===0,checks,failed,summary:{people:people.length,roles:roles.length,photos:photos.length,missingPhotos:Number(photoBundle.metadata?.missingPhotos??0),identityLinkGroups:links.length,homonymsExcluded:Number(collection.metadata?.homonymExcludedPeople??-1),worshipChurches:Number(worshipReport.registered_churches??0),worshipReviewCandidates:worshipReviewRows.length,worshipReviewBatches:Number(worshipReviewSummary.batch_count??0),chunks:chunkChecks.length,maxChunkBytes:Math.max(0,...chunkChecks.map((chunk)=>chunk.bytes))},artifacts:{collectionFile,photoFile,identityFile,importPlanFile,manifestFile,worshipReportFile,worshipReviewSummaryFile,worshipReviewsFile}},null,2));
 if(failed.length)process.exitCode=1;
