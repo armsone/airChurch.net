@@ -6,7 +6,7 @@ import path from "node:path";
 
 const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
-const COLLECTOR_VERSION = 3;
+const COLLECTOR_VERSION = 4;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
 const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사|목사";
 const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
@@ -116,12 +116,20 @@ function validName(name) {
     && !/(교회|목사|전도|예배|교육|사역|부서|소개|말씀|하나님|예수님|학교|노회|성경|전도회|심방|전임|전담|인허|위임|추대|안수|주년|사임|사면|부임|유년부|유치부|초등부|중등부|고등부|대학부|청년부|장립집사|현재까지|에서|부)$/u.test(name);
 }
 
+function genericPastorRoster(html) {
+  if (!/섬기는\s*사람|교역자\s*(?:검색|소개|안내)|목회자\s*(?:소개|안내)|staff|pastor|minister/i.test(html)) return false;
+  const cards = html.match(/<img\b[^>]*>[\s\S]{0,1600}?[가-힣]{2,5}\s*목사/gi) ?? [];
+  return cards.length >= 3;
+}
+
 function extractMinisters(html, church, sourceUrl, checkedAt) {
   const text = htmlText(html);
+  const allowGenericPastor = genericPastorRoster(html);
   const people = [];
   for (const match of text.matchAll(ROLE_RE)) {
     const role = clean(match[1] ?? match[4]);
     const name = clean(match[2] ?? match[3]);
+    if (role === "목사" && !allowGenericPastor) continue;
     if (!validName(name)) continue;
     const normalized = normalizeRole(role);
     const at = match.index ?? 0;
