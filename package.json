@@ -21,6 +21,7 @@
     "worship:plan": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/validated-dry-run.json --output data/worship-schedules/import-plan.json",
     "worship:export-all": "node scripts/worship-schedules/export-registered-churches.mjs",
     "worship:collect-all": "node scripts/worship-schedules/collect-all.mjs",
+    "worship:fairness-all": "node scripts/worship-schedules/apply-fairness-policy.mjs",
     "worship:validate-all": "node scripts/worship-schedules/validate.mjs --input data/worship-schedules/all-output.json --output data/worship-schedules/all-validated-dry-run.json",
     "worship:plan-all": "node scripts/worship-schedules/import-plan.mjs --input data/worship-schedules/all-validated-dry-run.json --output data/worship-schedules/all-import-plan.json",
     "worship:report-all": "node scripts/worship-schedules/report.mjs",

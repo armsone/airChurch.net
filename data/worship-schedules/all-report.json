@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T01:08:03.505Z",
+  "generated_at": "2026-09-01T01:25:48.132Z",
   "complete": true,
   "registered_churches": 1782,
   "attempted_churches": 1782,
@@ -67,5 +67,19 @@
   "general_contact_value_leaks": 0,
   "contact_schema_errors": 0,
   "duplicate_contact_candidate_ids": 0,
-  "automatic_publication": false
+  "automatic_publication": false,
+  "fairness": {
+    "all_included": true,
+    "equal_priority": true,
+    "coverage_states": {
+      "information_tip_pending": 1152,
+      "human_review_required": 416,
+      "review_candidate_available": 214
+    },
+    "missing_information_penalty": false,
+    "supplement_channels": [
+      "church_information_tip",
+      "support_message_reference"
+    ]
+  }
 }

@@ -17,6 +17,7 @@ const contactLeakPattern = /(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:헌금\s*)?계�
 const generalContactValueLeaks = generalRecords.filter((record) => [record.source_text, record.summary, record.address, record.phone, record.venue_audience].filter(Boolean).some((value) => contactLeakPattern.test(String(value))));
 const contactSchemaErrors = (contactsBundle.contacts || []).filter((contact) => !contact.candidateId || !contact.churchId || !["email", "phone", "account"].includes(contact.type) || !contact.value || !["organization", "official_role"].includes(contact.scope) || !contact.sourceUrl || contact.reviewStatus !== "pending" || contact.visibility !== "admin_only" || contact.revealPolicy !== "masked_audited");
 const contactIds = (contactsBundle.contacts || []).map((contact) => contact.candidateId);
+const fairnessResults = bundle.church_results || [];
 const report = {
   generated_at: new Date().toISOString(),
   complete: bundle.metadata?.complete === true && attemptedIds.size === bundle.metadata?.registered_total,
@@ -40,11 +41,19 @@ const report = {
   contact_schema_errors: contactSchemaErrors.length,
   duplicate_contact_candidate_ids: contactIds.length - new Set(contactIds).size,
   automatic_publication: bundle.metadata?.automatic_publication === true,
+  fairness: {
+    all_included: fairnessResults.every((result) => result.inclusion_status === "included"),
+    equal_priority: fairnessResults.every((result) => result.collection_priority === "equal"),
+    coverage_states: countBy(fairnessResults.map((result) => result.coverage_status || "missing")),
+    missing_information_penalty: bundle.metadata?.fairness_policy?.missing_information_penalty,
+    supplement_channels: bundle.metadata?.fairness_policy?.supplement_rule ? ["church_information_tip", "support_message_reference"] : [],
+  },
 };
 if (!report.complete) throw new Error(`전체 처리 검증 실패: ${report.attempted_churches}/${report.registered_churches}`);
 if (report.http_source_count !== (report.transport_review?.warning_count || 0)) throw new Error(`HTTP 전송 검토 건수 불일치: ${report.http_source_count}/${report.transport_review?.warning_count || 0}`);
 if (report.contact_visibility !== "admin_only") throw new Error("연락정보 후보는 admin_only여야 합니다.");
 if (report.general_contact_value_leaks || report.contact_schema_errors || report.duplicate_contact_candidate_ids) throw new Error(`연락정보 분리 검증 실패: leak=${report.general_contact_value_leaks}, schema=${report.contact_schema_errors}, duplicate=${report.duplicate_contact_candidate_ids}`);
+if (!report.fairness.all_included || !report.fairness.equal_priority || report.fairness.missing_information_penalty !== false || report.fairness.coverage_states.missing) throw new Error("교회 정보 형평성 검증에 실패했습니다.");
 await mkdir(dirname(outputPath), { recursive: true });
 const temporaryPath = `${outputPath}.tmp`;
 await writeFile(temporaryPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
