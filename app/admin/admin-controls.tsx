@@ -365,6 +365,16 @@ export function ReviewControls({ kind, id, status }: { kind: "post" | "talent" |
   return <div className="admin-action-row"><button type="button" disabled={busy || status === "approved"} className="restore" onClick={() => void setStatus("approved")}>{approveLabel}</button>{!encouragement&&<button type="button" disabled={busy || status === "rejected"} className="danger" onClick={() => void setStatus("rejected")}>{rejectLabel}</button>}{status !== "pending"&&kind!=="ministry-suggestion"&&<button type="button" disabled={busy} onClick={() => void setStatus("pending")}>{encouragement?"보류":"재검토"}</button>}<button type="button" disabled={busy} className="danger" onClick={() => void setStatus("deleted")}>삭제</button>{error && <span className="admin-error">{error}</span>}</div>;
 }
 
+export function PastorPhotoControls({id}:{id:number}){
+  const [usageBasis,setUsageBasis]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState("");
+  async function act(status:"approved"|"rejected"|"deleted"){
+    if(status==="approved"&&!usageBasis){setError("사진 사용 권리 근거를 선택해 주세요.");return;}
+    if(status==="deleted"&&!window.confirm("사진 자료만 삭제할까요? 목회자와 사역 이력은 유지됩니다."))return;
+    setBusy(true);setError("");try{await updateAdmin({kind:"pastor-photo",id,status,usageBasis});}catch(reason){setError((reason as Error).message);setBusy(false);}
+  }
+  return <div className="admin-action-row"><label><span className="sr-only">사진 사용 권리 근거</span><select value={usageBasis} onChange={(event)=>setUsageBasis(event.target.value)}><option value="">권리 근거 선택</option><option value="permission">사용 허락 확인</option><option value="open_license">오픈 라이선스 확인</option><option value="owned">airChurch 보유 사진</option></select></label><button type="button" className="restore" disabled={busy||!usageBasis} onClick={()=>void act("approved")}>권리 확인 후 승인</button><button type="button" disabled={busy} onClick={()=>void act("rejected")}>보류</button><button type="button" className="danger" disabled={busy} onClick={()=>void act("deleted")}>사진만 삭제</button>{error&&<span className="admin-error">{error}</span>}</div>;
+}
+
 export function ReviewerAccountControls({id,status}:{id:number;status:string}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   async function setStatus(next:"pending"|"approved"|"rejected"|"deleted") {

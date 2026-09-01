@@ -189,8 +189,10 @@ export async function PATCH(request: Request) {
     if(role!=="admin")return Response.json({error:"관리자만 목회자 사진을 처리할 수 있습니다."},{status:403});
     const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;
     if(!["pending","approved","removed","deleted"].includes(status))return Response.json({error:"상태를 확인해 주세요."},{status:400});
-    if(status==="deleted")await db.prepare("UPDATE pastor_people SET photo_url=NULL,photo_source_url=NULL,photo_sha256=NULL,photo_review_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
-    else await db.prepare("UPDATE pastor_people SET photo_review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND photo_url IS NOT NULL AND photo_source_url IS NOT NULL").bind(status,id).run();
+    const usageBasis=clean(data.usageBasis,30),allowedBasis=["permission","open_license","owned"];
+    if(status==="approved"&&!allowedBasis.includes(usageBasis))return Response.json({error:"사용 허락·오픈 라이선스·직접 보유 중 확인된 권리 근거가 필요합니다."},{status:400});
+    if(status==="deleted")await db.prepare("UPDATE pastor_people SET photo_url=NULL,photo_source_url=NULL,photo_sha256=NULL,photo_usage_basis=NULL,photo_review_status='pending',updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+    else await db.prepare("UPDATE pastor_people SET photo_usage_basis=CASE WHEN ?<>'' THEN ? ELSE photo_usage_basis END,photo_review_status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND photo_url IS NOT NULL AND photo_source_url IS NOT NULL").bind(usageBasis,usageBasis,status,id).run();
   } else if(kind==="pastor-person"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 처리할 수 있습니다."},{status:403});
     const requested=clean(data.status,20),status=requested==="rejected"?"removed":requested;
