@@ -11,6 +11,7 @@ import HomeReloadLink from "../home-reload-link";
 import { database, ensureAdminTables } from "../api/_shared";
 import PrivateContactList from "../private-contact-list";
 import { readPrivateContacts } from "../private-contact-vault";
+import ChurchDetailImporter from "./church-detail-importer";
 
 export const dynamic = "force-dynamic";
 export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:false,follow:false}};
@@ -133,6 +134,7 @@ export default async function AdminPage() {
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 12개월</small><h2>월별 방문</h2></div><span>빠진 달 없이 표시</span></div><TrafficChart rows={monthly.results} label={(period)=>`${Number(period.slice(5))}월`} empty="방문 기록이 없습니다." /></article>
     </section>
 
+    <ChurchDetailImporter/>
     <section className="admin-management-grid">
       <article className="admin-panel" id="church-management"><div className="admin-panel-title"><div><small>CHURCH MANAGEMENT</small><h2>전체 교회 관리</h2><p>처음에는 무작위 20곳만 표시하고, 검색할 때 전체 교회에서 필요한 결과만 불러옵니다.</p></div><span>{churches?.count??0}곳</span></div><AdminChurchDirectory variant="public" initialItems={safeChurchRows(publicChurchRows.results)} total={churches?.count??0}/></article>
       <article className="admin-panel" id="church-hold"><div className="admin-panel-title"><div><small>CHURCH HOLD</small><h2>보류 교회</h2><p>처음에는 무작위 10곳만 표시하고, 검색할 때 전체 보류 교회에서 필요한 결과만 불러옵니다.</p></div><span>{heldChurches?.count??0}곳</span></div><AdminChurchDirectory variant="held" initialItems={safeChurchRows(heldChurchRows.results)} total={heldChurches?.count??0}/></article>
