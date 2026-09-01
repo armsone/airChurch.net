@@ -7,6 +7,7 @@ import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from ".
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 import SkipLink from "./skip-link";
+import { shouldUseLowData } from "./low-data";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
 
@@ -27,7 +28,7 @@ type ChurchItem = { id:number; name:string; pastor:string; region:string; denomi
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 const normalizeSearchText=normalizeSearchValue;
-const prefersLowData=()=>{const connection=(navigator as Navigator&{connection?:{saveData?:boolean}}).connection;return connection?.saveData===true||(!connection&&window.matchMedia("(max-width: 600px)").matches);};
+const prefersLowData=()=>{const connection=(navigator as Navigator&{connection?:{saveData?:boolean;effectiveType?:string}}).connection;return shouldUseLowData(connection?.saveData,connection?.effectiveType,window.matchMedia("(max-width: 600px)").matches);};
 
 function denominationMark(denomination:string) {
   if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };

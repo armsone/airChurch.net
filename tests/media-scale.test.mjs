@@ -1,8 +1,16 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
+import {shouldUseLowData} from "../app/low-data.ts";
 
 const read=(path)=>readFile(new URL(path,import.meta.url),"utf8");
+
+test("uses bounded media payloads on narrow or slow connections",()=>{
+  assert.equal(shouldUseLowData(false,"4g",false),false);
+  assert.equal(shouldUseLowData(false,"3g",false),true);
+  assert.equal(shouldUseLowData(false,"4g",true),true);
+  assert.equal(shouldUseLowData(true,"4g",false),true);
+});
 
 test("keeps visitor payload bounded while allowing a much larger media catalog",async()=>{
   const [sermons,praises,shorts,home]=await Promise.all([read("../app/api/sermons/route.ts"),read("../app/api/praises/route.ts"),read("../app/api/shorts/route.ts"),read("../app/home-client.tsx")]);
