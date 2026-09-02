@@ -21,7 +21,12 @@ type Role={id:number;church_id:number|null;church_name:string|null;denomination:
 type PersonSermon={youtube_id:string;title:string;published_at:string;church_id:number;church_name:string};
 const getPerson=cache(async(id:number)=>{if(!Number.isInteger(id)||id<1)return null;const db=database();await ensurePastorPeopleTables(db);return db.prepare("SELECT id,name,public_summary,CASE WHEN photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') THEN photo_url END AS photo_url,CASE WHEN photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') THEN photo_source_url END AS photo_source_url,updated_at FROM pastor_people WHERE id=? AND review_status='approved' LIMIT 1").bind(id).first<Person>();});
 
-export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{const person=await getPerson(Number((await params).id));if(!person)return {title:"공개되지 않은 목회자 기록 | airChurch",robots:{index:false,follow:false}};return {title:`${person.name} 목회자 | airChurch`,description:`${person.name} 목회자의 공개 출처 기반 사역 이력과 응원글입니다.`,alternates:{canonical:`/pastors/p/${person.id}`}};}
+export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
+  const person=await getPerson(Number((await params).id));
+  if(!person)return {title:"공개되지 않은 목회자 기록 | airChurch",robots:{index:false,follow:false}};
+  const title=`${person.name} 목회자 | airChurch`,description=`${person.name} 목회자의 공개 출처 기반 사역 이력과 응원글입니다.`,images=safeHttpUrl(person.photo_url)?[`/api/pastor-photo/${person.id}`]:[];
+  return {title,description,alternates:{canonical:`/pastors/p/${person.id}`},openGraph:{title,description,url:`/pastors/p/${person.id}`,type:"website",images},twitter:{card:"summary",title,description,images}};
+}
 
 export default async function PastorPersonPage({params}:{params:Promise<{id:string}>}){
   const person=await getPerson(Number((await params).id));
