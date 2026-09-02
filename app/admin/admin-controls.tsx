@@ -303,7 +303,8 @@ export function ChurchInfoEditControls(props:{id:number;name:string;pastor:strin
   return <details className={`admin-church-details admin-church-info-edit${props.iconOnly?" is-icon-editor":""}`}><summary aria-label="교회 정보 수정">{props.iconOnly?<span aria-hidden="true">✎</span>:"교회 정보 수정"}</summary><form className="admin-edit-form" onSubmit={save}><div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required/><input name="pastor" defaultValue={props.pastor} aria-label="담임목사" required/><input name="region" defaultValue={props.region} aria-label="지역" required/><input name="denomination" defaultValue={props.denomination} aria-label="교단" required/></div><div className="admin-action-row"><button disabled={busy} type="submit">수정 내용 저장</button></div>{error&&<p className="admin-error">{error}</p>}</form></details>;
 }
 
-export function PastorControls(props:{id:number;roleId:number|null;name:string;roleTitle:string;churchName:string|null;region:string|null;denomination:string|null;roleStatus:string;status:string}){
+export type PastorControlProps={id:number;roleId:number|null;name:string;roleTitle:string;churchName:string|null;region:string|null;denomination:string|null;roleStatus:string;status:string};
+export function PastorControls(props:PastorControlProps){
   const [busy,setBusy]=useState(false),[error,setError]=useState("");
   const detailsRef=useRef<HTMLDetailsElement>(null);
   async function save(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");const values=Object.fromEntries(new FormData(event.currentTarget));try{await updateAdmin({kind:"pastor-person",id:props.id,roleId:props.roleId,...values},true,"목회자 정보를 저장했습니다.");}catch(reason){setError((reason as Error).message);setBusy(false);}}
