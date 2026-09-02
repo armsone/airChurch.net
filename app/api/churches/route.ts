@@ -1,10 +1,10 @@
-import { database, ensureSermonTables, maybeRunDataRetention } from "../_shared";
+import { database, ensurePastorPeopleTables, ensureSermonTables, maybeRunDataRetention } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { expandSearchTerm as expand, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
 
-type ChurchRow={id:number;name:string;pastor:string;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
+type ChurchRow={id:number;name:string;pastor:string;pastorPublicId:number|null;region:string;denomination:string;youtubeChannelId:string|null;channelImageUrl:string|null;homepageUrl:string|null;priorityWeight:number};
 type CountRow={total:number};
 
 export async function GET(request:Request) {
@@ -17,7 +17,7 @@ export async function GET(request:Request) {
   const searchGroups=[...terms,...globalTerms].map(expand);
   const responseHeaders={"cache-control":url.searchParams.has("adminFresh")?"private, no-store":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
   const db=database();
-  await ensureSermonTables(db);
+  await Promise.all([ensureSermonTables(db),ensurePastorPeopleTables(db)]);
   await maybeRunDataRetention(db);
   const haystack=sqlMetadataSearchValue("name","pastor","region","denomination");
   const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
@@ -33,7 +33,7 @@ export async function GET(request:Request) {
   const limit=isSearch?200:36;
   const relevance=sqlRelevance([["name",40],["pastor",25],["region",15],["denomination",12]],searchGroups);
   const order=isSearch&&searchGroups.length?`(${relevance.sql}) DESC,priority_weight DESC,name`:isSearch?"priority_weight DESC,name":`CASE WHEN priority_weight>1 THEN 0 ELSE 1 END,CASE WHEN priority_weight>1 THEN priority_weight END DESC,RANDOM()`;
-  const selectSql=`SELECT id,name,pastor,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY ${order} LIMIT ${limit}`;
+  const selectSql=`SELECT id,name,pastor,(SELECT COALESCE(p.public_id,1000000+p.id) FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=churches.id AND r.review_status='approved' AND p.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(TRIM(churches.pastor),' ','') ORDER BY CASE r.role_category WHEN 'current_primary' THEN 0 ELSE 1 END,CASE r.role_status WHEN 'current' THEN 0 ELSE 1 END,r.id DESC LIMIT 1) AS pastorPublicId,region,denomination,youtube_channel_id AS youtubeChannelId,channel_image_url AS channelImageUrl,homepage_url AS homepageUrl,priority_weight AS priorityWeight FROM churches WHERE ${where} ORDER BY ${order} LIMIT ${limit}`;
   const result=await db.prepare(selectSql).bind(...bindings,...(searchGroups.length?relevance.bindings:[])).all<ChurchRow>();
   const count=result.results.length<limit?{total:result.results.length}:await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
