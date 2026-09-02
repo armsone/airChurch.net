@@ -191,7 +191,6 @@ export default function Home() {
   const filteredShortsLengthRef=useRef(0);
   const pastorBucketRef=useRef(0);
   const shortViewerEmbedBase = "https://www.youtube-nocookie.com/embed";
-  const shortViewerEmbedUrl = `${shortViewerEmbedBase}/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
@@ -422,6 +421,7 @@ export default function Home() {
   shortMutedRef.current=shortMuted;
   if(activeShort && shortViewerInitialIdRef.current===undefined) shortViewerInitialIdRef.current=activeShort.youtubeId;
   if(!activeShort) shortViewerInitialIdRef.current=undefined;
+  const shortViewerEmbedUrl = `${shortViewerEmbedBase}/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   useEffect(()=>{
     if(activeShortIndex===null) return;
     function onKeyDown(event:KeyboardEvent) {
@@ -449,7 +449,7 @@ export default function Home() {
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
   const startMutedPlayback=(player:YouTubePlayer)=>{
-        player.mute();
+        if(shortMutedRef.current) player.mute(); else player.unMute();
         player.playVideo();
   };
     const requestPlay = () => {
@@ -671,7 +671,7 @@ export default function Home() {
   function videoThumbnail(video: { youtubeId?:string; thumbnailUrl?:string; tone?:string; marker:string|number; date:string; title:string; church:string; kind:"설교"|"찬양" }) {
     const isPlaying=Boolean(video.youtubeId&&activeVideoId===video.youtubeId);
     return <div className={`sermon-thumb ${video.tone??""}${video.thumbnailUrl?" has-image":""}`}>
-      {isPlaying ? <><iframe className="video-frame" src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0`} title={video.title} referrerPolicy="no-referrer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /><button className="video-close" type="button" onClick={()=>setActiveVideoId(null)} aria-label={`${video.church} ${video.kind} 영상 닫기`}>×</button></> : <>
+      {isPlaying ? <><iframe className="video-frame" src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?autoplay=1&rel=0`} title={video.title} referrerPolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /><button className="video-close" type="button" onClick={()=>setActiveVideoId(null)} aria-label={`${video.church} ${video.kind} 영상 닫기`}>×</button></> : <>
         {video.thumbnailUrl&&<img className="thumbnail-image" src={video.thumbnailUrl} alt="" width={320} height={180} loading="lazy" decoding="async" fetchPriority="low" referrerPolicy="no-referrer" />}
         <span className="rank">{video.marker}</span>
         {video.youtubeId?<button className="play" type="button" onClick={()=>{setActiveVideoId(video.youtubeId!);markDailyStep(video.kind==="설교"?"sermon":"praise");}} aria-label={`${video.church} ${video.kind} 현 화면에서 재생`}>▶</button>:<button type="button" onClick={()=>setNotice("연결된 영상이 아직 없습니다.")} aria-label={`${video.church} ${video.kind} 재생 준비 중`}>▶</button>}
@@ -769,7 +769,7 @@ export default function Home() {
             className="shorts-viewer-frame"
             src={shortViewerEmbedUrl}
             title={activeShort.title}
-            referrerPolicy="no-referrer"
+            referrerPolicy="strict-origin-when-cross-origin"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
