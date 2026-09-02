@@ -261,10 +261,24 @@ const ensurePastorPublicIdsV28=async(db:D1Database)=>{
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v28',CURRENT_TIMESTAMP)"),
   ]);
 };
+const ensureChurchPrimaryPastorsV29=async(db:D1Database)=>{
+  const cleanChurchPastor="TRIM(CASE WHEN TRIM(COALESCE(c.pastor,'')) LIKE '%목사님' THEN SUBSTR(TRIM(c.pastor),1,LENGTH(TRIM(c.pastor))-3) WHEN TRIM(COALESCE(c.pastor,'')) LIKE '%목사' THEN SUBSTR(TRIM(c.pastor),1,LENGTH(TRIM(c.pastor))-2) ELSE TRIM(COALESCE(c.pastor,'')) END)";
+  const cleanPersonName="TRIM(CASE WHEN TRIM(COALESCE(p.name,'')) LIKE '%목사님' THEN SUBSTR(TRIM(p.name),1,LENGTH(TRIM(p.name))-3) WHEN TRIM(COALESCE(p.name,'')) LIKE '%목사' THEN SUBSTR(TRIM(p.name),1,LENGTH(TRIM(p.name))-2) ELSE TRIM(COALESCE(p.name,'')) END)";
+  const validPastor=`REPLACE(${cleanChurchPastor},' ','') NOT IN ('','확인필요','이름확인필요','성명확인필요','목회자확인필요','담임목사확인필요','미상','없음','공석','청빙중','-','?')`;
+  await db.batch([
+    db.prepare("DROP TRIGGER IF EXISTS trg_pastor_people_public_id"),
+    db.prepare("CREATE TRIGGER trg_pastor_people_public_id AFTER INSERT ON pastor_people WHEN NEW.public_id IS NULL BEGIN UPDATE pastor_people SET public_id=(SELECT COALESCE(MAX(public_id),3)+1 FROM pastor_people WHERE id<>NEW.id AND public_id IS NOT NULL) WHERE id=NEW.id; END"),
+    db.prepare(`WITH unassigned AS (SELECT id,ROW_NUMBER() OVER(ORDER BY id) AS rn FROM pastor_people WHERE public_id IS NULL),base AS (SELECT COALESCE(MAX(public_id),3) AS max_id FROM pastor_people WHERE public_id IS NOT NULL) UPDATE pastor_people SET public_id=(SELECT base.max_id+unassigned.rn FROM unassigned,base WHERE unassigned.id=pastor_people.id) WHERE id IN (SELECT id FROM unassigned)`),
+    db.prepare(`INSERT OR IGNORE INTO pastor_people(directory_id,name,review_status) SELECT 'church-primary-'||c.id,${cleanChurchPastor},'approved' FROM churches c WHERE c.review_status='approved' AND ${validPastor} AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=c.id AND r.review_status='approved' AND p.review_status='approved' AND REPLACE(${cleanPersonName},' ','')=REPLACE(${cleanChurchPastor},' ','')) ORDER BY c.id`),
+    db.prepare(`INSERT OR IGNORE INTO pastor_church_roles(pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,source_url,review_status) SELECT p.id,c.id,c.name,c.denomination,c.region,'담임목사','current_primary','current',NULLIF(TRIM(COALESCE(c.homepage_url,'')),''),'approved' FROM churches c JOIN pastor_people p ON p.directory_id='church-primary-'||c.id WHERE c.review_status='approved' AND ${validPastor} AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people linked ON linked.id=r.pastor_id WHERE r.church_id=c.id AND r.review_status='approved' AND linked.review_status='approved' AND REPLACE(TRIM(CASE WHEN TRIM(COALESCE(linked.name,'')) LIKE '%목사님' THEN SUBSTR(TRIM(linked.name),1,LENGTH(TRIM(linked.name))-3) WHEN TRIM(COALESCE(linked.name,'')) LIKE '%목사' THEN SUBSTR(TRIM(linked.name),1,LENGTH(TRIM(linked.name))-2) ELSE TRIM(COALESCE(linked.name,'')) END),' ','')=REPLACE(${cleanChurchPastor},' ','')) ORDER BY c.id`),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v29',CURRENT_TIMESTAMP)"),
+  ]);
+};
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v28' LIMIT 1").first<{key:string}>();if(ready)return;
-  const previous=await db.prepare("SELECT key FROM maintenance_state WHERE key IN ('schema-pastor-people-v26','schema-pastor-people-v27') LIMIT 1").first<{key:string}>();if(previous){await ensurePastorPublicIdsV28(db);return;}
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v29' LIMIT 1").first<{key:string}>();if(ready)return;
+  const publicIdsReady=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v28' LIMIT 1").first<{key:string}>();if(publicIdsReady){await ensureChurchPrimaryPastorsV29(db);return;}
+  const previous=await db.prepare("SELECT key FROM maintenance_state WHERE key IN ('schema-pastor-people-v26','schema-pastor-people-v27') LIMIT 1").first<{key:string}>();if(previous){await ensurePastorPublicIdsV28(db);await ensureChurchPrimaryPastorsV29(db);return;}
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -431,6 +445,7 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await db.prepare("UPDATE churches SET pastor='박경수' WHERE REPLACE(TRIM(name),' ','')='하늘빛광성교회'").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v26',CURRENT_TIMESTAMP)").run();
   await ensurePastorPublicIdsV28(db);
+  await ensureChurchPrimaryPastorsV29(db);
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
