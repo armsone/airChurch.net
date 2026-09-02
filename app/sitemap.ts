@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [churches,ministers,pastorPeople] = await Promise.all([
     db.prepare("SELECT id,created_at FROM churches WHERE review_status='approved' ORDER BY id").all<ChurchSitemapRow>(),
     db.prepare("SELECT m.id,m.church_id,m.updated_at FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id WHERE m.review_status='approved' AND c.review_status='approved' ORDER BY m.id").all<MinisterSitemapRow>(),
-    db.prepare("SELECT public_id,updated_at FROM pastor_people WHERE review_status='approved' AND public_id IS NOT NULL ORDER BY public_id").all<PastorPersonSitemapRow>(),
+    db.prepare("SELECT COALESCE(public_id,1000000+id) AS public_id,updated_at FROM pastor_people WHERE review_status='approved' ORDER BY public_id").all<PastorPersonSitemapRow>(),
   ]);
   const staticPages: MetadataRoute.Sitemap = [
     { url: "https://airchurch.net", changeFrequency: "hourly", priority: 1 },
