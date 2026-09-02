@@ -15,7 +15,7 @@ export default async function PastorsPage({searchParams}:{searchParams:Promise<{
   const params=await searchParams,query=params.q?.trim().slice(0,80)??"",requestedPage=Number(params.page),page=Number.isInteger(requestedPage)&&requestedPage>0?Math.min(requestedPage,1000):1,pageSize=60,offset=(page-1)*pageSize,normalized=query.replace(/\s+/g,""),term=`%${normalized}%`,db=database();
   await Promise.all([ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
   const rows=!query?await db.prepare(`
-    SELECT p.id AS person_id,r.church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title IN ('목회자','부목사') THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,1 AS merged_count,(SELECT COUNT(*) FROM pastor_people counted WHERE counted.review_status='approved') AS total_count
+    SELECT p.id AS person_id,r.church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title='목회자' OR r.role_title LIKE '%목사' THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,1 AS merged_count,(SELECT COUNT(*) FROM pastor_people counted WHERE counted.review_status='approved') AS total_count
     FROM pastor_people p
     LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1)
     WHERE p.review_status='approved'
@@ -44,7 +44,7 @@ export default async function PastorsPage({searchParams}:{searchParams:Promise<{
         COUNT(*) OVER(PARTITION BY REPLACE(name,' ',''),COALESCE(church_id,-1),REPLACE(COALESCE(church_name,''),' ','')) AS merged_count
       FROM raw_people
     ), grouped_roles AS (
-      SELECT REPLACE(name,' ','') AS name_key,COALESCE(church_id,-1) AS church_key,REPLACE(COALESCE(church_name,''),' ','') AS church_name_key,GROUP_CONCAT(DISTINCT CASE WHEN role_title IN ('목회자','부목사') THEN '목사' ELSE role_title END) AS role_titles
+      SELECT REPLACE(name,' ','') AS name_key,COALESCE(church_id,-1) AS church_key,REPLACE(COALESCE(church_name,''),' ','') AS church_name_key,GROUP_CONCAT(DISTINCT CASE WHEN role_title='목회자' OR role_title LIKE '%목사' THEN '목사' ELSE role_title END) AS role_titles
       FROM raw_people GROUP BY name_key,church_key,church_name_key
     ), people AS (SELECT * FROM ranked WHERE duplicate_rank=1)
     SELECT people.*,grouped_roles.role_titles,COUNT(*) OVER() AS total_count FROM people JOIN grouped_roles ON grouped_roles.name_key=REPLACE(people.name,' ','') AND grouped_roles.church_key=COALESCE(people.church_id,-1) AND grouped_roles.church_name_key=REPLACE(COALESCE(people.church_name,''),' ','') ORDER BY people.name,people.church_name LIMIT ${pageSize} OFFSET ${offset}
