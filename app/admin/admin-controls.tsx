@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useRef, useState, type ReactNode } from "react";
+import {ChurchCardContent,denominationMark} from "../directory-cards";
 
 async function updateAdmin(body: Record<string, unknown>, reload=true, successMessage="") {
   const response = await fetch("/api/admin/manage", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -22,21 +23,7 @@ const holdReasons = [
   ["other", "기타"],
 ] as const;
 
-export function denominationMark(denomination:string) {
-  if (denomination === "대한예수교장로회 통합") return { src:"/denominations/pck-tonghap.png", alt:"대한예수교장로회 통합 교단 심볼" };
-  if (denomination === "대한예수교장로회 합동") return { src:"/denominations/pck-hapdong.svg", alt:"대한예수교장로회 합동 교단 심볼" };
-  if (denomination === "기독교대한감리회") return { src:"/denominations/kmc.ico", alt:"기독교대한감리회 교단 심볼" };
-  if (denomination === "대한예수교장로회 고신") return { src:"/denominations/pck-kosin.jpg", alt:"대한예수교장로회 고신 교단 심볼" };
-  if (denomination === "기독교한국침례회") return { src:"/denominations/kbch.png", alt:"기독교한국침례회 공식 로고" };
-  if (denomination === "기독교대한성결교회") return { src:"/denominations/kehc-256.png", alt:"기독교대한성결교회 교단 심볼" };
-  if (denomination === "대한예수교장로회 합신") return { src:"/denominations/pck-hapshin.png", alt:"대한예수교장로회 합신 공식 로고" };
-  if (denomination === "대한예수교장로회 백석") return { src:"/denominations/pck-baekseok-256.png", alt:"대한예수교장로회 백석 교단 심볼" };
-  if (denomination === "기독교대한하나님의성회") return { src:"/denominations/agk.png", alt:"기독교대한하나님의성회 공식 로고" };
-  if (denomination === "기독교대한하나님의성회 광화문총회") return { src:"/denominations/agk-gwanghwamun.png", alt:"기독교대한하나님의성회 광화문총회 공식 로고" };
-  if (denomination === "한국기독교장로회") return { src:"/denominations/prok-256.png", alt:"한국기독교장로회 교단 심볼" };
-  if (denomination === "한국독립교회선교단체연합회") return { src:"/denominations/kaicam.png", alt:"한국독립교회선교단체연합회 공식 로고" };
-  return null;
-}
+export {denominationMark};
 
 export type AdminChurchItem = {
   id: number;
@@ -78,9 +65,6 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   const youtubeChannelId = church.youtube_channel_id ?? church.youtubeChannelId ?? null;
   const channelImageUrl = church.channel_image_url ?? church.channelImageUrl ?? null;
 
-  const churchExternalUrl = homepageUrl || (youtubeChannelId ? `https://www.youtube.com/channel/${youtubeChannelId}` : null);
-  const churchExternalLabel = `${church.name} ${homepageUrl ? "공식 홈페이지" : "공식 YouTube"} 열기`;
-  const mark = denominationMark(church.denomination);
   const holdReasonText = holdReasons.find(([value]) => value === (holdReasonValue || holdReason))?.[1] ?? (holdReasonValue ? "기타" : "사유 미기록");
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -118,28 +102,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
   }
   function handleCardKeyDown(event:React.KeyboardEvent<HTMLElement>){if(event.target!==event.currentTarget||!['Enter',' '].includes(event.key))return;event.preventDefault();if(detailsRef.current)detailsRef.current.open=!detailsRef.current.open;}
 
-  const publicCardContent = (
-    <>
-      <div className="church-directory-top">
-        <div className="admin-church-region-select">
-          {onToggleSelected && <label className="admin-card-select"><input type="checkbox" checked={selected} onChange={(event) => onToggleSelected(church.id, event.target.checked)} aria-label={`${church.name} 선택`} /></label>}
-          <span>{church.region}</span>
-        </div>
-        {mark && <img className="church-denomination-mark" src={mark.src} alt={mark.alt} loading="lazy" decoding="async" referrerPolicy="no-referrer" />}
-      </div>
-      <h3><a className="church-primary-link" href={`/church/${church.id}`} aria-label={`${church.name} airChurch 교회 페이지 열기`}>{church.name}</a></h3>
-      <div className="church-directory-meta">
-        <div className="church-directory-meta-copy">
-          <p>{churchExternalUrl ? <a className="church-primary-link" href={churchExternalUrl} target="_blank" rel="noreferrer" aria-label={churchExternalLabel}>{church.pastor}</a> : church.pastor}</p>
-          <small>{church.denomination}</small>
-        </div>
-        <div className="church-directory-links">
-          {homepageUrl && <a className="homepage-link" href={homepageUrl} target="_blank" rel="noreferrer" title={`${church.name} 공식 홈페이지`} aria-label={`${church.name} 공식 홈페이지 열기`}><span className="homepage-visual" aria-hidden="true"><span>⛪</span>{channelImageUrl && <img src={channelImageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(event) => { event.currentTarget.hidden = true; }} />}</span></a>}
-          {youtubeChannelId && <a className="youtube-link" href={`https://www.youtube.com/channel/${youtubeChannelId}`} target="_blank" rel="noreferrer" title={`${church.name} 공식 YouTube`} aria-label={`${church.name} 공식 YouTube 열기`}><span className="directory-icon youtube-icon" aria-hidden="true" /></a>}
-        </div>
-      </div>
-    </>
-  );
+  const publicCardContent = <ChurchCardContent id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} homepageUrl={homepageUrl} youtubeChannelId={youtubeChannelId} channelImageUrl={channelImageUrl} selection={onToggleSelected?<label className="admin-card-select"><input type="checkbox" checked={selected} onChange={(event) => onToggleSelected(church.id, event.target.checked)} aria-label={`${church.name} 선택`} /></label>:undefined}/>;
 
   const editForm = (
     <details ref={detailsRef} className="admin-church-details">
