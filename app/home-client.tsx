@@ -191,7 +191,6 @@ export default function Home() {
   const filteredShortsLengthRef=useRef(0);
   const pastorBucketRef=useRef(0);
   const shortViewerEmbedBase = "https://www.youtube-nocookie.com/embed";
-  const shortViewerEmbedUrl = `${shortViewerEmbedBase}/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
   const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
@@ -422,6 +421,7 @@ export default function Home() {
   shortMutedRef.current=shortMuted;
   if(activeShort && shortViewerInitialIdRef.current===undefined) shortViewerInitialIdRef.current=activeShort.youtubeId;
   if(!activeShort) shortViewerInitialIdRef.current=undefined;
+  const shortViewerEmbedUrl = `${shortViewerEmbedBase}/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   useEffect(()=>{
     if(activeShortIndex===null) return;
     function onKeyDown(event:KeyboardEvent) {
@@ -449,7 +449,7 @@ export default function Home() {
   useEffect(()=>{
     if(!activeShort) { shortPlayerInstanceRef.current=null; return; }
   const startMutedPlayback=(player:YouTubePlayer)=>{
-        player.mute();
+        if(shortMutedRef.current) player.mute(); else player.unMute();
         player.playVideo();
   };
     const requestPlay = () => {
