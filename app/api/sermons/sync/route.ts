@@ -524,7 +524,7 @@ export async function POST(request:Request) {
       }
     }
     const pastorNames=(source.pastorNames||"").split(",").filter(Boolean),primaryPastorNames=new Set((source.primaryPastorNames||"").split(",").filter(Boolean));
-    const personalizedSermons=pastorNames.flatMap((pastorName)=>playlistItems.filter((item)=>isSermonTitle(item.snippet.title)&&isSermonAttributedTo(item.snippet.title,pastorName,primaryPastorNames.has(pastorName))).slice(0,9));
+    const personalizedSermons=pastorNames.flatMap((pastorName)=>playlistItems.filter((item)=>isSermonTitle(item.snippet.title)&&isSermonAttributedTo(item.snippet.title,pastorName,primaryPastorNames.has(pastorName))).slice(0,20));
     const recentSermons=scope==="photo_pastors"?[...new Map(personalizedSermons.map((item)=>[item.contentDetails.videoId,item])).values()]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
     const recentShorts=scope==="photo_pastors"?[]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
     const shortIds=new Set(recentShorts.map((item)=>item.contentDetails.videoId));

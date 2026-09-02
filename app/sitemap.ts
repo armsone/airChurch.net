@@ -3,7 +3,7 @@ import { database, ensureMinistryProfileTables, ensurePastorPeopleTables, ensure
 
 type ChurchSitemapRow = { id: number; created_at: string };
 type MinisterSitemapRow = { id:number; church_id:number; updated_at:string };
-type PastorPersonSitemapRow = {id:number;updated_at:string};
+type PastorPersonSitemapRow = {public_id:number;updated_at:string};
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [churches,ministers,pastorPeople] = await Promise.all([
     db.prepare("SELECT id,created_at FROM churches WHERE review_status='approved' ORDER BY id").all<ChurchSitemapRow>(),
     db.prepare("SELECT m.id,m.church_id,m.updated_at FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id WHERE m.review_status='approved' AND c.review_status='approved' ORDER BY m.id").all<MinisterSitemapRow>(),
-    db.prepare("SELECT id,updated_at FROM pastor_people WHERE review_status='approved' ORDER BY id").all<PastorPersonSitemapRow>(),
+    db.prepare("SELECT public_id,updated_at FROM pastor_people WHERE review_status='approved' AND public_id IS NOT NULL ORDER BY public_id").all<PastorPersonSitemapRow>(),
   ]);
   const staticPages: MetadataRoute.Sitemap = [
     { url: "https://airchurch.net", changeFrequency: "hourly", priority: 1 },
@@ -33,20 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),
-    ...churches.results.map((church) => ({
-      url: `https://airchurch.net/pastors/${church.id}`,
-      lastModified: new Date(`${church.created_at.replace(" ", "T")}Z`),
-      changeFrequency: "weekly" as const,
-      priority: 0.55,
-    })),
-    ...ministers.results.map((minister)=>({
-      url:`https://airchurch.net/pastors/${minister.church_id}?minister=${minister.id}`,
-      lastModified:new Date(`${minister.updated_at.replace(" ","T")}Z`),
-      changeFrequency:"weekly" as const,
-      priority:0.5,
-    })),
     ...pastorPeople.results.map((person)=>({
-      url:`https://airchurch.net/pastors/p/${person.id}`,
+      url:`https://airchurch.net/pastors/${person.public_id}`,
       lastModified:new Date(`${person.updated_at.replace(" ","T")}Z`),
       changeFrequency:"weekly" as const,
       priority:0.6,

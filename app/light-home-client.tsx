@@ -86,6 +86,6 @@ export default function LightHome(){
       </div>
     </section>
 
-    <footer id="page-bottom"><a className="brand footer-brand" href="/"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></a><p>airchurch.net · goodshare.net · linechurch.net<br/>공개 자료를 정리해 사람과 교회를 잇는 크리스천 포털</p><div className="footer-meta"><div className="footer-links"><a href="/about">운영 안내</a><a href="/community-guidelines">공동체 안전</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/terms">이용약관</a><a href="/contact">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div><a className="footer-pastor-link" href="/pastors/p/2884">협동 목사 : 김민석 <span>(바로가기)</span></a></div></footer>
+    <footer id="page-bottom"><a className="brand footer-brand" href="/"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></a><p>airchurch.net · goodshare.net · linechurch.net<br/>공개 자료를 정리해 사람과 교회를 잇는 크리스천 포털</p><div className="footer-meta"><div className="footer-links"><a href="/about">운영 안내</a><a href="/community-guidelines">공동체 안전</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/terms">이용약관</a><a href="/contact">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div><a className="footer-pastor-link" href="/pastors/2">협동 목사 : 김민석 <span>(바로가기)</span></a></div></footer>
   </main>;
 }

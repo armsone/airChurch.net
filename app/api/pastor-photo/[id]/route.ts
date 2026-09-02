@@ -30,9 +30,9 @@ async function fetchImage(initial:URL){
 }
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
-  const id=Number((await params).id);if(!Number.isInteger(id)||id<1)return new Response(null,{status:404});
+  const id=Number((await params).id);if(!Number.isInteger(id)||id<0)return new Response(null,{status:404});
   const db=database();await ensurePastorPeopleTables(db);
-  const photo=await db.prepare("SELECT photo_url FROM pastor_people WHERE id=? AND review_status='approved' AND photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') LIMIT 1").bind(id).first<PhotoRecord>();
+  const photo=await db.prepare("SELECT photo_url FROM pastor_people WHERE public_id=? AND review_status='approved' AND photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') LIMIT 1").bind(id).first<PhotoRecord>();
   const url=photo?.photo_url?safeRemoteImage(photo.photo_url):null;if(!url)return new Response(null,{status:404});
   try{const image=await fetchImage(url);return new Response(image.bytes,{headers:{"content-type":image.contentType,"cache-control":"public, max-age=86400, stale-while-revalidate=604800","x-content-type-options":"nosniff"}});}catch{return new Response(null,{status:502,headers:{"cache-control":"public, max-age=300"}});}
 }

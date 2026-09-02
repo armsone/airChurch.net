@@ -61,7 +61,17 @@ const worker = {
       }, allowedWidths);
     }
 
-    return handler.fetch(request, env, ctx);
+    const response=await handler.fetch(request, env, ctx);
+    if(url.pathname.startsWith("/api/pastor-photo/")&&response.ok&&response.body){
+      try{
+        const resized=await env.IMAGES.input(response.clone().body!).transform({width:360,height:440,fit:"cover"}).output({format:"image/jpeg",quality:82});
+        const optimized=resized.response(),headers=new Headers(optimized.headers);
+        headers.set("cache-control","public, max-age=86400, stale-while-revalidate=604800");
+        headers.set("x-content-type-options","nosniff");
+        return new Response(optimized.body,{status:optimized.status,headers});
+      }catch{return response;}
+    }
+    return response;
   },
   async scheduled(_controller:ScheduledController,env:Env,ctx:ExecutionContext):Promise<void>{
     ctx.waitUntil(runScheduledMaintenance(env,ctx));

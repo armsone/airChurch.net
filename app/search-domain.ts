@@ -28,6 +28,6 @@ export const metadataSearchValue=(name:string,pastor:string,region:string,denomi
 export const sqlMetadataSearchValue=(name:string,pastor:string,region:string,denomination:string,extra="''")=>sqlNormalized(`${name}||${pastor}||${region}||${denomination}||${region}||${name}||${denomination}||${name}||${pastor}||${name}||${extra}||${region}||${extra}||${name}`);
 export function sqlRelevance(fields:ReadonlyArray<readonly [string,number]>,groups:string[][]){
   const bindings:string[]=[];
-  const sql=groups.length?groups.map((group)=>`max(${group.flatMap((candidate)=>fields.map(([field,weight])=>{const normalized=sqlNormalized(field);bindings.push(candidate,candidate,candidate);return `CASE WHEN ${normalized}=? THEN ${weight+70} WHEN instr(${normalized},?)=1 THEN ${weight+28} WHEN instr(${normalized},?)>0 THEN ${weight} ELSE 0 END`;})).join(",")})`).join("+"):"0";
+  const sql=groups.length?groups.map((group)=>`max(${group.flatMap((candidate)=>fields.map(([field,weight])=>{const normalized=sqlNormalized(field);bindings.push(candidate,candidate,candidate);return `CASE WHEN ${normalized}=? THEN ${weight+70} WHEN instr(${normalized},?)=1 THEN ${weight+28} WHEN instr(${normalized},?)>0 THEN ${weight} ELSE 0 END`;})).join(",")})`).join("+"):"0.0";
   return {sql,bindings};
 }
