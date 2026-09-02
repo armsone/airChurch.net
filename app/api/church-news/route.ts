@@ -1,5 +1,9 @@
+import { database } from "../_shared";
+
 type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string};
 type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string};
+type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string}>};
+type SnapshotRow={payload:string;refreshedAt:string};
 
 const sources:FeedSource[]=[
   {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"newsnjoy",markUrl:"https://cdn.newsnjoy.or.kr/image/logo/toplogo_20250820092205.png"},
@@ -102,13 +106,30 @@ function capPerSource(items:NewsItem[],limit:number) {
   return result;
 }
 
-export async function GET() {
+const publicSources=()=>sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}));
+
+export async function refreshChurchNewsSnapshot() {
   const loaded=await mapWithConcurrency(sources,6,async(source)=>loadSource(source).catch(()=>[]));
   const items=capPerSource(
     loaded.flat()
       .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)),
     MAX_PER_SOURCE,
   ).slice(0,50);
-  const cacheControl=items.length?"public, max-age=300, s-maxage=900, stale-while-revalidate=21600":"no-store";
-  return Response.json({items,sources:sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}))},{headers:{"cache-control":cacheControl}});
+  if(!items.length)return null;
+  const payload:NewsPayload={items,sources:publicSources()};
+  await database().prepare("INSERT INTO church_news_snapshots (key,payload,item_count,refreshed_at) VALUES ('latest',?,?,CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=CURRENT_TIMESTAMP").bind(JSON.stringify(payload),items.length).run();
+  return payload;
+}
+
+async function readChurchNewsSnapshot(){
+  const row=await database().prepare("SELECT payload,refreshed_at AS refreshedAt FROM church_news_snapshots WHERE key='latest' LIMIT 1").first<SnapshotRow>();
+  if(!row)return null;
+  try{return JSON.parse(row.payload) as NewsPayload;}catch{return null;}
+}
+
+export async function GET() {
+  const stored=await readChurchNewsSnapshot();
+  const payload=stored??await refreshChurchNewsSnapshot()??{items:[],sources:publicSources()};
+  const cacheControl=payload.items.length?"public, max-age=300, s-maxage=21600, stale-while-revalidate=86400":"no-store";
+  return Response.json(payload,{headers:{"cache-control":cacheControl}});
 }

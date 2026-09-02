@@ -11,6 +11,8 @@ export default function VisitorTracker() {
     if (navigator.doNotTrack === "1") return;
     const saveData=Boolean((navigator as Navigator&{connection?:{saveData?:boolean}}).connection?.saveData);
     const reportInterval=saveData?600_000:300_000;
+    const interactionOnly=location.pathname==="/";
+    let interactionObserved=!interactionOnly;
     let referrerOrigin="";
     try { if(document.referrer)referrerOrigin=new URL(document.referrer).origin; } catch { /* 잘못된 유입 주소는 보내지 않습니다. */ }
 
@@ -26,6 +28,7 @@ export default function VisitorTracker() {
 
     let lastReportedAt=0;
     const reportActivity = () => {
+      if(!interactionObserved)return;
       if (document.visibilityState !== "visible") return;
       if(Date.now()-lastReportedAt<reportInterval)return;
       lastReportedAt=Date.now();
@@ -36,13 +39,18 @@ export default function VisitorTracker() {
         keepalive: true,
       }).catch(() => null);
     };
-    const initialReport = window.setTimeout(reportActivity, saveData?5_000:1_500);
+    const beginReporting=()=>{interactionObserved=true;reportActivity();};
+    if(interactionOnly){window.addEventListener("pointerdown",beginReporting,{once:true,passive:true});window.addEventListener("keydown",beginReporting,{once:true});window.addEventListener("submit",beginReporting,{once:true});}
+    const initialReport = interactionOnly?null:window.setTimeout(reportActivity, saveData?5_000:1_500);
     const interval = window.setInterval(reportActivity, reportInterval);
     document.addEventListener("visibilitychange", reportActivity);
     return () => {
-      window.clearTimeout(initialReport);
+      if(initialReport!==null)window.clearTimeout(initialReport);
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", reportActivity);
+      window.removeEventListener("pointerdown",beginReporting);
+      window.removeEventListener("keydown",beginReporting);
+      window.removeEventListener("submit",beginReporting);
     };
   }, []);
 
