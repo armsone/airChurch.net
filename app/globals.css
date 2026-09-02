@@ -609,7 +609,14 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .simple-home-intro{padding:72px 24px 56px;text-align:center;background:radial-gradient(circle at 12% 20%,#fae9dc 0 7%,transparent 23%),radial-gradient(circle at 88% 72%,#e3efe8 0 9%,transparent 25%)}
 .simple-home-intro>p{margin:0;color:#52715f;font-size:17px;font-weight:850}
 .simple-home-intro h1{margin:18px 0 26px;font-size:clamp(42px,6vw,68px);line-height:1.16}
-.simple-home-intro>a{min-height:52px;padding:0 24px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--ink);color:#fff;font-size:17px;font-weight:850;box-shadow:0 12px 30px rgba(24,54,47,.14)}
+.simple-home-search{max-width:720px;margin:0 auto;text-align:left}
+.simple-home-search label{display:block;margin:0 0 10px 4px;color:var(--ink);font-size:18px;font-weight:900}
+.simple-home-search-row{display:flex;gap:10px}
+.simple-home-search input{flex:1;min-width:0;min-height:60px;padding:0 20px;border:2px solid #b9cbc0;border-radius:16px;background:#fff;color:var(--ink);font-size:18px;box-shadow:0 10px 26px rgba(24,54,47,.08)}
+.simple-home-search input::placeholder{color:#7d8f86}
+.simple-home-search input:focus-visible,.simple-home-search button:focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-color:var(--ink)}
+.simple-home-search button{flex:none;min-height:60px;min-width:120px;padding:0 28px;border:0;border-radius:16px;background:var(--ink);color:#fff;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 12px 30px rgba(24,54,47,.14)}
+.simple-home-search button:hover{background:#2a4a40}
 .simple-home-grid{max-width:1120px;margin:0 auto;padding:0 24px 72px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .simple-home-card{position:relative;min-height:218px;padding:28px 30px;display:flex;align-items:flex-start;flex-direction:column;overflow:hidden;border:1px solid #d8e2dc;border-radius:22px;background:rgba(255,255,255,.94);box-shadow:0 10px 28px rgba(24,54,47,.055);transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
 .simple-home-card::after{content:"";position:absolute;right:-34px;bottom:-42px;width:118px;height:118px;border-radius:50%;background:rgba(111,148,126,.08)}
@@ -624,4 +631,4 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .simple-home-card.community,.simple-home-card.goodshare{background:linear-gradient(145deg,#fff5ef,#fff)}
 .simple-home-footer{min-height:96px;padding:24px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px 24px;border-top:1px solid var(--line);background:#fffefa;color:#53675e;font-size:15px;font-weight:800}
 .simple-home-footer a{min-height:48px;display:inline-flex;align-items:center}
-@media(max-width:720px){.simple-home-header{height:70px;padding:0 16px}.simple-home-header .brand{font-size:20px}.simple-home-open{min-height:46px;padding:0 15px;font-size:15px}.simple-home-intro{padding:52px 18px 42px}.simple-home-intro>p{font-size:16px}.simple-home-intro h1{margin-top:15px;font-size:40px}.simple-home-intro>a{width:100%;max-width:360px;font-size:16px}.simple-home-grid{grid-template-columns:1fr;padding:0 16px 54px;gap:12px}.simple-home-card{min-height:0;padding:24px 22px}.simple-home-card>span{font-size:15px}.simple-home-card h2{font-size:23px}.simple-home-card p,.simple-home-card b{font-size:16px}.simple-home-card b{padding-top:20px}.simple-home-footer{padding:22px 16px;font-size:15px}}
+@media(max-width:720px){.simple-home-header{height:70px;padding:0 16px}.simple-home-header .brand{font-size:20px}.simple-home-open{min-height:46px;padding:0 15px;font-size:15px}.simple-home-intro{padding:52px 18px 42px}.simple-home-intro>p{font-size:16px}.simple-home-intro h1{margin-top:15px;font-size:40px}.simple-home-search-row{flex-direction:column}.simple-home-search label{font-size:17px}.simple-home-search input,.simple-home-search button{width:100%;min-height:56px;font-size:17px}.simple-home-grid{grid-template-columns:1fr;padding:0 16px 54px;gap:12px}.simple-home-card{min-height:0;padding:24px 22px}.simple-home-card>span{font-size:15px}.simple-home-card h2{font-size:23px}.simple-home-card p,.simple-home-card b{font-size:16px}.simple-home-card b{padding-top:20px}.simple-home-footer{padding:22px 16px;font-size:15px}}

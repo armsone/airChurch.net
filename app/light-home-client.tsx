@@ -39,7 +39,13 @@ export default function LightHome(){
     <section className="simple-home-intro" id="primary-content" tabIndex={-1}>
       <p>빠르고 조용한 첫 화면</p>
       <h1>오늘 필요한 곳으로<br/>가볍게 이어집니다</h1>
-      <a href="/portal#site-search">교회·목사님·말씀 찾기 →</a>
+      <form className="simple-home-search" action="/portal" method="get" role="search">
+        <label htmlFor="home-portal-search">교회·목사님·말씀 찾기</label>
+        <div className="simple-home-search-row">
+          <input id="home-portal-search" type="search" name="q" placeholder="예) 우리동네 교회, 김민석 목사, 요한복음"/>
+          <button type="submit">검색</button>
+        </div>
+      </form>
     </section>
 
     <section className="simple-home-grid" aria-label="airChurch 첫 화면 안내">
