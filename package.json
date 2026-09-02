@@ -17,6 +17,7 @@
     "pastor-history:collect": "node scripts/collect-pastor-history.mjs",
     "pastor-history:import:dry-run": "node scripts/dry-run-pastor-history-import.mjs",
     "pastor-media:coverage": "node scripts/report-pastor-media-coverage.mjs",
+    "pastor-sermons:backfill": "node scripts/backfill-pastor-sermons.mjs",
     "pastor-history:prepare-source-review": "node scripts/prepare-pastor-source-review-batches.mjs",
     "pastor-history:merge-source-review": "node scripts/merge-pastor-source-review-batches.mjs",
     "pastor-history:build-source-manifest": "node scripts/build-pastor-source-manifest.mjs",

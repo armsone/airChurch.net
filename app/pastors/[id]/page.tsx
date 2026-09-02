@@ -10,6 +10,7 @@ import EncouragementBoard,{type EncouragementItem} from "../../encouragement-boa
 import {isSermonAttributedTo} from "../../pastor-sermon-attribution";
 import PastorSaveButton from "./pastor-save-button";
 import EncouragementJumpLink from "../../encouragement-jump-link";
+import {displayRoleTitle} from "../../pastor-name";
 
 export const dynamic="force-dynamic";
 
@@ -32,7 +33,7 @@ export async function generateMetadata({params,searchParams}:{params:Promise<{id
   const ministerId=Number(ministerRaw);let minister:Minister|null=null;
   if(Number.isInteger(ministerId)&&ministerId>0){const db=database();await ensureMinistryProfileTables(db);minister=await db.prepare("SELECT id,name,role_title,role_status,source_url FROM church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved' LIMIT 1").bind(ministerId,church.id).first<Minister>();}
   if(ministerRaw&&!minister)return {title:"공개되지 않은 교역자 기록 | airChurch",robots:{index:false,follow:false}};
-  const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=minister?.role_title??"목사",canonical=`/pastors/${church.id}${minister?`?minister=${minister.id}`:""}`;
+  const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=displayRoleTitle(minister?.role_title??"목사"),canonical=`/pastors/${church.id}${minister?`?minister=${minister.id}`:""}`;
   const description=`${church.name} ${displayName} ${roleTitle}의 공식 공개 출처로 확인된 목회 정보를 봅니다.`;
   return {title:`${displayName} ${roleTitle} | ${church.name} · airChurch`,description,alternates:{canonical}};
 }
@@ -44,7 +45,7 @@ export default async function PastorProfilePage({params,searchParams}:{params:Pr
   await Promise.all([ensureEncouragementTables(db),ensureMinistryProfileTables(db)]);
   const ministerId=Number(ministerRaw),minister=Number.isInteger(ministerId)&&ministerId>0?await db.prepare("SELECT id,name,role_title,role_status,source_url FROM church_ministry_profiles WHERE id=? AND church_id=? AND review_status='approved' LIMIT 1").bind(ministerId,id).first<Minister>():null;
   if(ministerRaw&&!minister)return <main className="church-detail-shell"><SkipLink/><section className="church-detail-missing"><h1>검토 승인된 교역자 정보가 아닙니다</h1><a href={`/church/${id}`}>교회 페이지로 돌아가기 →</a></section></main>;
-  const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=minister?.role_title??"목사",targetRef=minister?`minister:${minister.id}`:"";
+  const displayName=minister?.name??church.pastor.replace(/\s*목사(?:님)?$/,""),roleTitle=displayRoleTitle(minister?.role_title??"목사"),targetRef=minister?`minister:${minister.id}`:"";
   const [history,appearances,churchSermons,encouragements]=await Promise.all([
     db.prepare("SELECT COUNT(*) AS total,MIN(occurred_at) AS first_at,MAX(occurred_at) AS latest_at FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved'").bind(id,displayName).first<AppearanceHistory>(),
     db.prepare("SELECT id,host_church_name,event_title,source_url,video_id,occurred_at FROM ministry_appearances WHERE church_id=? AND minister_name=? AND review_status='approved' ORDER BY occurred_at DESC,id DESC LIMIT 12").bind(id,displayName).all<Appearance>(),

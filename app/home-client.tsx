@@ -21,7 +21,7 @@ type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void;
 type YouTubeEvent = { data?:number; target:YouTubePlayer };
 type YouTubeApi = { Player:new(
   element:HTMLIFrameElement,
-  options:{events:{onReady:(event:YouTubeEvent)=>void; onStateChange:(event:YouTubeEvent)=>void}}
+  options:{events:{onReady:(event:YouTubeEvent)=>void; onStateChange:(event:YouTubeEvent)=>void; onError:(event:YouTubeEvent)=>void}}
 )=>YouTubePlayer };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
@@ -109,7 +109,7 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   lastChecked: "공개 자료 확인 시 갱신",
 }));
 const menuItems = [["말씀","#sermons"],["찬양","#praises"],["교회","#church-directory"],["목회자","#pastor-directory"],["교계소식","#church-news"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
-const headerAdminLinks = [["나의 모음","/saved"],["운영 안내","/about"],["문의","/contact"]] as const;
+const headerAdminLinks = [["나의 모음","/saved"],["운영 안내","/about"],["문의","/contact"],["관리자","/admin"]] as const;
 
 function shuffled<T>(items: T[]) {
   const result = [...items];
@@ -188,6 +188,7 @@ export default function Home() {
   const activeShortIdRef=useRef<string|undefined>(undefined);
   const shortMutedRef=useRef(true);
   const shortPlayerPlayPendingRef=useRef(false);
+  const shortAutoSkipCountRef=useRef(0);
   const filteredShortsLengthRef=useRef(0);
   const pastorBucketRef=useRef(0);
   const shortViewerEmbedBase = "https://www.youtube-nocookie.com/embed";
@@ -420,7 +421,7 @@ export default function Home() {
   activeShortIdRef.current=activeShort?.youtubeId;
   shortMutedRef.current=shortMuted;
   if(activeShort && shortViewerInitialIdRef.current===undefined) shortViewerInitialIdRef.current=activeShort.youtubeId;
-  if(!activeShort) shortViewerInitialIdRef.current=undefined;
+  if(!activeShort) { shortViewerInitialIdRef.current=undefined; shortAutoSkipCountRef.current=0; }
   const shortViewerEmbedUrl = `${shortViewerEmbedBase}/${shortViewerInitialIdRef.current}?autoplay=1&mute=1&rel=0&playsinline=1&enablejsapi=1&cc_load_policy=0`;
   useEffect(()=>{
     if(activeShortIndex===null) return;
@@ -481,10 +482,17 @@ export default function Home() {
             requestPlay();
           },
           onStateChange:(event)=>{
+            if(event.data===1) shortAutoSkipCountRef.current=0;
             if(event.data===5) { requestPlay(); return; }
             if(event.data!==0) return;
             const endedVideoId=event.target.getVideoData().video_id;
             if(endedVideoId&&endedVideoId!==activeShortIdRef.current) return;
+            setActiveShortIndex((current)=>current===null?current:current<filteredShortsLengthRef.current-1?current+1:0);
+          },
+          onError:(event)=>{
+            if(event.data!==101&&event.data!==150)return;
+            if(shortAutoSkipCountRef.current>=filteredShortsLengthRef.current-1)return;
+            shortAutoSkipCountRef.current+=1;
             setActiveShortIndex((current)=>current===null?current:current<filteredShortsLengthRef.current-1?current+1:0);
           },
         },
@@ -904,7 +912,7 @@ export default function Home() {
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
       <footer id="page-bottom">
-        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />공개 자료를 정리해 사람과 교회를 잇는 크리스천 포털</p><div className="footer-links"><a href="/about">운영 안내</a><a href="/community-guidelines">공동체 안전</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/terms">이용약관</a><a href="/contact">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div>
+        <HomeReloadLink className="brand footer-brand"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink><p>airchurch.net · goodshare.net · linechurch.net<br />공개 자료를 정리해 사람과 교회를 잇는 크리스천 포털</p><div className="footer-meta"><div className="footer-links"><a href="/about">운영 안내</a><a href="/community-guidelines">공동체 안전</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/terms">이용약관</a><a href="/contact">문의</a><a href="/admin">관리자</a><a href="/pastor">목사님</a></div><a className="footer-pastor-link" href="/pastors/p/2884">협동 목사 : 김민석 <span>(바로가기)</span></a></div>
       </footer>
     </main>
   );

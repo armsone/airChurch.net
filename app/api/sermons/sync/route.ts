@@ -10,8 +10,9 @@ import { kmcSources } from "../kmc-sources";
 import { salvationSources } from "../salvation-sources";
 import { publicRemainingSources } from "../public-remaining-sources";
 import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
+import { isSermonAttributedTo } from "../../../pastor-sermon-attribution";
 
-type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean};
+type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean;pastorNames?:string;primaryPastorNames?:string};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
 
 const heldSources:SourceBase[]=[
@@ -440,9 +441,9 @@ const sourceIdentity=(source:Source)=>source.channelId?`channel:${source.channel
 const sources=[...new Map(sourceCandidates.map((source)=>[sourceIdentity(source),source] as const)).values()];
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
-type PlaylistResponse={items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
+type PlaylistResponse={nextPageToken?:string;items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
-type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string};
+type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string;pastorNames?:string;primaryPastorNames?:string};
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
 
 export async function POST(request:Request) {
@@ -452,10 +453,10 @@ export async function POST(request:Request) {
   const db=database(); await ensureMediaCollectionTables(db); await seedHeldSources(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
   const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
-  const databaseResult=requestedScope==="database"?await db.prepare("SELECT name,pastor,region,denomination,homepage_url AS homepage,youtube_channel_id AS channelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY id").all<DatabaseSourceRow>():null;
-  const databaseSources:Source[]=(databaseResult?.results||[]).map((source)=>({name:source.name,pastor:source.pastor,region:source.region,denomination:source.denomination,homepage:source.homepage||undefined,channelId:source.channelId}));
-  const scope=requestedScope==="database"?"database":requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
-  const sourcePool:readonly Source[]=scope==="database"?databaseSources:scope==="all"?sources:scopedSources[scope];
+  const databaseResult=requestedScope==="database"?await db.prepare("SELECT name,pastor,region,denomination,homepage_url AS homepage,youtube_channel_id AS channelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY id").all<DatabaseSourceRow>():requestedScope==="photo_pastors"?await db.prepare(`SELECT c.name,c.pastor,c.region,c.denomination,c.homepage_url AS homepage,c.youtube_channel_id AS channelId,GROUP_CONCAT(DISTINCT p.name) AS pastorNames,GROUP_CONCAT(DISTINCT CASE WHEN r.role_category='current_primary' OR ${sqlNormalized("p.name")}=replace(replace(${sqlNormalized("c.pastor")},'목사님',''),'목사','') THEN p.name END) AS primaryPastorNames FROM churches c JOIN pastor_church_roles r ON r.church_id=c.id AND r.review_status='approved' JOIN pastor_people p ON p.id=r.pastor_id AND p.review_status='approved' WHERE c.review_status='approved' AND c.youtube_channel_id IS NOT NULL AND ((p.photo_review_status='approved' AND p.photo_url IS NOT NULL AND trim(p.photo_url)<>'') OR ${sqlNormalized("p.name")} IN ('김민석','이일현','정성진','곽승현')) GROUP BY c.id ORDER BY MIN(CASE WHEN ${sqlNormalized("p.name")} IN ('김민석','이일현','정성진','곽승현') THEN 0 ELSE 1 END),c.id`).all<DatabaseSourceRow>():null;
+  const databaseSources:Source[]=(databaseResult?.results||[]).map((source)=>({name:source.name,pastor:source.pastor,region:source.region,denomination:source.denomination,homepage:source.homepage||undefined,channelId:source.channelId,pastorNames:source.pastorNames,primaryPastorNames:source.primaryPastorNames}));
+  const scope=requestedScope==="database"?"database":requestedScope==="photo_pastors"?"photo_pastors":requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
+  const sourcePool:readonly Source[]=scope==="database"||scope==="photo_pastors"?databaseSources:scope==="all"?sources:scopedSources[scope];
   const syncKey=scope==="all"?"youtube-v9-regional-130":`youtube-v9-${scope}`;
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
@@ -499,32 +500,42 @@ export async function POST(request:Request) {
     }
     const uploads=found.contentDetails.relatedPlaylists.uploads;
     const channelImageUrl=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
-    const playlistResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50&key=${encodeURIComponent(key)}`);
-    if(!playlistResponse?.ok) { failed++;continue; }
-    const playlist=await playlistResponse.json() as PlaylistResponse;
+    const playlistItems:NonNullable<PlaylistResponse["items"]>=[];
+    let pageToken="";
+    const pageCount=scope==="photo_pastors"?4:1;
+    for(let page=0;page<pageCount;page++){
+      const playlistResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50${pageToken?`&pageToken=${encodeURIComponent(pageToken)}`:""}&key=${encodeURIComponent(key)}`);
+      if(!playlistResponse?.ok){failed++;break;}
+      const playlist=await playlistResponse.json() as PlaylistResponse;
+      playlistItems.push(...(playlist.items||[]));
+      pageToken=playlist.nextPageToken||"";
+      if(!pageToken)break;
+    }
+    if(!playlistItems.length)continue;
     checked++;
     const activeSince=Date.now()-180*24*60*60*1000;
-    const playlistItems=playlist.items||[];
     const videoIds=playlistItems.map((item)=>item.contentDetails.videoId).filter(Boolean);
     const durations=new Map<string,number>();
-    if(videoIds.length) {
+    if(videoIds.length&&scope!=="photo_pastors") {
       const videosResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(videoIds.join(","))}&key=${encodeURIComponent(key)}`);
       if(videosResponse?.ok) {
         const videos=await videosResponse.json() as VideosResponse;
         for(const video of videos.items||[]) durations.set(video.id,youtubeDurationSeconds(video.contentDetails?.duration||""));
       }
     }
-    const recentSermons=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
-    const recentShorts=(playlist.items||[]).filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
+    const pastorNames=(source.pastorNames||"").split(",").filter(Boolean),primaryPastorNames=new Set((source.primaryPastorNames||"").split(",").filter(Boolean));
+    const personalizedSermons=pastorNames.flatMap((pastorName)=>playlistItems.filter((item)=>isSermonTitle(item.snippet.title)&&isSermonAttributedTo(item.snippet.title,pastorName,primaryPastorNames.has(pastorName))).slice(0,9));
+    const recentSermons=scope==="photo_pastors"?[...new Map(personalizedSermons.map((item)=>[item.contentDetails.videoId,item])).values()]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
+    const recentShorts=scope==="photo_pastors"?[]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
     const shortIds=new Set(recentShorts.map((item)=>item.contentDetails.videoId));
-    for(const item of playlistItems) {
+    for(const item of scope==="photo_pastors"?[]:playlistItems) {
       const videoId=item.contentDetails.videoId;
       if(Date.parse(item.snippet.publishedAt)>=activeSince&&!shortIds.has(videoId)&&isShortCandidate(item.snippet.title,durations.get(videoId)||0)) {
         recentShorts.push(item);
         shortIds.add(videoId);
       }
     }
-    const recentPraises=playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
+    const recentPraises=scope==="photo_pastors"?[]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isPraiseTitle(item.snippet.title));
     if(!recentSermons.length) {
       continue;
     }
@@ -541,13 +552,13 @@ export async function POST(request:Request) {
       churchId=Number(inserted.meta.last_row_id);
     }
     verified++;
-    const sermonArchive=recentSermons.slice(0,18),shortArchive=recentShorts.slice(0,12),praiseArchive=recentPraises.slice(0,12);
+    const sermonArchive=scope==="photo_pastors"?recentSermons:recentSermons.slice(0,18),shortArchive=recentShorts.slice(0,12),praiseArchive=recentPraises.slice(0,12);
     const mediaStatements=[
       ...sermonArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO sermons (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
       ...shortArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO church_shorts (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
       ...praiseArchive.map((item)=>{const thumb=item.snippet.thumbnails?.high?.url||item.snippet.thumbnails?.medium?.url||`https://i.ytimg.com/vi/${item.contentDetails.videoId}/hqdefault.jpg`;return db.prepare("INSERT INTO praise_videos (church_id,youtube_id,title,thumbnail_url,published_at) VALUES (?,?,?,?,?) ON CONFLICT(youtube_id) DO UPDATE SET title=excluded.title,thumbnail_url=excluded.thumbnail_url,published_at=excluded.published_at").bind(churchId,item.contentDetails.videoId,item.snippet.title,thumb,item.snippet.publishedAt)}),
     ];
-    if(mediaStatements.length)await db.batch(mediaStatements);
+    for(let offset=0;offset<mediaStatements.length;offset+=80)await db.batch(mediaStatements.slice(offset,offset+80));
     imported+=sermonArchive.length;
   }
   const nextStart=start+batch.length;
