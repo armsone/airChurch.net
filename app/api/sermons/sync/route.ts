@@ -442,6 +442,7 @@ const sources=[...new Map(sourceCandidates.map((source)=>[sourceIdentity(source)
 
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={nextPageToken?:string;items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
+type SearchResponse={items?:Array<{id?:{videoId?:string};snippet?:{title?:string;publishedAt?:string;thumbnails?:{medium?:{url:string};high?:{url:string}}}}>};
 type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
 type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string;pastorNames?:string;primaryPastorNames?:string};
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
@@ -524,6 +525,18 @@ export async function POST(request:Request) {
       }
     }
     const pastorNames=(source.pastorNames||"").split(",").filter(Boolean),primaryPastorNames=new Set((source.primaryPastorNames||"").split(",").filter(Boolean));
+    if(scope==="photo_pastors"){
+      const priorityNames=pastorNames.filter((name)=>["김민석","이일현","정성진","곽승현"].includes(name));
+      for(const pastorName of priorityNames){
+        const searchResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(found.id)}&q=${encodeURIComponent(`${pastorName} 목사`)}&type=video&order=date&maxResults=20&key=${encodeURIComponent(key)}`);
+        if(!searchResponse?.ok)continue;
+        const search=await searchResponse.json() as SearchResponse;
+        for(const item of search.items||[]){
+          const videoId=item.id?.videoId,title=item.snippet?.title,publishedAt=item.snippet?.publishedAt;
+          if(videoId&&title&&publishedAt&&!playlistItems.some((candidate)=>candidate.contentDetails.videoId===videoId))playlistItems.push({contentDetails:{videoId},snippet:{title,publishedAt,thumbnails:item.snippet?.thumbnails}});
+        }
+      }
+    }
     const personalizedSermons=pastorNames.flatMap((pastorName)=>playlistItems.filter((item)=>isSermonTitle(item.snippet.title)&&isSermonAttributedTo(item.snippet.title,pastorName,primaryPastorNames.has(pastorName))).slice(0,20));
     const recentSermons=scope==="photo_pastors"?[...new Map(personalizedSermons.map((item)=>[item.contentDetails.videoId,item])).values()]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&(source.verifiedSermonFeed||isSermonTitle(item.snippet.title)));
     const recentShorts=scope==="photo_pastors"?[]:playlistItems.filter((item)=>Date.parse(item.snippet.publishedAt)>=activeSince&&isShortTitle(item.snippet.title));
