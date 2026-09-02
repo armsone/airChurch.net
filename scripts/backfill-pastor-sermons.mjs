@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 const baseUrl=(process.argv.find((value)=>value.startsWith("--base-url="))?.split("=")[1]||"https://airchurch.net").replace(/\/$/,"");
-const maintenanceToken=process.env.AIRCHURCH_MAINTENANCE_TOKEN||"";
-if(maintenanceToken.length<32)throw new Error("AIRCHURCH_MAINTENANCE_TOKEN must contain at least 32 characters");
+const maintenanceToken=process.env.MAINTENANCE_TOKEN||process.env.AIRCHURCH_MAINTENANCE_TOKEN||"";
+if(maintenanceToken.length<32)throw new Error("MAINTENANCE_TOKEN must contain at least 32 characters");
 
 let start=0;
 let imported=0;

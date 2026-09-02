@@ -26,6 +26,7 @@ interface ScheduledController {
 
 async function runScheduledMaintenance(env:Env,ctx:ExecutionContext){
   const requests=[
+    new Request("https://airchurch.internal/api/sermons/sync?scope=photo_pastors&limit=1",{method:"POST"}),
     new Request("https://airchurch.internal/api/sermons/sync?scope=database&limit=20",{method:"POST"}),
     new Request("https://airchurch.internal/api/sermons/sync?scope=all&limit=20",{method:"POST"}),
     new Request("https://airchurch.internal/api/praises/sync",{method:"POST"}),
