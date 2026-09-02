@@ -88,7 +88,6 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "사직동교회": "http://www.sjdch.or.kr/",
   "전주중부교회": "https://jjjbu.com/",
   "복된이웃교회": "http://www.bnpc.or.kr/",
-  "큰빛광성교회": "http://www.kbks.org/",
   "은혜광성교회": "https://www.gkwangsung.com/",
   "덕양중앙교회": "http://www.dychurch.net/",
   "주만교회": "http://www.jooman.org/",
