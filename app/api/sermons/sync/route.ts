@@ -443,7 +443,14 @@ const sources=[...new Map(sourceCandidates.map((source)=>[sourceIdentity(source)
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={nextPageToken?:string;items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 type SearchResponse={items?:Array<{id?:{videoId?:string};snippet?:{title?:string;publishedAt?:string;thumbnails?:{medium?:{url:string};high?:{url:string}}}}>};
-const priorityOfficialSermons=[{channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"PZb9SRbVrwY",title:"2023.02.19 거룩한빛광성교회 주일설교 김민석 목사",publishedAt:"2023-02-19T02:11:01Z"}] as const;
+const priorityOfficialSermons=[
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"PZb9SRbVrwY",title:"2023.02.19 거룩한빛광성교회 주일설교 김민석 목사",publishedAt:"2023-02-19T02:11:01Z"},
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"G8L2Kpx3-gM",title:"거룩한빛광성교회 청년부 | 요한복음 11장 (김민석 목사)",publishedAt:"2020-11-15T15:15:00Z"},
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"2cUesSZh0ms",title:"거룩한빛광성교회 청년부 | 요한복음 20장 (김민석 목사)",publishedAt:"2020-11-26T15:00:03Z"},
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"d5Uu1Z_vUxo",title:"거룩한빛광성교회 청년부 | 내 인생의 참 교육자 (김민석 목사)",publishedAt:"2020-08-20T13:00:10Z"},
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"sZs865sg05w",title:"거룩한빛광성교회 청년부 | 내 인생에 고난이 찾아올 때 (김민석 목사)",publishedAt:"2020-08-17T13:00:14Z"},
+  {channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"uM9BUD6vyPc",title:"거룩한빛광성교회 청년부 | 다시 오지 않는 기회 (김민석 목사)",publishedAt:"2020-08-04T10:14:34Z"},
+] as const;
 type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
 type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string;pastorNames?:string;primaryPastorNames?:string};
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
