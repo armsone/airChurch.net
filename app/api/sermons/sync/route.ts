@@ -457,7 +457,7 @@ export async function POST(request:Request) {
   const databaseSources:Source[]=(databaseResult?.results||[]).map((source)=>({name:source.name,pastor:source.pastor,region:source.region,denomination:source.denomination,homepage:source.homepage||undefined,channelId:source.channelId,pastorNames:source.pastorNames,primaryPastorNames:source.primaryPastorNames}));
   const scope=requestedScope==="database"?"database":requestedScope==="photo_pastors"?"photo_pastors":requestedScope&&requestedScope in scopedSources?requestedScope as keyof typeof scopedSources:"all";
   const sourcePool:readonly Source[]=scope==="database"||scope==="photo_pastors"?databaseSources:scope==="all"?sources:scopedSources[scope];
-  const syncKey=scope==="all"?"youtube-v9-regional-130":scope==="photo_pastors"?"youtube-v10-photo-pastors":`youtube-v9-${scope}`;
+  const syncKey=scope==="all"?"youtube-v9-regional-130":scope==="photo_pastors"?"youtube-v11-photo-pastors":`youtube-v9-${scope}`;
   const cursorKey=`${syncKey}:cursor`;
   const explicitStart=new URL(request.url).searchParams.get("start");
   const cursor=explicitStart===null?await db.prepare("SELECT last_synced_at AS value FROM sync_state WHERE key=?").bind(cursorKey).first<{value:string}>():null;
@@ -502,7 +502,7 @@ export async function POST(request:Request) {
     const channelImageUrl=found.snippet?.thumbnails?.high?.url||found.snippet?.thumbnails?.medium?.url||found.snippet?.thumbnails?.default?.url||null;
     const playlistItems:NonNullable<PlaylistResponse["items"]>=[];
     let pageToken="";
-    const pageCount=scope==="photo_pastors"?12:1;
+    const pageCount=scope==="photo_pastors"?30:1;
     for(let page=0;page<pageCount;page++){
       const playlistResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50${pageToken?`&pageToken=${encodeURIComponent(pageToken)}`:""}&key=${encodeURIComponent(key)}`);
       if(!playlistResponse?.ok){failed++;break;}

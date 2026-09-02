@@ -8,7 +8,7 @@ let start=0;
 let imported=0;
 let checked=0;
 do {
-  const response=await fetch(`${baseUrl}/api/sermons/sync?scope=photo_pastors&start=${start}&limit=3`,{method:"POST",headers:{authorization:`Bearer ${maintenanceToken}`}});
+  const response=await fetch(`${baseUrl}/api/sermons/sync?scope=photo_pastors&start=${start}&limit=1`,{method:"POST",headers:{authorization:`Bearer ${maintenanceToken}`}});
   if(!response.ok)throw new Error(`${response.status} ${response.statusText}`);
   const result=await response.json();
   imported+=Number(result.imported||0);
