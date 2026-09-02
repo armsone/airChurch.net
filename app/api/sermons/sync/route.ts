@@ -443,6 +443,7 @@ const sources=[...new Map(sourceCandidates.map((source)=>[sourceIdentity(source)
 type ChannelResponse={items?:Array<{id:string;snippet?:{thumbnails?:{default?:{url:string};medium?:{url:string};high?:{url:string}}};contentDetails:{relatedPlaylists:{uploads:string}}}>};
 type PlaylistResponse={nextPageToken?:string;items?:Array<{snippet:{title:string;publishedAt:string;thumbnails?:{medium?:{url:string};high?:{url:string}}};contentDetails:{videoId:string}}>};
 type SearchResponse={items?:Array<{id?:{videoId?:string};snippet?:{title?:string;publishedAt?:string;thumbnails?:{medium?:{url:string};high?:{url:string}}}}>};
+const priorityOfficialSermons=[{channelId:"UCpRPXBwj33S73e3SFDD9_-Q",pastorName:"김민석",videoId:"PZb9SRbVrwY",title:"2023.02.19 거룩한빛광성교회 주일설교 김민석 목사",publishedAt:"2023-02-19T02:11:01Z"}] as const;
 type VideosResponse={items?:Array<{id:string;contentDetails?:{duration?:string}}>};
 type DatabaseSourceRow={name:string;pastor:string;region:string;denomination:string;homepage:string|null;channelId:string;pastorNames?:string;primaryPastorNames?:string};
 const fetchYouTube=(url:string)=>fetch(url,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
@@ -535,6 +536,9 @@ export async function POST(request:Request) {
           const videoId=item.id?.videoId,title=item.snippet?.title,publishedAt=item.snippet?.publishedAt;
           if(videoId&&title&&publishedAt&&!playlistItems.some((candidate)=>candidate.contentDetails.videoId===videoId))playlistItems.push({contentDetails:{videoId},snippet:{title,publishedAt,thumbnails:item.snippet?.thumbnails}});
         }
+      }
+      for(const item of priorityOfficialSermons.filter((candidate)=>candidate.channelId===found.id&&pastorNames.includes(candidate.pastorName))){
+        if(!playlistItems.some((candidate)=>candidate.contentDetails.videoId===item.videoId))playlistItems.push({contentDetails:{videoId:item.videoId},snippet:{title:item.title,publishedAt:item.publishedAt}});
       }
     }
     const personalizedSermons=pastorNames.flatMap((pastorName)=>playlistItems.filter((item)=>isSermonTitle(item.snippet.title)&&isSermonAttributedTo(item.snippet.title,pastorName,primaryPastorNames.has(pastorName))).slice(0,20));
