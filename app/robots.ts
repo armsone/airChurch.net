@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin", "/pastor", "/review", "/api/"],
+      disallow: ["/admin", "/pastor", "/api/"],
     },
     sitemap: "https://airchurch.net/sitemap.xml",
     host: "https://airchurch.net",

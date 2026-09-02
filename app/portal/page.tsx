@@ -6,8 +6,10 @@ export const metadata:Metadata={
   description:"말씀·찬양·교회·목회자·교계소식과 공동체 기능을 한곳에서 이용합니다.",
   robots:{index:false,follow:true},
 };
-export const dynamic="force-static";
+export const dynamic="force-dynamic";
 
-export default function PortalPage(){
-  return <Home/>;
+export default async function PortalPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+  const params=await searchParams;
+  const initialQuery=String(Array.isArray(params.q)?params.q[0]??"":params.q??"").trim().slice(0,100);
+  return <Home initialQuery={initialQuery}/>;
 }
