@@ -528,7 +528,7 @@ export async function POST(request:Request) {
     if(scope==="photo_pastors"){
       const priorityNames=pastorNames.filter((name)=>["김민석","이일현","정성진","곽승현"].includes(name));
       for(const pastorName of priorityNames){
-        const searchResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(found.id)}&q=${encodeURIComponent(`${pastorName} 목사`)}&type=video&order=date&maxResults=20&key=${encodeURIComponent(key)}`);
+        const searchResponse=await fetchYouTube(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${encodeURIComponent(found.id)}&q=${encodeURIComponent(`${pastorName} 목사`)}&type=video&order=relevance&maxResults=20&key=${encodeURIComponent(key)}`);
         if(!searchResponse?.ok)continue;
         const search=await searchResponse.json() as SearchResponse;
         for(const item of search.items||[]){
