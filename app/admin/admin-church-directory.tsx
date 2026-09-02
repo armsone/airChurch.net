@@ -21,11 +21,11 @@ export default function AdminChurchDirectory({variant,initialItems,total}:Props)
 
   return <>
     <form className="admin-list-search" role="search" onSubmit={submit}>
-      <label><span className="sr-only">{variant==="held"?"보류 교회 검색":"공개 교회 검색"}</span><input type="search" value={query} onChange={(event)=>setQuery(event.target.value)} aria-controls={variant==="held"?"held-church-list":"public-church-list"} placeholder={variant==="held"?"교회, 목사, 지역, 교단, 보류 메모":"교회, 목사, 지역, 교단"}/></label>
+      <label><span className="sr-only">{variant==="held"?"보류 교회 검색":"공개 교회 검색"}</span><input type="search" value={query} onChange={(event)=>setQuery(event.target.value)} aria-controls={variant==="held"?"held-church-list":"public-church-list"} placeholder={variant==="held"?"교회, 목회자, 지역, 교단, 보류 메모":"교회, 목회자, 지역, 교단"}/></label>
       <span className="admin-search-count" aria-live="polite">{loading?"검색 중":`${items.length}/${resultTotal}`}</span>
       <button type="submit" disabled={loading}>검색</button>
       {(query||appliedQuery)&&<button type="button" onClick={reset}>초기화</button>}
-      {!query&&!appliedQuery&&<button className="admin-random-refresh" type="button" disabled={loading} onClick={()=>void load("",1)}>↻ 다른 교회 보기</button>}
+      {!query&&!appliedQuery&&<button className="admin-random-refresh unified-other-button" type="button" disabled={loading} onClick={()=>void load("",1)}>다른 교회 보기</button>}
     </form>
     {error&&<p className="admin-error" role="alert">{error}</p>}
     <div className="admin-manage-list" id={variant==="held"?"held-church-list":"public-church-list"} aria-busy={loading}>{items.length?<AdminChurchList churches={items} previewIds={items.map((item)=>item.id)} variant={variant}/>:<p className="admin-empty">{loading?"교회를 찾고 있습니다.":"검색 결과가 없습니다."}</p>}</div>

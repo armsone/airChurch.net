@@ -27,7 +27,7 @@ export default function AdminLogin({context="admin"}:{context?:"admin"|"reviewer
     <section className="admin-login-card">
       <span className="brand-mark" aria-hidden="true" />
       <small>{context==="reviewer"?"목회자 교회 검토":"AIRCHURCH OPERATIONS"}</small>
-      <h1>{context==="reviewer"?"목사님 로그인":"운영자 로그인"}</h1>
+      <h1>{context==="reviewer"?"목회자 로그인":"운영자 로그인"}</h1>
       <p>{context==="reviewer"?"승인받은 아이디로 로그인해 교회 검토를 시작해 주세요.":"관리자 아이디로 로그인해 주세요."}</p>
       <form onSubmit={login}>
         <label>아이디<input name="username" autoComplete="username" required /></label>

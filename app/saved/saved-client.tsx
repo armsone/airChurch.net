@@ -6,7 +6,7 @@ import { normalizeSearchValue } from "../search-domain";
 import { isSavedItem, readSavedItems, SavedItem, writeSavedItems } from "../saved-items";
 import { recordDailyMediaStep } from "../daily-media-link";
 
-const groups=[{kind:"sermon" as const,label:"말씀",empty:"아직 찜한 말씀이 없습니다."},{kind:"praise" as const,label:"찬양",empty:"아직 찜한 찬양이 없습니다."},{kind:"church" as const,label:"교회",empty:"아직 찜한 교회가 없습니다."},{kind:"pastor" as const,label:"목사",empty:"아직 찜한 목사님이 없습니다."}];
+const groups=[{kind:"sermon" as const,label:"말씀",empty:"아직 찜한 말씀이 없습니다."},{kind:"praise" as const,label:"찬양",empty:"아직 찜한 찬양이 없습니다."},{kind:"church" as const,label:"교회",empty:"아직 찜한 교회가 없습니다."},{kind:"pastor" as const,label:"목회자",empty:"아직 찜한 목회자가 없습니다."}];
 
 export default function SavedClient(){
   const [items,setItems]=useState<SavedItem[]>([]),[ready,setReady]=useState(false),[filter,setFilter]=useState(""),[notice,setNotice]=useState(""),[sort,setSort]=useState<"recent"|"title">("recent");

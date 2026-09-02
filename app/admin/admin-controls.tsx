@@ -14,7 +14,7 @@ async function updateAdmin(body: Record<string, unknown>, reload=true, successMe
 }
 
 const holdReasons = [
-  ["pastor_request", "목사님 요청"],
+  ["pastor_request", "목회자 요청"],
   ["rights_request", "저작권·개인정보·권리자 요청"],
   ["youtube_unavailable", "공식 YouTube 확인 불가"],
   ["inactive", "최근 180일 업로드 없음"],
@@ -110,7 +110,7 @@ export function AdminChurchCard({ church, preview, isHeld = false, selected = fa
       <form className="admin-edit-form" onSubmit={save}>
         <div className="admin-edit-fields">
           <input name="name" defaultValue={church.name} aria-label="교회명" required />
-          <input name="pastor" defaultValue={church.pastor} aria-label="목사님" required />
+          <input name="pastor" defaultValue={church.pastor} aria-label="목회자" required />
           <input name="region" defaultValue={church.region} aria-label="지역" required />
           <input name="denomination" defaultValue={church.denomination} aria-label="교단" required />
         </div>
@@ -286,7 +286,7 @@ export function ChurchControls(props: { id: number; name: string; pastor: string
     try { await updateAdmin({ kind: "church", id: props.id, status: next, holdReason, holdNote },next!=="deleted");if(next==="deleted"){const article=detailsRef.current?.closest<HTMLElement>("[data-admin-search]"),targetId=article?.parentElement?.id;article?.remove();if(targetId)window.dispatchEvent(new CustomEvent("admin-church-removed",{detail:{targetId}}));} } catch (reason) { setError((reason as Error).message); setBusy(false); }
   }
   return <details ref={detailsRef} className={`admin-church-details${props.iconOnly||props.markTrigger?" is-icon-editor":""}${props.markTrigger?" is-mark-editor":""}`}><summary aria-label="교회 정보 및 공개 상태 관리">{props.markTrigger?(props.markTrigger.src?<img src={props.markTrigger.src} alt={props.markTrigger.alt}/>:<span className="church-admin-mark-fallback" aria-hidden="true">✝</span>):props.iconOnly?<span aria-hidden="true">✎</span>:<><span className="admin-church-details-open">정보 관리</span><span className="admin-church-details-close" aria-label="관리 화면 닫기">관리 닫기</span><b aria-hidden="true">⌄</b></>}</summary><form className="admin-edit-form" onSubmit={save}>
-    <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목사님" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
+    <div className="admin-edit-fields"><input name="name" defaultValue={props.name} aria-label="교회명" required /><input name="pastor" defaultValue={props.pastor} aria-label="목회자" required /><input name="region" defaultValue={props.region} aria-label="지역" required /><input name="denomination" defaultValue={props.denomination} aria-label="교단" required /></div>
     <div className="admin-preference-fields">
       <label><span>노출 비중</span><select name="priorityWeight" defaultValue={String(props.priorityWeight)}><option value="1">기본 · 균등 노출</option><option value="2">높음 · 최대 2배</option><option value="3">매우 높음 · 최대 3배</option><option value="4">핀업 · 항상 최상단</option></select></label>
       <label><span>보류 사유</span><select name="holdReason" value={holdReason} onChange={(event) => setHoldReason(event.target.value)}><option value="">선택해 주세요</option>{holdReasons.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>

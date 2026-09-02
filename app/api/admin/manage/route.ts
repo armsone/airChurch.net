@@ -100,15 +100,15 @@ export async function PATCH(request: Request) {
     if(role!=="admin")return Response.json({error:"관리자만 요청을 결정할 수 있습니다."},{status:403});
     const resolution=clean(data.resolution,20),adminNote=clean(data.adminNote,500);
     if(!["approved","rejected","deferred"].includes(resolution))return Response.json({error:"결정 내용을 확인해 주세요."},{status:400});
-    if((resolution==="rejected"||resolution==="deferred")&&adminNote.length<3)return Response.json({error:"목사님이 볼 답변을 3자 이상 적어 주세요."},{status:400});
+    if((resolution==="rejected"||resolution==="deferred")&&adminNote.length<3)return Response.json({error:"목회자가 볼 답변을 3자 이상 적어 주세요."},{status:400});
     const change=await db.prepare("SELECT id,church_id,request_type,proposed_name,proposed_pastor,proposed_region,proposed_denomination,status FROM church_change_requests WHERE id=? LIMIT 1").bind(id).first<{id:number;church_id:number;request_type:string;proposed_name:string|null;proposed_pastor:string|null;proposed_region:string|null;proposed_denomination:string|null;status:string}>();
     if(!change)return Response.json({error:"요청을 찾을 수 없습니다."},{status:404});
     if(change.status!=="pending"&&change.status!=="deferred")return Response.json({error:"이미 처리된 요청입니다."},{status:409});
     const statements:Array<ReturnType<typeof db.prepare>>=[];
     if(resolution==="approved") {
       if(change.request_type==="edit")statements.push(db.prepare("UPDATE churches SET name=?,pastor=?,region=?,denomination=? WHERE id=?").bind(change.proposed_name,change.proposed_pastor,change.proposed_region,change.proposed_denomination,change.church_id));
-      if(change.request_type==="hold")statements.push(db.prepare("UPDATE churches SET review_status='removed',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목사님 요청 승인",change.church_id));
-      if(change.request_type==="delete")statements.push(db.prepare("UPDATE churches SET review_status='deleted',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목사님 삭제 요청 승인",change.church_id));
+      if(change.request_type==="hold")statements.push(db.prepare("UPDATE churches SET review_status='removed',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목회자 요청 승인",change.church_id));
+      if(change.request_type==="delete")statements.push(db.prepare("UPDATE churches SET review_status='deleted',hold_reason='pastor_request',hold_note=?,held_at=CURRENT_TIMESTAMP WHERE id=?").bind(adminNote||"목회자 삭제 요청 승인",change.church_id));
       if(change.request_type==="hold"||change.request_type==="delete")statements.push(db.prepare("UPDATE sermons SET status='hidden' WHERE church_id=?").bind(change.church_id),db.prepare("UPDATE praise_videos SET status='hidden' WHERE church_id=?").bind(change.church_id),db.prepare("UPDATE church_shorts SET status='hidden' WHERE church_id=?").bind(change.church_id));
     }
     statements.push(db.prepare("UPDATE church_change_requests SET status=?,admin_note=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?").bind(resolution,adminNote||null,id));
@@ -134,7 +134,7 @@ export async function PATCH(request: Request) {
       if(!Number.isInteger(opinionId)||opinionId<1||!reviewedAt||seenOpinionIds.has(opinionId)) continue;
       seenOpinionIds.add(opinionId);opinions.push({id:opinionId,reviewedAt});
     }
-    if(!opinions.length) return Response.json({error:"화면에서 확인한 목사님 의견을 찾을 수 없습니다."},{status:400});
+    if(!opinions.length) return Response.json({error:"화면에서 확인한 목회자 의견을 찾을 수 없습니다."},{status:400});
     if((resolution==="held"||resolution==="needs_follow_up")&&adminNote.length<3) return Response.json({error:"처리 근거를 3자 이상 적어 주세요."},{status:400});
     if(resolution==="held"&&!["rights_request","youtube_unavailable","inactive","info_unverified","review_needed","other"].includes(holdReason)) return Response.json({error:"보류 사유를 선택해 주세요."},{status:400});
     const opinionIds=opinions.map((opinion)=>opinion.id),placeholders=opinionIds.map(()=>"?").join(","),claimToken=`processing:${crypto.randomUUID()}`;
@@ -145,7 +145,7 @@ export async function PATCH(request: Request) {
     const claimResults=await db.batch(claimStatements);
     if(Number(claimResults[0]?.meta?.changes??0)!==1||claimResults.slice(1).some((result:{meta?:{changes?:number}})=>Number(result.meta?.changes??0)!==1)) {
       await db.batch([db.prepare("UPDATE reviewer_church_reviews SET admin_resolution=NULL WHERE church_id=? AND admin_resolution=?").bind(id,claimToken),db.prepare("UPDATE churches SET review_resolution_token=NULL WHERE id=? AND review_resolution_token=?").bind(id,claimToken)]);
-      return Response.json({error:"목사님 의견이 변경되었거나 다른 관리자가 처리 중입니다. 최신 내용을 다시 확인해 주세요."},{status:409});
+      return Response.json({error:"목회자 의견이 변경되었거나 다른 관리자가 처리 중입니다. 최신 내용을 다시 확인해 주세요."},{status:409});
     }
     const allClaims=`(SELECT COUNT(*) FROM reviewer_church_reviews WHERE church_id=? AND admin_resolution=? AND status='concern' AND handled_at IS NULL AND id IN (${placeholders}))=?`;
     const finalStatements:Array<ReturnType<typeof db.prepare>>=[];

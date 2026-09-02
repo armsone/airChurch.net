@@ -17,7 +17,7 @@ export default async function PastorPage() {
   if(!session)return <AdminLogin context="reviewer"/>;
   const db=database();await Promise.all([ensureSermonTables(db),ensureReviewerTables(db)]);
   const reviewerAccount=session.reviewerId>0?await db.prepare("SELECT name FROM reviewer_accounts WHERE id=? AND status='approved'").bind(session.reviewerId).first<{name:string}>():null;
-  const reviewerName=session.role==="admin"?"관리자":reviewerAccount?.name??"목사님";
+  const reviewerName=session.role==="admin"?"관리자":reviewerAccount?.name??"목회자";
   const [churchCount,featuredRows,requestRows]=await Promise.all([
     db.prepare("SELECT COUNT(*) AS total FROM churches WHERE review_status='approved'").first<{total:number}>(),
     db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url FROM churches WHERE review_status='approved' ORDER BY RANDOM() LIMIT 20").all<Church>(),

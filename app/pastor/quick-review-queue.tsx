@@ -205,7 +205,7 @@ export function QuickReviewQueue({ todo, total }: QuickReviewQueueProps) {
       <summary><span><strong>아직 살펴볼 교회 전체 목록</strong><small>목록에서 아는 교회를 골라 먼저 살펴볼 수 있습니다.</small></span><b>{queue.length}곳 보기</b></summary>
       <div className="quick-review-all-body">
         <label htmlFor="quick-review-list-search">살펴볼 교회 검색</label>
-        <input id="quick-review-list-search" type="search" value={listQuery} onChange={(event)=>setListQuery(event.target.value)} placeholder="교회명, 목사님, 지역, 교단 검색" />
+        <input id="quick-review-list-search" type="search" value={listQuery} onChange={(event)=>setListQuery(event.target.value)} placeholder="교회명, 목회자, 지역, 교단 검색" />
         <p className="quick-review-list-count">{listQuery.trim()?`검색 결과 ${visibleQueue.length}곳`:`아직 살펴볼 ${queue.length}곳`}{remaining>queue.length?` · 전체 ${remaining}곳 중 표시` : ""}</p>
         <ul>{visibleQueue.map((church)=><li key={church.id}><button type="button" aria-current={church.id===current.id?"true":undefined} onClick={()=>selectChurch(church.id)}><span><strong>{church.name}</strong><small><b>{pastorLabel(church.pastor)}</b> · {church.denomination}</small></span><em>{church.region}</em></button></li>)}</ul>
         {!visibleQueue.length&&<p className="admin-empty">검색 조건에 맞는 교회가 없습니다.</p>}

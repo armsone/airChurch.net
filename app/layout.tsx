@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import VisitorTracker from "./visitor-tracker";
+import AdminBulkBar from "./admin-bulk-selection";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://airchurch.net"),
@@ -60,6 +61,6 @@ export default function RootLayout({
     },
   ];
   return (
-    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body>{children}<VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
+    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body>{children}<AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
   );
 }

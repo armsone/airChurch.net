@@ -42,7 +42,7 @@ export default function ReviewerResolutionControls({
 
   async function submitResolution(resolution: Resolution) {
     if (!opinions.length) {
-      setError("처리할 목사님 의견을 찾지 못했습니다. 화면을 새로 고쳐 주세요.");
+      setError("처리할 목회자 의견을 찾지 못했습니다. 화면을 새로 고쳐 주세요.");
       return;
     }
     if ((resolution === "held" || resolution === "needs_follow_up") && adminNote.trim().length < 3) {
@@ -56,15 +56,15 @@ export default function ReviewerResolutionControls({
 
     const confirmation = resolution === "kept_public"
       ? isHeld
-        ? "이 교회를 다시 공개하고, 표시된 목사님 의견을 모두 처리 완료할까요? 숨겨진 설교는 자동으로 공개되지 않습니다."
-        : "이 교회의 공개 상태를 유지하고, 표시된 목사님 의견을 모두 처리 완료할까요?"
+        ? "이 교회를 다시 공개하고, 표시된 목회자 의견을 모두 처리 완료할까요? 숨겨진 설교는 자동으로 공개되지 않습니다."
+        : "이 교회의 공개 상태를 유지하고, 표시된 목회자 의견을 모두 처리 완료할까요?"
       : resolution === "held"
         ? isHeld
-          ? "이 교회의 보류 상태를 유지하고, 표시된 목사님 의견을 모두 처리 완료할까요?"
-          : "이 교회를 보류하고, 표시된 목사님 의견을 모두 처리 완료할까요? 관련 설교도 함께 숨겨집니다."
+          ? "이 교회의 보류 상태를 유지하고, 표시된 목회자 의견을 모두 처리 완료할까요?"
+          : "이 교회를 보류하고, 표시된 목회자 의견을 모두 처리 완료할까요? 관련 설교도 함께 숨겨집니다."
         : resolution === "deleted"
-          ? "이 교회를 삭제 처리할까요? 표시된 목사님 의견도 함께 처리 완료되며, 관련 설교와 찬양 영상이 모두 숨겨집니다. 이 작업은 되돌릴 수 없습니다."
-          : "표시된 목사님 의견을 추가 확인이 필요한 상태로 남길까요? 검토 대기 목록에서 계속 확인할 수 있습니다.";
+          ? "이 교회를 삭제 처리할까요? 표시된 목회자 의견도 함께 처리 완료되며, 관련 설교와 찬양 영상이 모두 숨겨집니다. 이 작업은 되돌릴 수 없습니다."
+          : "표시된 목회자 의견을 추가 확인이 필요한 상태로 남길까요? 검토 대기 목록에서 계속 확인할 수 있습니다.";
     if (!window.confirm(confirmation)) return;
 
     setBusy(true);
