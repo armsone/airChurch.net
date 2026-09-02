@@ -46,7 +46,7 @@ export default function RootLayout({
       inLanguage: "ko-KR",
       potentialAction: {
         "@type": "SearchAction",
-        target: "https://airchurch.net/portal?q={search_term_string}",
+        target: "https://airchurch.net/?q={search_term_string}",
         "query-input": "required name=search_term_string",
       },
     },
