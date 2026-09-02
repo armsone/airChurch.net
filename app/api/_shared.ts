@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { kwangsungOfficialPhotos } from "./kwangsung-photos";
 import { jejakwangsungOfficialPastors } from "./jejakwangsung-pastors";
 import { haneulbitKwangsungOfficialPastors } from "./haneulbit-kwangsung-pastors";
-import { kwangsungBranchOfficialPastors } from "./kwangsung-branch-pastors";
+import { kwangsungBranchOfficialPastors, kwangsungBranchOfficialPhotos } from "./kwangsung-branch-pastors";
 export function database() { if (!env.DB) throw new Error("Database unavailable"); return env.DB as D1Database; }
 export function internalTaskRequestAllowed(request:Request){
   if(new URL(request.url).hostname==="airchurch.internal")return true;
@@ -410,6 +410,7 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
 
   await db.batch(kwangsungBranchOfficialPastors.map(([churchName,name])=>db.prepare(`INSERT OR IGNORE INTO pastor_people(directory_id,name,review_status) SELECT 'kwangsung-branch-'||REPLACE(?,' ','')||'-'||REPLACE(?,' ',''),?,'approved' WHERE NOT EXISTS (SELECT 1 FROM pastor_people p JOIN pastor_church_roles r ON r.pastor_id=p.id WHERE p.review_status='approved' AND r.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(?,' ','') AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')=REPLACE(?,' ',''))`).bind(churchName,name,name,name,churchName)));
   await db.batch(kwangsungBranchOfficialPastors.map(([churchName,name,roleTitle,roleCategory,sourceUrl])=>db.prepare(`INSERT OR IGNORE INTO pastor_church_roles(pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,source_url,review_status) SELECT p.id,c.id,c.name,c.denomination,c.region,?,?,'current',?,'approved' FROM pastor_people p JOIN churches c ON REPLACE(TRIM(c.name),' ','')=REPLACE(?,' ','') WHERE p.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(?,' ','') AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=p.id AND r.review_status='approved' AND r.church_id=c.id AND REPLACE(TRIM(r.role_title),' ','')=REPLACE(?,' ','')) ORDER BY CASE WHEN p.directory_id LIKE 'kwangsung-branch-%' THEN 0 ELSE 1 END,p.id LIMIT 1`).bind(roleTitle,roleCategory,sourceUrl,churchName,name,roleTitle)));
+  await db.batch(kwangsungBranchOfficialPhotos.map(([churchName,name,photoUrl,sourceUrl])=>db.prepare(`UPDATE pastor_people SET photo_url=?,photo_source_url=?,photo_usage_basis='official_public_clergy_profile',photo_review_status='approved',updated_at=CURRENT_TIMESTAMP WHERE id=(SELECT p.id FROM pastor_people p JOIN pastor_church_roles r ON r.pastor_id=p.id WHERE p.review_status='approved' AND r.review_status='approved' AND REPLACE(TRIM(p.name),' ','')=REPLACE(?,' ','') AND REPLACE(TRIM(COALESCE(r.church_name,'')),' ','')=REPLACE(?,' ','') ORDER BY CASE WHEN p.directory_id LIKE 'kwangsung-branch-%' THEN 0 ELSE 1 END,p.id LIMIT 1)`).bind(photoUrl,sourceUrl,name,churchName)));
   await db.prepare("UPDATE churches SET pastor='박경수' WHERE REPLACE(TRIM(name),' ','')='하늘빛광성교회'").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v26',CURRENT_TIMESTAMP)").run();
 });

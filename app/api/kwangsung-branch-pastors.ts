@@ -24,3 +24,28 @@ export const kwangsungBranchOfficialPastors = [
   ["거룩한빛운정교회", "정진호", "전도사", "education", "https://ujch.org/Page/Index/15"],
   ["은혜의빛광성교회", "장동훈", "담임목사", "current_primary", "https://www.thelightofgrace.org/?page_id=7"],
 ] as const;
+
+export const kwangsungBranchOfficialPhotos = [
+  ["거룩한빛등대교회", "남현수", "https://cdn.imweb.me/upload/S2024010342c2819b5cd9b/5751a21a1ed22.jpeg", "https://ddchurch.org/23"],
+  ["거룩한빛등대교회", "이재원", "https://cdn.imweb.me/upload/S2024010342c2819b5cd9b/25eba0c90b859.jpg", "https://ddchurch.org/23"],
+  ["거룩한빛등대교회", "김범진", "https://cdn.imweb.me/upload/S2024010342c2819b5cd9b/7bbe4bb4b6110.jpeg", "https://ddchurch.org/23"],
+  ["거룩한빛등대교회", "이혜순", "https://cdn.imweb.me/thumbnail/20260518/787048f9db7f1.png", "https://ddchurch.org/23"],
+  ["거룩한빛예안교회", "이병철", "https://cdn.imweb.me/upload/S20231117a4565c0a1092e/13b4ecafbe72d.png", "https://je-an.co.kr/"],
+  ["거룩한빛운정교회", "유정상", "https://data.dimode.co.kr/UserData/holywj/files/15/145/MS7ri7TsnoTrqqnsgqwucG5nZGltb2RlXzMwMTkzNjVfZW5j.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "안도헌", "https://data.dimode.co.kr/UserData/holywj/files/15/264/XzAwMDJfMy7slYjrj4Ttl4wt66qp7IKsLnBuZ2RpbW9kZV8zMDQ0NjU2X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "권순우", "https://data.dimode.co.kr/UserData/holywj/files/15/264/XzAwMDRfNS7qtozsiJzsmrAt66qp7IKsLnBuZ2RpbW9kZV80Njc0NDg5X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "임사무엘", "https://data.dimode.co.kr/UserData/holywj/files/15/264/XzAwMDNfNC7snoTsgqzrrLTsl5gt66qp7IKsLnBuZ2RpbW9kZV80OTg4Mjg3X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "양희준", "https://data.dimode.co.kr/UserData/holywj/files/15/157498/7JaR7Z2s7KSALnBuZ2RpbW9kZV8zMjI4NjMwX2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "한성민", "https://data.dimode.co.kr/UserData/holywj/files/15/158237/7ZWc7ISx66e8LnBuZ2RpbW9kZV80NjM4NTMxX2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "금교준", "https://data.dimode.co.kr/UserData/holywj/files/15/264/NC7quIjqtZDspIAt66qp7IKsLnBuZ2RpbW9kZV8yODU0NzQyX2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "최중구", "https://data.dimode.co.kr/UserData/holywj/files/15/264/Mi7stZzspJHqtawt66qp7IKsLnBuZ2RpbW9kZV8yMTk2NzI0X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "박성집", "https://data.dimode.co.kr/UserData/holywj/files/15/264/My7rsJXshLHsp5Et66qp7IKsLnBuZ2RpbW9kZV85OTExMTEwX2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "박영옥", "https://data.dimode.co.kr/UserData/holywj/files/15/264/MS7rsJXsmIHsmKUt66qp7IKsLnBuZ2RpbW9kZV83MzQzODU3X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "이현규", "https://data.dimode.co.kr/UserData/holywj/files/15/264/Mi7snbTtmITqt5wt7KCE64eE7IKsLnBuZ2RpbW9kZV83ODE0OTA2X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "김성훈", "https://data.dimode.co.kr/UserData/holywj/files/15/154695/6rmA7ISx7ZuILeuqqeyCrOuLmC5wbmdkaW1vZGVfNTEyMzg1M19lbmMc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "지연미", "https://data.dimode.co.kr/UserData/holywj/files/15/264/My7sp4Dsl7Drr7gt66qp7IKsLnBuZ2RpbW9kZV8zOTg3NzgzX2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "조희서", "https://data.dimode.co.kr/UserData/holywj/files/15/264/NC7sobDtnazshJwt7KCE64eE7IKsLnBuZ2RpbW9kZV8xMjI5NTg3X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "장미영", "https://data.dimode.co.kr/UserData/holywj/files/15/264/NS7snqXrr7jsmIEt7KCE64eE7IKsLnBuZ2RpbW9kZV8zMTczMjE5X2VuYwcc.png", "https://ujch.org/Page/Index/15"],
+  ["거룩한빛운정교회", "정진호", "https://data.dimode.co.kr/UserData/holywj/files/15/154695/7KCV7KeE7Zi4LeyghOuPhOyCrC5wbmdkaW1vZGVfOTAyNzIzMF9lbmMc.png", "https://ujch.org/Page/Index/15"],
+  ["은혜의빛광성교회", "장동훈", "https://www.thelightofgrace.org/wp-content/uploads/pastor.png", "https://www.thelightofgrace.org/?page_id=7"],
+] as const;
