@@ -183,6 +183,9 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
   const shortPlayerPlayPendingRef=useRef(false);
   const shortAutoSkipCountRef=useRef(0);
   const filteredShortsLengthRef=useRef(0);
+  const shortPoolRef=useRef<Short[]>([]);
+  const shortNextOffsetRef=useRef(0);
+  const shortPoolLoadingRef=useRef<Promise<void>|null>(null);
   const pastorBucketRef=useRef(0);
   const shortViewerEmbedBase = "https://www.youtube-nocookie.com/embed";
   const [churchNews,setChurchNews]=useState<ChurchNews[]>([]);
@@ -265,9 +268,12 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
         setPraiseItems([...items.filter((item)=>item.pinned),...shuffled(items.filter((item)=>!item.pinned))]);
         setPraiseLoading(false);
       }),
-      shorts: ()=>loadItems(`/api/shorts?limit=${lowData?12:60}`).then((data)=>{
+      shorts: ()=>loadItems(`/api/shorts?limit=${lowData?96:300}&batch=1&offset=0`).then((data)=>{
         if(!alive) return;
-        setShortItems((data as {items?:Short[]}).items||[]);
+        const result=data as {items?:Short[];nextOffset?:number|null},items=shuffled(result.items||[]),visibleCount=lowData?24:60;
+        setShortItems(items.slice(0,visibleCount));
+        shortPoolRef.current=items.slice(visibleCount);
+        shortNextOffsetRef.current=result.nextOffset??0;
         setShortLoading(false);
       }),
       "church-news": ()=>loadItems("/api/church-news").then((data)=>{
@@ -475,6 +481,30 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
     shortPlayerInstanceRef.current?.unMute();
     setShortMuted(false);
   }
+  function refillShortPool() {
+    if(shortPoolLoadingRef.current)return shortPoolLoadingRef.current;
+    const offset=shortNextOffsetRef.current,limit=prefersLowData()?96:300;
+    shortPoolLoadingRef.current=fetch(`/api/shorts?limit=${limit}&batch=1&offset=${offset}`).then((response)=>response.ok?response.json():null).then((result:{items?:Short[];nextOffset?:number|null}|null)=>{
+      const incoming=result?.items||[],known=new Set(shortPoolRef.current.map((item)=>item.youtubeId));
+      shortPoolRef.current.push(...incoming.filter((item)=>!known.has(item.youtubeId)));
+      shortNextOffsetRef.current=result?.nextOffset??0;
+    }).catch(()=>{}).finally(()=>{shortPoolLoadingRef.current=null;});
+    return shortPoolLoadingRef.current;
+  }
+  function takeRandomShorts(first:Short|null) {
+    const desired=prefersLowData()?24:60,previous=shortItems,needed=desired-(first?1:0),pool=shuffled(shortPoolRef.current),selected=pool.slice(0,needed),selectedIds=new Set(selected.map((item)=>item.youtubeId));
+    shortPoolRef.current=pool.filter((item)=>!selectedIds.has(item.youtubeId));
+    const used=new Set(first?[first.youtubeId]:[]),fallback=shuffled(previous).filter((item)=>!used.has(item.youtubeId)&&!selectedIds.has(item.youtubeId));
+    const next=[...(first?[first]:[]),...selected,...fallback].slice(0,desired);
+    if(shortPoolRef.current.length<desired*2)void refillShortPool();
+    return next;
+  }
+  function openRandomShort(short:Short,trigger:HTMLElement) {
+    shortTriggerRef.current=trigger;
+    setShortMuted(true);
+    setShortItems(takeRandomShorts(short));
+    setActiveShortIndex(0);
+  }
   const trimmedChurchQuery=churchQuery.trim();
   const hasActiveChurchFilter = Boolean(query.trim() || trimmedChurchQuery || region !== "전체" || denomination !== "전체 교단");
   const churchSearchKey=[trimmedChurchQuery,query.trim(),region,denomination].join("|");
@@ -568,11 +598,8 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
   async function loadDifferentShorts() {
     setShortLoading(true);
     try {
-      const response=await fetch(`/api/shorts?limit=${prefersLowData()?24:60}`);
-      const items=response.ok?((await response.json()) as {items?:Short[]}).items||[]:shortItems;
-      const next=shuffled(items);
-      if(next.length>1&&next[0]?.youtubeId===shortItems[0]?.youtubeId) next.push(next.shift() as Short);
-      setShortItems(next);
+      if(shortPoolRef.current.length<(prefersLowData()?24:60))await refillShortPool();
+      setShortItems(takeRandomShorts(null));
       setActiveShortIndex(null);
     } catch {
       setShortItems((items)=>shuffled(items));
@@ -706,7 +733,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
       <section className="content-section shorts-section" id="shorts">
         <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><button className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "↻ 다른 쇼츠 보기"}</button></div>
         <div className="shorts-grid">
-          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short, index) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={(event)=>{shortTriggerRef.current=event.currentTarget;setShortMuted(true);setActiveShortIndex(index);}} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
+          {shortLoading ? <LoadingCards count={6} /> : visibleShorts.map((short) => <button className="shorts-card" type="button" key={short.youtubeId} onClick={(event)=>openRandomShort(short,event.currentTarget)} aria-label={`${short.church} 쇼츠 ${short.title} 재생`}>
             <img className="shorts-thumb" src={short.thumbnailUrl} alt="" width={180} height={320} loading="lazy" decoding="async" fetchPriority="low" referrerPolicy="no-referrer" />
             <span className="shorts-play-badge" aria-hidden="true">▶</span>
             <span className="shorts-card-meta"><strong>{short.church}</strong><small>{short.title}</small></span>
@@ -727,7 +754,6 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
             allowFullScreen
           />
           {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
-          <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
           <button ref={shortCloseButtonRef} type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} title="닫기" aria-label="쇼츠 재생 닫기">×</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-next" onClick={()=>setActiveShortIndex((current)=>current!==null && current<filteredShorts.length-1 ? current+1 : current)} disabled={activeShortIndex===filteredShorts.length-1} aria-label="다음 쇼츠 보기">›</button>
