@@ -1,4 +1,4 @@
-import { database, ensurePastorPeopleTables, ensureSermonTables, maybeRunDataRetention } from "../_shared";
+import { database, ensurePastorPeopleTables, ensureSermonTables } from "../_shared";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { expandSearchTerm as expand, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
@@ -9,6 +9,8 @@ type CountRow={total:number};
 
 export async function GET(request:Request) {
   const url=new URL(request.url);
+  const requestedLimit=url.searchParams.get("limit");
+  if(requestedLimit!==null&&!/^\d+$/.test(requestedLimit))return Response.json({error:"limit은 숫자여야 합니다."},{status:400});
   const query=url.searchParams.get("q")?.trim().slice(0,100)??"";
   const globalQuery=url.searchParams.get("global")?.trim().toLowerCase().slice(0,100)??"";
   const region=url.searchParams.get("region")?.trim().slice(0,40)??"";
@@ -18,7 +20,6 @@ export async function GET(request:Request) {
   const responseHeaders={"cache-control":url.searchParams.has("adminFresh")?"private, no-store":"public, max-age=300, s-maxage=300, stale-while-revalidate=1800"};
   const db=database();
   await Promise.all([ensureSermonTables(db),ensurePastorPeopleTables(db)]);
-  await maybeRunDataRetention(db);
   const haystack=sqlMetadataSearchValue("name","pastor","region","denomination");
   const conditions=["review_status='approved'",...searchGroups.map((group)=>`(${group.map(()=>`instr(${haystack}, ?) > 0`).join(" OR ")})`)];
   const bindings:Array<string>=searchGroups.flat();
