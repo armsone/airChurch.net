@@ -192,12 +192,14 @@ export default function Home() {
   const [pastorBrowseItems,setPastorBrowseItems]=useState<PastorItem[]>([]);
   const [pastorTotal,setPastorTotal]=useState(0);
   const [pastorLoading,setPastorLoading]=useState(true);
+  const [pastorLoadFailed,setPastorLoadFailed]=useState(false);
   const [pastorVisibleCount,setPastorVisibleCount]=useState(12);
   const [pastorQuery,setPastorQuery]=useState("");
   const [selectedPastors,setSelectedPastors]=useState<Set<number>>(()=>new Set());
   const [pastorBatchBusy,setPastorBatchBusy]=useState(false);
   const [searchSuggestions,setSearchSuggestions]=useState<SearchSuggestion[]>([]);
   const [churchLoading,setChurchLoading]=useState(true);
+  const [churchLoadFailed,setChurchLoadFailed]=useState(false);
   const [churchRadarRefresh,setChurchRadarRefresh]=useState(0);
   const [showAllChurches,setShowAllChurches]=useState(false);
   const [showRecommendationForm,setShowRecommendationForm]=useState(false);
@@ -266,7 +268,23 @@ export default function Home() {
   useEffect(()=>{
     let alive=true;
     const controller=new AbortController();
-    const loadItems=(url:string)=>fetch(url,{signal:controller.signal}).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
+    const loadItems=async(url:string)=>{
+      for(let attempt=0;attempt<2;attempt+=1){
+        if(controller.signal.aborted)return {items:[],loadFailed:true};
+        const requestController=new AbortController(),abort=()=>requestController.abort(),timeout=window.setTimeout(abort,8000);
+        controller.signal.addEventListener("abort",abort,{once:true});
+        try{
+          const response=await fetch(url,{signal:requestController.signal});
+          if(response.ok)return await response.json();
+        }catch{
+          if(controller.signal.aborted)return {items:[],loadFailed:true};
+        }finally{
+          window.clearTimeout(timeout);
+          controller.signal.removeEventListener("abort",abort);
+        }
+      }
+      return {items:[],loadFailed:true};
+    };
     const lowData=prefersLowData();
     const todayBucket=Math.floor(Date.now()/86400000)%50;let browserSeed=Number(sessionStorage.getItem("airchurch:pastor-bucket-seed"));if(!Number.isInteger(browserSeed)||browserSeed<0||browserSeed>49){browserSeed=Math.floor(Math.random()*50);sessionStorage.setItem("airchurch:pastor-bucket-seed",String(browserSeed));}pastorBucketRef.current=(todayBucket+browserSeed)%50;
     const loaders: Record<string, () => void> = {
@@ -307,17 +325,19 @@ export default function Home() {
       }),
       "church-directory": ()=>{const fresh=sessionStorage.getItem("airchurch:church-cache-bust");return loadItems(`/api/churches${fresh?`?adminFresh=${encodeURIComponent(fresh)}`:""}`).then((data)=>{
         if(!alive) return;
-        const result=data as {items?:ChurchItem[];total?:number};
+        const result=data as {items?:ChurchItem[];total?:number;loadFailed?:boolean};
         setChurchItems(result.items||[]);
         setChurchTotal(result.total??result.items?.length??0);
+        setChurchLoadFailed(Boolean(result.loadFailed));
         setChurchLoading(false);
       })},
       "pastor-directory": ()=>{const fresh=sessionStorage.getItem("airchurch:pastor-cache-bust"),params=new URLSearchParams({limit:String(lowData?8:12),sample:String(pastorBucketRef.current)});if(fresh)params.set("adminFresh",fresh);return loadItems(`/api/pastors?${params}`).then((data)=>{
         if(!alive) return;
-        const result=data as {items?:PastorItem[];total?:number};
+        const result=data as {items?:PastorItem[];total?:number;loadFailed?:boolean};
         setPastorItems(result.items||[]);
         setPastorBrowseItems(result.items||[]);
         setPastorTotal(result.total??result.items?.length??0);
+        setPastorLoadFailed(Boolean(result.loadFailed));
         setPastorLoading(false);
       })},
     };
@@ -813,7 +833,7 @@ export default function Home() {
       </section>
 
       <section className="church-directory-section" id="church-directory">
-        <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":churchLoadFailed?"잠시 불러오지 못했습니다":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
         <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.webp" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} loading="lazy" decoding="async" /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보를 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않습니다. 교회명·지역·담임목사와 공식 홈페이지 등 공개 출처를 정리하며, 문제 제보가 들어오면 즉시 보류해 다시 확인합니다.</p>
           <details className="church-radar-sources"><summary>자료 확인 기준과 출처</summary>
             <p className="church-radar-sources-note">로그인 없이 공개된 자료만 확인합니다.</p>
@@ -842,7 +862,7 @@ export default function Home() {
           <span className="church-search-count" aria-live="polite">{churchLoading ? "불러오는 중…" : churchCountLabel}</span>
         </div>
         <div className="church-radar-results-heading"><div><strong>{hasActiveChurchFilter?"조건에 맞는 교회":"오늘 발견할 교회"}</strong><p>{hasActiveChurchFilter?"가장 관련 있는 교회부터 12곳씩 보여드립니다.":"관리자 추천을 먼저 보여드리고, 나머지는 방문할 때마다 새롭게 골라드립니다."}</p></div>{hasActiveChurchFilter?<span>{churchSearchPending?"검색 중…":`${churchSearchTotal.toLocaleString("ko-KR")}곳 중 ${visibleChurches.length}곳`}</span>:<button className="church-directory-refresh unified-other-button" type="button" onClick={()=>setChurchRadarRefresh((value)=>value+1)} disabled={churchLoading||filteredChurches.length<=12}>다른 교회 보기</button>}</div>
-          {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const savedId=`church:${church.id}`;return <article key={church.id} className={`shared-church-card${isAdmin?" is-admin-card":""}`} role={isAdmin?"button":"link"} tabIndex={0} aria-label={isAdmin?`${church.name} 관리 열기`:`${church.name} 교회 상세 보기`} onClick={(event)=>{if((event.target as HTMLElement).closest("a,button,input,select,textarea,label,form,summary"))return;if(isAdmin){const details=event.currentTarget.querySelector<HTMLDetailsElement>(".admin-church-details");if(details)details.open=!details.open;}else window.location.href=`/church/${church.id}`;}} onKeyDown={(event)=>{if(event.target!==event.currentTarget||!["Enter"," "].includes(event.key))return;event.preventDefault();if(isAdmin){const details=event.currentTarget.querySelector<HTMLDetailsElement>(".admin-church-details");if(details)details.open=!details.open;}else window.location.href=`/church/${church.id}`;}}><ChurchCardContent id={church.id} name={church.name} pastor={church.pastor} pastorHref={church.pastorPublicId!==null&&church.pastorPublicId!==undefined?`/pastors/${church.pastorPublicId}`:null} region={church.region} denomination={church.denomination} homepageUrl={church.homepageUrl} youtubeChannelId={church.youtubeChannelId} channelImageUrl={church.channelImageUrl} saveAction={<button className={`church-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"church",title:church.name,subtitle:`${church.pastor} · ${church.region}`,url:`/church/${church.id}`})} aria-label={`${church.name} ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button>}/>{isAdmin&&<Suspense fallback={null}><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status="approved" holdReason={null} holdNote={null} heldAt={null} priorityWeight={church.priorityWeight??1}/></Suspense>}</article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
+          {churchLoading?<div className="church-directory-grid" id="church-directory-grid"><LoadingCards count={6} /></div>:churchLoadFailed?<div className="empty" id="church-directory-grid">교회 자료를 잠시 불러오지 못했습니다. 새로고침해 주세요.</div>:<div className="church-directory-grid" id="church-directory-grid">{visibleChurches.map((church)=>{const savedId=`church:${church.id}`;return <article key={church.id} className={`shared-church-card${isAdmin?" is-admin-card":""}`} role={isAdmin?"button":"link"} tabIndex={0} aria-label={isAdmin?`${church.name} 관리 열기`:`${church.name} 교회 상세 보기`} onClick={(event)=>{if((event.target as HTMLElement).closest("a,button,input,select,textarea,label,form,summary"))return;if(isAdmin){const details=event.currentTarget.querySelector<HTMLDetailsElement>(".admin-church-details");if(details)details.open=!details.open;}else window.location.href=`/church/${church.id}`;}} onKeyDown={(event)=>{if(event.target!==event.currentTarget||!["Enter"," "].includes(event.key))return;event.preventDefault();if(isAdmin){const details=event.currentTarget.querySelector<HTMLDetailsElement>(".admin-church-details");if(details)details.open=!details.open;}else window.location.href=`/church/${church.id}`;}}><ChurchCardContent id={church.id} name={church.name} pastor={church.pastor} pastorHref={church.pastorPublicId!==null&&church.pastorPublicId!==undefined?`/pastors/${church.pastorPublicId}`:null} region={church.region} denomination={church.denomination} homepageUrl={church.homepageUrl} youtubeChannelId={church.youtubeChannelId} channelImageUrl={church.channelImageUrl} saveAction={<button className={`church-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"church",title:church.name,subtitle:`${church.pastor} · ${church.region}`,url:`/church/${church.id}`})} aria-label={`${church.name} ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button>}/>{isAdmin&&<Suspense fallback={null}><ChurchControls id={church.id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} status="approved" holdReason={null} holdNote={null} heldAt={null} priorityWeight={church.priorityWeight??1}/></Suspense>}</article>})}{!filteredChurches.length&&<div className="empty">조건에 맞는 등록 교회가 없습니다. 아래에서 추천해 주세요.</div>}</div>}
         {!churchLoading&&hasActiveChurchFilter&&filteredChurches.length>12&&<button className="church-directory-more" type="button" onClick={toggleChurchDirectory}>{churchDirectoryMoreLabel}</button>}
         <div className={`church-recommendation${showRecommendationForm?" is-open":""}`}>
           <div className="church-recommendation-intro"><div><span className="section-kicker">교회 추천</span><h2>함께 소개하고 싶은 교회가 있나요?</h2><p>추천은 관리자 검토 후 목록에 반영됩니다.</p></div><button type="button" aria-expanded={showRecommendationForm} aria-controls="church-recommendation-form" onClick={()=>setShowRecommendationForm((shown)=>!shown)}>{showRecommendationForm?"입력창 닫기":"추천하기"}</button></div>
@@ -858,12 +878,12 @@ export default function Home() {
       </section>
 
       <section className="church-directory-section pastor-home-directory" id="pastor-directory">
-        <div className="section-heading"><div><span className="section-kicker">목회자</span><h2>목회자의 근황을 찾아보세요</h2></div><span className="result-count">{pastorLoading?"목회자를 확인하는 중…":`${pastorTotal.toLocaleString("ko-KR")}명`}</span></div>
+        <div className="section-heading"><div><span className="section-kicker">목회자</span><h2>목회자의 근황을 찾아보세요</h2></div><span className="result-count">{pastorLoading?"목회자를 확인하는 중…":pastorLoadFailed?"잠시 불러오지 못했습니다":`${pastorTotal.toLocaleString("ko-KR")}명`}</span></div>
         <div className="church-radar-intro pastor-home-intro"><span aria-hidden="true">사람</span><div><strong>이름이나 교회, 지역, 교단으로 목회자를 찾아보세요.</strong><p>담임·부교역자·협동·원로·은퇴 목회자의 현재 사역과 지나온 발자취를 확인하고 응원할 수 있습니다. 위 통합 검색의 조건이 이 목록에도 그대로 적용됩니다.</p></div></div>
         <form className="church-directory-search" role="search" onSubmit={(event)=>event.preventDefault()}><label className="sr-only" htmlFor="pastor-directory-search-input">등록 목회자 검색</label><span aria-hidden="true">⌕</span><input id="pastor-directory-search-input" type="search" value={pastorQuery} onChange={(event)=>{setPastorQuery(event.target.value);setPastorVisibleCount(12);}} placeholder="목회자 이름, 교회, 지역, 교단으로 찾아보세요" aria-controls="pastor-directory-grid"/>{pastorQuery&&<button className="church-search-clear" type="button" onClick={()=>{setPastorQuery("");setPastorVisibleCount(12);}} aria-label="목회자 검색어 지우기">✕</button>}<span className="church-search-count" aria-live="polite">{pastorLoading?"검색 중…":`${pastorTotal.toLocaleString("ko-KR")}명`}</span></form>
         <div className="church-radar-results-heading"><div><strong>{pastorQuery.trim()||query.trim()||region!=="전체"||denomination!=="전체 교단"?"조건에 맞는 목회자":"목회자 둘러보기"}</strong><p>카드를 누르면 목회자의 사역 이력과 말씀, 응원글을 볼 수 있습니다.</p></div>{pastorQuery.trim()||query.trim()||region!=="전체"||denomination!=="전체 교단"?<span>{pastorLoading?"검색 중…":`${pastorTotal.toLocaleString("ko-KR")}명 중 ${Math.min(pastorVisibleCount,pastorItems.length)}명`}</span>:<button className="church-directory-refresh unified-other-button" type="button" onClick={()=>void showDifferentPastors()} disabled={pastorLoading}>다른 목회자 보기</button>}</div>
         {isAdmin&&selectedPastors.size>0&&<div className="admin-batch-bar pastor-home-batch" role="toolbar" aria-label="선택한 목회자 일괄 처리"><strong>{selectedPastors.size}명 선택</strong><button disabled={pastorBatchBusy} className="restore" type="button" onClick={()=>void runPastorBatch("approved")}>공개</button><button disabled={pastorBatchBusy} type="button" onClick={()=>void runPastorBatch("removed")}>보류</button><button disabled={pastorBatchBusy} className="danger" type="button" onClick={()=>void runPastorBatch("deleted")}>삭제</button><button disabled={pastorBatchBusy} type="button" onClick={()=>setSelectedPastors(new Set(pastorItems.slice(0,pastorVisibleCount).flatMap((item)=>item.person_id?[item.person_id]:[])))}>화면 전체 선택</button><button disabled={pastorBatchBusy} type="button" onClick={()=>setSelectedPastors(new Set())}>선택 해제</button></div>}
-        {pastorLoading?<div className="pastor-directory-grid" id="pastor-directory-grid"><LoadingCards count={8}/></div>:<div className="pastor-directory-grid" id="pastor-directory-grid">{pastorItems.slice(0,pastorVisibleCount).map((pastor)=>{
+        {pastorLoading?<div className="pastor-directory-grid" id="pastor-directory-grid"><LoadingCards count={8}/></div>:pastorLoadFailed?<div className="empty" id="pastor-directory-grid">목회자 자료를 잠시 불러오지 못했습니다. 새로고침해 주세요.</div>:<div className="pastor-directory-grid" id="pastor-directory-grid">{pastorItems.slice(0,pastorVisibleCount).map((pastor)=>{
           const name=pastor.name.replace(/\s*목사(?:님)?$/u,""),href=pastor.person_id&&pastor.public_id!==null?`/pastors/${pastor.public_id}`:`/church/${pastor.church_id}`,photo=pastor.photo_url&&pastor.public_id!==null?`/api/pastor-photo/${pastor.public_id}`:"/pastor-silhouette-soft.png",roles=(pastor.role_titles||pastor.role_title).split(",").filter(Boolean),savedId=`pastor:${pastor.person_id??`${pastor.church_id}-${pastor.minister_id??"primary"}`}`,manageable=isAdmin&&Boolean(pastor.person_id);
           const editor=manageable&&pastor.person_id?{id:pastor.person_id,roleId:pastor.role_id,name:pastor.name,roleTitle:pastor.role_title,churchName:pastor.church_name,region:pastor.region,denomination:pastor.denomination,roleStatus:pastor.role_status,status:"approved"}:undefined;
           return <PastorDirectoryCard key={savedId} name={name} href={href} photoUrl={photo} hasPhoto={Boolean(pastor.photo_url)} roleStatus={pastor.role_status} roles={roles} churchName={pastor.church_name} churchHref={pastor.church_id?`/church/${pastor.church_id}`:null} region={pastor.region} denomination={pastor.denomination} sourceUrl={pastor.source_url} selection={manageable&&pastor.person_id?<label className="admin-card-select pastor-home-select"><input type="checkbox" checked={selectedPastors.has(pastor.person_id)} onChange={(event)=>setSelectedPastors((current)=>{const next=new Set(current);if(event.target.checked)next.add(pastor.person_id!);else next.delete(pastor.person_id!);return next;})} aria-label={`${name} 선택`}/></label>:undefined} saveAction={<button className={`church-save pastor-home-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"pastor",title:name,subtitle:[pastor.church_name,pastor.role_title].filter(Boolean).join(" · "),url:href})} aria-label={`${name} 목회자 ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button>} admin={manageable} editor={editor} useGlobalSelection={false}/>;
