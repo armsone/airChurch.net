@@ -1,7 +1,7 @@
 import type {Metadata} from "next";
 import HomeReloadLink from "../home-reload-link";
 import SkipLink from "../skip-link";
-import {database,ensureMinistryProfileTables,ensurePastorPeopleTables} from "../api/_shared";
+import {database,ensureMinistryProfileTables,ensurePastorPeopleTables,ensureSermonTables} from "../api/_shared";
 import {hasAdminAccess} from "../admin-access";
 import PastorDirectoryCard from "../pastor-directory-card";
 
@@ -14,27 +14,27 @@ const clean=(value:string)=>value.normalize("NFKC").replace(/\s+/g,"").toLocaleL
 
 export default async function PastorsPage({searchParams}:{searchParams:Promise<{q?:string;page?:string}>}){
   const [params,isAdmin]=await Promise.all([searchParams,hasAdminAccess()]),query=params.q?.trim().slice(0,80)??"",requestedPage=Number(params.page),page=Number.isInteger(requestedPage)&&requestedPage>0?Math.min(requestedPage,1000):1,pageSize=60,offset=(page-1)*pageSize,normalized=query.replace(/\s+/g,""),term=`%${normalized}%`,db=database();
-  await Promise.all([ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
+  await Promise.all([ensureMinistryProfileTables(db),ensurePastorPeopleTables(db),ensureSermonTables(db)]);
   const rows=!query?await db.prepare(`
-    SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,r.church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title='목회자' OR r.role_title LIKE '%목사' THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,1 AS merged_count,(SELECT COUNT(*) FROM pastor_people counted WHERE counted.review_status='approved') AS total_count
+    SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,(SELECT COALESCE(c.public_id,1000000+c.id) FROM churches c WHERE c.id=r.church_id) AS church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title='목회자' OR r.role_title LIKE '%목사' THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,1 AS merged_count,(SELECT COUNT(*) FROM pastor_people counted WHERE counted.review_status='approved') AS total_count
     FROM pastor_people p
     LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1)
     WHERE p.review_status='approved'
     ORDER BY p.name,p.id LIMIT ${pageSize} OFFSET ${offset}
   `).all<PastorRow>():await db.prepare(`
     WITH raw_people AS (
-      SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,r.church_id,NULL AS minister_id,p.name,r.role_title,r.role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url
+      SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,(SELECT COALESCE(c.public_id,1000000+c.id) FROM churches c WHERE c.id=r.church_id) AS church_id,NULL AS minister_id,p.name,r.role_title,r.role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url
       FROM pastor_people p LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1)
       WHERE p.review_status='approved'
         AND (?='' OR REPLACE(p.name,' ','') LIKE ? OR REPLACE(COALESCE(r.role_title,''),' ','') LIKE ? OR REPLACE(COALESCE(r.church_name,''),' ','') LIKE ? OR REPLACE(COALESCE(r.region,''),' ','') LIKE ? OR REPLACE(COALESCE(r.denomination,''),' ','') LIKE ?)
       UNION ALL
-      SELECT NULL AS person_id,NULL AS public_id,NULL AS role_id,c.id AS church_id,NULL AS minister_id,c.pastor AS name,'담임목사' AS role_title,'current' AS role_status,c.name AS church_name,c.region,c.denomination,NULL AS photo_url
+      SELECT NULL AS person_id,NULL AS public_id,NULL AS role_id,COALESCE(c.public_id,1000000+c.id) AS church_id,NULL AS minister_id,c.pastor AS name,'담임목사' AS role_title,'current' AS role_status,c.name AS church_name,c.region,c.denomination,NULL AS photo_url
       FROM churches c
       WHERE c.review_status='approved' AND TRIM(c.pastor)<>''
         AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=c.id AND REPLACE(p.name,' ','')=REPLACE(c.pastor,' ','') AND r.review_status='approved' AND p.review_status='approved')
         AND (?='' OR REPLACE(c.pastor,' ','') LIKE ? OR REPLACE(c.name,' ','') LIKE ? OR REPLACE(c.region,' ','') LIKE ? OR REPLACE(c.denomination,' ','') LIKE ? OR '담임목사' LIKE ?)
       UNION ALL
-      SELECT NULL AS person_id,NULL AS public_id,NULL AS role_id,c.id AS church_id,m.id AS minister_id,m.name,m.role_title,m.role_status,c.name AS church_name,c.region,c.denomination,NULL AS photo_url
+      SELECT NULL AS person_id,NULL AS public_id,NULL AS role_id,COALESCE(c.public_id,1000000+c.id) AS church_id,m.id AS minister_id,m.name,m.role_title,m.role_status,c.name AS church_name,c.region,c.denomination,NULL AS photo_url
       FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id
       WHERE m.review_status='approved' AND c.review_status='approved'
         AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=c.id AND REPLACE(p.name,' ','')=REPLACE(m.name,' ','') AND r.review_status='approved' AND p.review_status='approved')

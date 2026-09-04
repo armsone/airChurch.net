@@ -1,5 +1,5 @@
 import {NextRequest,NextResponse} from "next/server";
-import {database,ensureMinistryProfileTables,ensurePastorPeopleTables} from "../_shared";
+import {database,ensureMinistryProfileTables,ensurePastorPeopleTables,ensureSermonTables} from "../_shared";
 import {sqlValidPastorName} from "../../pastor-name";
 
 export const dynamic="force-dynamic";
@@ -7,7 +7,7 @@ type PastorRow={person_id:number|null;public_id:number|null;role_id:number|null;
 
 export async function GET(request:NextRequest){
   const search=request.nextUrl.searchParams,query=(search.get("q")??search.get("global")??"").trim().slice(0,80),normalized=query.replace(/\s+/g,""),term=`%${normalized}%`,limit=Math.min(Math.max(Number(search.get("limit"))||24,1),120),requestedOffset=Math.max(Number(search.get("offset"))||0,0),sample=Math.min(Math.max(Number(search.get("sample"))||0,0),49),knownTotal=Math.max(Number(search.get("knownTotal"))||0,0),region=(search.get("region")??"").trim(),denomination=(search.get("denomination")??"").trim(),regionTerm=`${region}%`,db=database();
-  await Promise.all([ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
+  await Promise.all([ensureMinistryProfileTables(db),ensurePastorPeopleTables(db),ensureSermonTables(db)]);
   if(search.get("stats")==="photos"){
     const row=await db.prepare("SELECT COUNT(*) AS count FROM pastor_people WHERE photo_review_status='approved' AND photo_url IS NOT NULL AND TRIM(photo_url)<>''").first<{count:number}>();
     return NextResponse.json({approvedPhotoCount:Number(row?.count??0)},{headers:{"cache-control":"private, no-store"}});
@@ -23,19 +23,19 @@ export async function GET(request:NextRequest){
   }
   if(!normalized&&!region&&!denomination){
     const count=knownTotal>0&&!search.has("adminFresh")?null:await db.prepare(`SELECT COUNT(*) AS total FROM pastor_people p WHERE p.review_status='approved' AND ${sqlValidPastorName("p.name")}`).first<{total:number}>(),total=knownTotal>0&&!search.has("adminFresh")?knownTotal:Number(count?.total??0),offset=search.has("sample")?Math.floor(Math.max(0,total-limit)*(sample/49)):requestedOffset;
-    const rows=await db.prepare(`SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,r.church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title='목회자' OR r.role_title LIKE '%목사' THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,r.source_url,1 AS merged_count,? AS total_count FROM pastor_people p LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1) WHERE p.review_status='approved' AND ${sqlValidPastorName("p.name")} ORDER BY p.id LIMIT ? OFFSET ?`).bind(total,limit,offset).all<PastorRow>();
+    const rows=await db.prepare(`SELECT p.id AS person_id,COALESCE(p.public_id,1000000+p.id) AS public_id,r.id AS role_id,(SELECT COALESCE(c.public_id,1000000+c.id) FROM churches c WHERE c.id=r.church_id) AS church_id,NULL AS minister_id,p.name,COALESCE(r.role_title,'목사') AS role_title,CASE WHEN r.role_title='목회자' OR r.role_title LIKE '%목사' THEN '목사' ELSE COALESCE(r.role_title,'목사') END AS role_titles,COALESCE(r.role_status,'current') AS role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END AS photo_url,r.source_url,1 AS merged_count,? AS total_count FROM pastor_people p LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1) WHERE p.review_status='approved' AND ${sqlValidPastorName("p.name")} ORDER BY p.id LIMIT ? OFFSET ?`).bind(total,limit,offset).all<PastorRow>();
     return NextResponse.json({items:rows.results,total,offset,limit},{headers:{"cache-control":search.has("adminFresh")?"private, no-store":"public, max-age=300, s-maxage=900, stale-while-revalidate=3600"}});
   }
   const rows=await db.prepare(`
     WITH raw_people AS (
-      SELECT p.id person_id,COALESCE(p.public_id,1000000+p.id) public_id,r.id role_id,r.church_id,NULL minister_id,p.name,r.role_title,r.role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END photo_url,r.source_url
+      SELECT p.id person_id,COALESCE(p.public_id,1000000+p.id) public_id,r.id role_id,(SELECT COALESCE(c.public_id,1000000+c.id) FROM churches c WHERE c.id=r.church_id) church_id,NULL minister_id,p.name,r.role_title,r.role_status,r.church_name,r.region,r.denomination,CASE WHEN p.photo_review_status='approved' THEN p.photo_url ELSE NULL END photo_url,r.source_url
       FROM pastor_people p LEFT JOIN pastor_church_roles r ON r.id=(SELECT rr.id FROM pastor_church_roles rr WHERE rr.pastor_id=p.id AND rr.review_status='approved' ORDER BY CASE rr.role_status WHEN 'current' THEN 0 ELSE 1 END,rr.id DESC LIMIT 1)
       WHERE p.review_status='approved' AND ${sqlValidPastorName("p.name")} AND (?='' OR REPLACE(p.name,' ','') LIKE ? OR REPLACE(COALESCE(r.role_title,''),' ','') LIKE ? OR REPLACE(COALESCE(r.church_name,''),' ','') LIKE ? OR REPLACE(COALESCE(r.region,''),' ','') LIKE ? OR REPLACE(COALESCE(r.denomination,''),' ','') LIKE ?) AND (?='' OR COALESCE(r.region,'') LIKE ?) AND (?='' OR COALESCE(r.denomination,'')=?)
       UNION ALL
-      SELECT NULL,NULL,NULL,c.id,NULL,c.pastor,'담임목사','current',c.name,c.region,c.denomination,NULL,c.homepage_url FROM churches c
+      SELECT NULL,NULL,NULL,COALESCE(c.public_id,1000000+c.id),NULL,c.pastor,'담임목사','current',c.name,c.region,c.denomination,NULL,c.homepage_url FROM churches c
       WHERE c.review_status='approved' AND ${sqlValidPastorName("c.pastor")} AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=c.id AND REPLACE(p.name,' ','')=REPLACE(c.pastor,' ','') AND r.review_status='approved' AND p.review_status='approved') AND (?='' OR REPLACE(c.pastor,' ','') LIKE ? OR REPLACE(c.name,' ','') LIKE ? OR REPLACE(c.region,' ','') LIKE ? OR REPLACE(c.denomination,' ','') LIKE ? OR '담임목사' LIKE ?) AND (?='' OR c.region LIKE ?) AND (?='' OR c.denomination=?)
       UNION ALL
-      SELECT NULL,NULL,NULL,c.id,m.id,m.name,m.role_title,m.role_status,c.name,c.region,c.denomination,NULL,m.source_url FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id
+      SELECT NULL,NULL,NULL,COALESCE(c.public_id,1000000+c.id),m.id,m.name,m.role_title,m.role_status,c.name,c.region,c.denomination,NULL,m.source_url FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id
       WHERE m.review_status='approved' AND c.review_status='approved' AND ${sqlValidPastorName("m.name")} AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE r.church_id=c.id AND REPLACE(p.name,' ','')=REPLACE(m.name,' ','') AND r.review_status='approved' AND p.review_status='approved') AND (?='' OR REPLACE(m.name,' ','') LIKE ? OR REPLACE(m.role_title,' ','') LIKE ? OR REPLACE(c.name,' ','') LIKE ? OR REPLACE(c.region,' ','') LIKE ? OR REPLACE(c.denomination,' ','') LIKE ?) AND (?='' OR c.region LIKE ?) AND (?='' OR c.denomination=?)
     ), ranked AS (
       SELECT raw_people.*,ROW_NUMBER() OVER(PARTITION BY REPLACE(name,' ',''),COALESCE(church_id,-1),REPLACE(COALESCE(church_name,''),' ','') ORDER BY CASE WHEN photo_url IS NOT NULL THEN 0 ELSE 1 END,CASE role_status WHEN 'current' THEN 0 ELSE 1 END,COALESCE(person_id,999999999)) duplicate_rank,COUNT(*) OVER(PARTITION BY REPLACE(name,' ',''),COALESCE(church_id,-1),REPLACE(COALESCE(church_name,''),' ','')) merged_count FROM raw_people

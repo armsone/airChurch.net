@@ -20,7 +20,7 @@ export default async function PastorPage() {
   const reviewerName=session.role==="admin"?"관리자":reviewerAccount?.name??"목회자";
   const [churchCount,featuredRows,requestRows]=await Promise.all([
     db.prepare("SELECT COUNT(*) AS total FROM churches WHERE review_status='approved'").first<{total:number}>(),
-    db.prepare("SELECT id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url FROM churches WHERE review_status='approved' ORDER BY RANDOM() LIMIT 20").all<Church>(),
+    db.prepare("SELECT COALESCE(public_id,1000000+id) AS id,name,pastor,region,denomination,review_status,homepage_url,youtube_channel_id,channel_image_url FROM churches WHERE review_status='approved' ORDER BY RANDOM() LIMIT 20").all<Church>(),
     db.prepare("SELECT r.id,c.name AS church_name,r.request_type,r.reason,r.status,r.admin_note,r.created_at,r.proposed_name,r.proposed_pastor,r.proposed_region,r.proposed_denomination FROM church_change_requests r JOIN churches c ON c.id=r.church_id WHERE r.reviewer_id=? ORDER BY r.created_at DESC LIMIT 500").bind(session.reviewerId).all<RequestItem>(),
   ]);
   const safeChurch=(church:Church)=>({...church,homepage_url:safeHttpUrl(church.homepage_url),channel_image_url:safeHttpUrl(church.channel_image_url)});

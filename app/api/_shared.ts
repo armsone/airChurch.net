@@ -44,10 +44,30 @@ export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-community-v1',CURRENT_TIMESTAMP)"),
   ]);
 });
+// 교회 공개 번호: 거룩한빛광성교회=1, 2~10000은 예약 구간으로 비워 두고 나머지는 내부 id 오름차순으로 10001부터 배정한다.
+// 새 교회는 트리거가 현재 최대 일반 번호+1(최소 10001)을 부여하므로 빈 번호를 재사용하지 않는다.
+const ensureChurchPublicIdsV6=async(db:D1Database)=>{
+  const churchColumns=await db.prepare("PRAGMA table_info(churches)").all<{name:string}>();
+  await addColumnIfMissing(db,churchColumns.results,"public_id","ALTER TABLE churches ADD COLUMN public_id INTEGER");
+  await db.batch([
+    db.prepare("UPDATE churches SET public_id=1 WHERE id=(SELECT id FROM churches WHERE name='거룩한빛광성교회' ORDER BY id LIMIT 1) AND public_id IS NULL"),
+    db.prepare("WITH unassigned AS (SELECT id,ROW_NUMBER() OVER(ORDER BY id) AS rn FROM churches WHERE public_id IS NULL),base AS (SELECT MAX(COALESCE(MAX(public_id),0),10000) AS max_id FROM churches WHERE public_id IS NOT NULL) UPDATE churches SET public_id=(SELECT base.max_id+unassigned.rn FROM unassigned,base WHERE unassigned.id=churches.id) WHERE id IN (SELECT id FROM unassigned)"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_churches_public_id ON churches(public_id)"),
+    db.prepare("CREATE TRIGGER IF NOT EXISTS trg_churches_public_id AFTER INSERT ON churches WHEN NEW.public_id IS NULL BEGIN UPDATE churches SET public_id=(SELECT MAX(COALESCE(MAX(public_id),0),10000)+1 FROM churches WHERE id<>NEW.id AND public_id IS NOT NULL AND public_id<1000000) WHERE id=NEW.id; END"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v6',CURRENT_TIMESTAMP)"),
+  ]);
+};
+export async function resolveChurchId(db:D1Database,publicId:number){
+  if(!Number.isInteger(publicId)||publicId<1)return null;
+  const row=await db.prepare("SELECT id FROM churches WHERE COALESCE(public_id,1000000+id)=? LIMIT 1").bind(publicId).first<{id:number}>();
+  return row?Number(row.id):null;
+}
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v5' LIMIT 1").first<{key:string}>();
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v6' LIMIT 1").first<{key:string}>();
   if(ready)return;
+  const previous=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-sermons-v5' LIMIT 1").first<{key:string}>();
+  if(previous){await ensureChurchPublicIdsV6(db);return;}
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS churches (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, pastor TEXT NOT NULL, region TEXT NOT NULL, denomination TEXT NOT NULL, youtube_channel_id TEXT UNIQUE, review_status TEXT NOT NULL DEFAULT 'pending', hold_reason TEXT, hold_note TEXT, held_at TEXT, priority_weight INTEGER NOT NULL DEFAULT 1, reviewer_status TEXT NOT NULL DEFAULT 'unreviewed', reviewer_note TEXT, reviewed_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE TABLE IF NOT EXISTS sermons (id INTEGER PRIMARY KEY AUTOINCREMENT, church_id INTEGER NOT NULL REFERENCES churches(id), youtube_id TEXT NOT NULL UNIQUE, title TEXT NOT NULL, thumbnail_url TEXT NOT NULL, published_at TEXT NOT NULL, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
@@ -79,6 +99,7 @@ export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_status_published ON sermons(status, published_at DESC)").run();
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_sermons_church_status_published ON sermons(church_id, status, published_at DESC)").run();
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-sermons-v5',CURRENT_TIMESTAMP)").run();
+  await ensureChurchPublicIdsV6(db);
 });
 export const ensureChurchDetailTables = memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
@@ -466,15 +487,15 @@ const schemaBundleReady=async(db:D1Database,keys:string[])=>{
 // Multi-table pages use one exact-version gate per isolate instead of one D1 round trip
 // for every table family. Changing any component schema key automatically invalidates the gate.
 export const ensureMediaTables=memoizeEnsure(async(db:D1Database)=>{
-  if(await schemaBundleReady(db,["schema-sermons-v5","schema-praises-v1"]))return;
+  if(await schemaBundleReady(db,["schema-sermons-v6","schema-praises-v1"]))return;
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db)]);
 });
 export const ensureMediaCollectionTables=memoizeEnsure(async(db:D1Database)=>{
-  if(await schemaBundleReady(db,["schema-sermons-v5","schema-praises-v1","schema-shorts-v1"]))return;
+  if(await schemaBundleReady(db,["schema-sermons-v6","schema-praises-v1","schema-shorts-v1"]))return;
   await Promise.all([ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db)]);
 });
 export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
-  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v5","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v15"];
+  const keys=["schema-analytics-v1","schema-community-v1","schema-contact-v1","schema-sermons-v6","schema-praises-v1","schema-shorts-v1","schema-recommendations-v1","schema-reviewers-v3","schema-private-contacts-v1","schema-encouragement-v2","schema-ministry-profiles-v4","schema-pastor-people-v15"];
   if(await schemaBundleReady(db,keys))return;
   await Promise.all([ensureAnalyticsTables(db),ensureCommunityTables(db),ensureContactTables(db),ensureSermonTables(db),ensurePraiseTables(db),ensureShortsTables(db),ensureChurchRecommendationTables(db),ensureReviewerTables(db),ensurePrivateContactTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
 });

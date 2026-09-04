@@ -1,5 +1,5 @@
 import { accessSession } from "../../../admin-access";
-import { clean, database, ensureAdminTables, readLimitedJson, rebuildPastorAdminBuckets } from "../../_shared";
+import { clean, database, ensureAdminTables, readLimitedJson, rebuildPastorAdminBuckets, resolveChurchId } from "../../_shared";
 import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 
 async function requestRole(request: Request) {
@@ -14,13 +14,20 @@ export async function PATCH(request: Request) {
   const {role}=session;
 
   const body=await readLimitedJson(request);if(body.tooLarge)return Response.json({error:"요청 내용이 너무 큽니다."},{status:413,headers:{"cache-control":"no-store"}});const data=body.data;
-  const id = Number(data.id);
+  let id = Number(data.id);
   const kind = clean(data.kind, 40);
   if(role==="reviewer"&&kind!=="church-change-request") return Response.json({error:"교회 정보 요청 권한만 사용할 수 있습니다."},{status:403});
   if (kind !== "church-batch" && kind!=="pastor-batch" && (!Number.isInteger(id) || id < 1)) return Response.json({ error: "대상을 확인해 주세요." }, { status: 400 });
 
   const db = database();
   await ensureAdminTables(db);
+
+  // 화면이 보내는 교회 id는 공개 번호이므로 교회를 직접 가리키는 kind는 내부 id로 변환해 기존 로직을 그대로 사용한다.
+  if(["church","church-info","church-review","church-review-resolution","church-change-request"].includes(kind)){
+    const internalChurchId=await resolveChurchId(db,id);
+    if(!internalChurchId)return Response.json({error:"교회를 찾을 수 없습니다."},{status:404});
+    id=internalChurchId;
+  }
 
   if(kind==="pastor-batch"){
     if(role!=="admin")return Response.json({error:"관리자만 목회자 기록을 묶음 처리할 수 있습니다."},{status:403});
@@ -57,16 +64,21 @@ export async function PATCH(request: Request) {
     const ids=[...new Set(suppliedIds.map(Number).filter((value)=>Number.isInteger(value)&&value>0))];
     if(!ids.length) return Response.json({error:"선택한 교회를 확인해 주세요."},{status:400});
     if(ids.length>500) return Response.json({error:"한 번에 500곳까지 처리할 수 있습니다."},{status:400});
-    const statements=ids.map((churchId)=>status==="removed"
+    const idPlaceholders=ids.map(()=>"?").join(",");
+    const mappedRows=await db.prepare(`SELECT id,COALESCE(public_id,1000000+id) AS publicId FROM churches WHERE COALESCE(public_id,1000000+id) IN (${idPlaceholders})`).bind(...ids).all<{id:number;publicId:number}>();
+    const publicToInternal=new Map(mappedRows.results.map((row)=>[Number(row.publicId),Number(row.id)]));
+    const targets=ids.filter((publicId)=>publicToInternal.has(publicId)),updated:number[]=[],failed:number[]=ids.filter((publicId)=>!publicToInternal.has(publicId));
+    const statements=targets.map((publicId)=>{const churchId=publicToInternal.get(publicId)!;return status==="removed"
       ?db.prepare("UPDATE churches SET review_status='removed',hold_reason='review_needed',hold_note='관리자 일괄 보류',held_at=CURRENT_TIMESTAMP WHERE id=? AND review_status='approved'").bind(churchId)
       :status==="approved"
         ?db.prepare("UPDATE churches SET review_status='approved' WHERE id=? AND review_status='removed'").bind(churchId)
-        :db.prepare("UPDATE churches SET review_status='deleted' WHERE id=? AND review_status IN ('approved','removed')").bind(churchId));
-    const results=await db.batch(statements),updated:number[]=[],failed:number[]=[];
-    ids.forEach((churchId,index)=>(Number(results[index]?.meta?.changes??0)===1?updated:failed).push(churchId));
-    if(updated.length&&(status==="removed"||status==="deleted")) {
-      for(let offset=0;offset<updated.length;offset+=80) {
-        const chunk=updated.slice(offset,offset+80),placeholders=chunk.map(()=>"?").join(",");
+        :db.prepare("UPDATE churches SET review_status='deleted' WHERE id=? AND review_status IN ('approved','removed')").bind(churchId);});
+    const results=statements.length?await db.batch(statements):[];
+    targets.forEach((publicId,index)=>(Number(results[index]?.meta?.changes??0)===1?updated:failed).push(publicId));
+    const updatedInternal=updated.map((publicId)=>publicToInternal.get(publicId)!);
+    if(updatedInternal.length&&(status==="removed"||status==="deleted")) {
+      for(let offset=0;offset<updatedInternal.length;offset+=80) {
+        const chunk=updatedInternal.slice(offset,offset+80),placeholders=chunk.map(()=>"?").join(",");
         await db.batch([db.prepare(`UPDATE sermons SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE praise_videos SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk),db.prepare(`UPDATE church_shorts SET status='hidden' WHERE church_id IN (${placeholders})`).bind(...chunk)]);
       }
     }

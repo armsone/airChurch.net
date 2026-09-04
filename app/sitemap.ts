@@ -11,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = database();
   await Promise.all([ensureSermonTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
   const [churches,ministers,pastorPeople] = await Promise.all([
-    db.prepare("SELECT id,created_at FROM churches WHERE review_status='approved' ORDER BY id").all<ChurchSitemapRow>(),
+    db.prepare("SELECT COALESCE(public_id,1000000+id) AS id,created_at FROM churches WHERE review_status='approved' ORDER BY churches.id").all<ChurchSitemapRow>(),
     db.prepare("SELECT m.id,m.church_id,m.updated_at FROM church_ministry_profiles m JOIN churches c ON c.id=m.church_id WHERE m.review_status='approved' AND c.review_status='approved' ORDER BY m.id").all<MinisterSitemapRow>(),
     db.prepare("SELECT COALESCE(public_id,1000000+id) AS public_id,updated_at FROM pastor_people WHERE review_status='approved' ORDER BY public_id").all<PastorPersonSitemapRow>(),
   ]);
