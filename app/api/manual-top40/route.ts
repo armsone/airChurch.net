@@ -2,7 +2,6 @@ import { database, ensureAnalyticsTables, ensureMediaCollectionTables } from "..
 import { refreshPopularityWeights } from "../_popularity";
 import { POST as syncSermons } from "../sermons/sync/route";
 
-// One-shot operator route. Remove after the requested manual backfill completes.
 export async function POST() {
   const db = database();
   await Promise.all([ensureAnalyticsTables(db), ensureMediaCollectionTables(db)]);
