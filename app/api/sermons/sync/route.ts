@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { database, ensureMediaCollectionTables, internalTaskRequestAllowed } from "../../_shared";
+import { database, ensureAnalyticsTables, ensureMediaCollectionTables, internalTaskRequestAllowed } from "../../_shared";
 import { isPraiseTitle, isSermonTitle, isShortTitle } from "../_selection";
 import { isShortCandidate, youtubeDurationSeconds } from "../_selection";
 import { hapdongSources } from "../hapdong-sources";
@@ -11,6 +11,7 @@ import { salvationSources } from "../salvation-sources";
 import { publicRemainingSources } from "../public-remaining-sources";
 import { normalizeSearchValue, sqlNormalized } from "../../../search-domain";
 import { isSermonAttributedTo } from "../../../pastor-sermon-attribution";
+import { refreshPopularityWeights } from "../../_popularity";
 
 type SourceBase={name:string;pastor:string;region:string;denomination:string;homepage?:string;verifiedSermonFeed?:boolean;pastorNames?:string;primaryPastorNames?:string};
 type Source=SourceBase&({channelId:string;handle?:never;username?:never}|{channelId?:never;handle:string;username?:never}|{channelId?:never;handle?:never;username:string});
@@ -459,7 +460,8 @@ export async function POST(request:Request) {
   if(!internalTaskRequestAllowed(request))return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   const key=(env as unknown as {YOUTUBE_API_KEY?:string}).YOUTUBE_API_KEY;
   if(!key) return Response.json({error:"YouTube API key not configured"},{status:503,headers:{"cache-control":"no-store"}});
-  const db=database(); await ensureMediaCollectionTables(db); await seedHeldSources(db);
+  const db=database(); await Promise.all([ensureAnalyticsTables(db),ensureMediaCollectionTables(db)]); await seedHeldSources(db);
+  await refreshPopularityWeights(db);
   const requestedScope=new URL(request.url).searchParams.get("scope");
   const scopedSources={hapdong:hapdongSources,kosin:kosinSources,prok:prokSources,tonghap:tonghapSources,kmc:kmcSources,salvation:salvationSources,public_remaining:publicRemainingSources} as const;
   const databaseResult=requestedScope==="database"?await db.prepare("SELECT name,pastor,region,denomination,homepage_url AS homepage,youtube_channel_id AS channelId,priority_weight AS priorityWeight FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,id").all<DatabaseSourceRow>():requestedScope==="photo_pastors"?await db.prepare(`SELECT c.name,c.pastor,c.region,c.denomination,c.homepage_url AS homepage,c.youtube_channel_id AS channelId,c.priority_weight AS priorityWeight,GROUP_CONCAT(DISTINCT p.name) AS pastorNames,GROUP_CONCAT(DISTINCT CASE WHEN r.role_category='current_primary' OR ${sqlNormalized("p.name")}=replace(replace(${sqlNormalized("c.pastor")},'목사님',''),'목사','') THEN p.name END) AS primaryPastorNames FROM churches c JOIN pastor_church_roles r ON r.church_id=c.id AND r.review_status='approved' JOIN pastor_people p ON p.id=r.pastor_id AND p.review_status='approved' WHERE c.review_status='approved' AND c.youtube_channel_id IS NOT NULL AND ((p.photo_review_status='approved' AND p.photo_url IS NOT NULL AND trim(p.photo_url)<>'') OR ${sqlNormalized("p.name")} IN ('김민석','이일현','정성진','곽승현')) GROUP BY c.id ORDER BY MIN(CASE WHEN ${sqlNormalized("p.name")} IN ('김민석','이일현','정성진','곽승현') THEN 0 ELSE 1 END),c.priority_weight DESC,c.id`).all<DatabaseSourceRow>():null;
