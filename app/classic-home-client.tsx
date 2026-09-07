@@ -28,7 +28,7 @@ type CommunityItem = { id:number; category:string; nickname:string; content:stri
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; pastorPublicId?:number|null; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 type PastorItem = { person_id:number|null; public_id:number|null; role_id:number|null; church_id:number|null; minister_id:number|null; name:string; role_title:string; role_titles:string; role_status:string; church_name:string|null; region:string|null; denomination:string|null; photo_url:string|null; source_url:string|null; merged_count:number };
-type RankingItem = { id:number; publicId:number; name:string; pastor?:string|null; churchName?:string|null; uniqueVisitors:number; views:number };
+type RankingItem = { id:number; publicId:number; name:string; pastor?:string|null; churchName?:string|null; uniqueVisitors:number; views:number; sermonCount?:number; source?:"visit"|"sermon" };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 const normalizeSearchText=normalizeSearchValue;
@@ -762,7 +762,7 @@ export default function Home() {
       <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
         <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h2 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h2><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><span className="result-count">7일 기준</span></div>
         <div className="interest-ranking-grid">
-          <div className="interest-ranking-column"><h3>교회</h3>{rankings.churches.length?<ol>{rankings.churches.map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · {item.views.toLocaleString("ko-KR")}회</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+          <div className="interest-ranking-column"><h3>교회</h3>{rankings.churches.length?<ol>{rankings.churches.map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?`말씀 ${item.sermonCount?.toLocaleString("ko-KR")}편 · 새로 소개`: `${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · ${item.views.toLocaleString("ko-KR")}회`}</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
           <div className="interest-ranking-column"><h3>목회자</h3>{rankings.pastors.length?<ol>{rankings.pastors.map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
         </div>
         <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>

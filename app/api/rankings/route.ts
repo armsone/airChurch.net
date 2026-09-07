@@ -10,6 +10,8 @@ type RankingRow = {
   churchName?: string | null;
   uniqueVisitors: number;
   views: number;
+  sermonCount?: number;
+  source?: "visit" | "sermon";
 };
 
 function normalizeRows(rows: RankingRow[]) {
@@ -19,6 +21,7 @@ function normalizeRows(rows: RankingRow[]) {
     publicId: Number(row.publicId),
     uniqueVisitors: Number(row.uniqueVisitors),
     views: Number(row.views),
+    sermonCount: Number(row.sermonCount || 0),
   }));
 }
 
@@ -34,7 +37,8 @@ export async function GET() {
         c.name,
         c.pastor,
         COUNT(DISTINCT v.visitor_hash) AS uniqueVisitors,
-        COUNT(*) AS views
+        COUNT(*) AS views,
+        (SELECT COUNT(*) FROM sermons s WHERE s.church_id = c.id AND s.status = 'published') AS sermonCount
       FROM page_views v
       JOIN churches c ON v.path = '/church/' || COALESCE(c.public_id, 1000000 + c.id)
       WHERE v.created_at >= datetime('now', '-7 days')
@@ -69,9 +73,34 @@ export async function GET() {
     `).all<RankingRow>(),
   ]);
 
+  const churchRows = normalizeRows(churches.results).map((row) => ({ ...row, source: "visit" as const }));
+  const missingChurchCount = Math.max(0, 5 - churchRows.length);
+  if (missingChurchCount > 0) {
+    const excludedIds = churchRows.map((row) => row.id);
+    const excludedClause = excludedIds.length ? `AND c.id NOT IN (${excludedIds.map(() => "?").join(",")})` : "";
+    const fallbackChurches = await db.prepare(`
+      SELECT
+        c.id,
+        COALESCE(c.public_id, 1000000 + c.id) AS publicId,
+        c.name,
+        c.pastor,
+        0 AS uniqueVisitors,
+        0 AS views,
+        COUNT(s.id) AS sermonCount
+      FROM churches c
+      LEFT JOIN sermons s ON s.church_id = c.id AND s.status = 'published'
+      WHERE c.review_status = 'approved'
+        ${excludedClause}
+      GROUP BY c.id, c.public_id, c.name, c.pastor
+      ORDER BY COUNT(s.id) DESC, RANDOM()
+      LIMIT ${missingChurchCount}
+    `).bind(...excludedIds).all<RankingRow>();
+    churchRows.push(...normalizeRows(fallbackChurches.results).map((row) => ({ ...row, source: "sermon" as const })));
+  }
+
   return Response.json(
     {
-      churches: normalizeRows(churches.results),
+      churches: churchRows,
       pastors: normalizeRows(pastors.results),
       windowDays: 7,
     },
