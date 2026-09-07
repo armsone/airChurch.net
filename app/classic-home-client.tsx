@@ -28,6 +28,7 @@ type CommunityItem = { id:number; category:string; nickname:string; content:stri
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; pastorPublicId?:number|null; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
 type PastorItem = { person_id:number|null; public_id:number|null; role_id:number|null; church_id:number|null; minister_id:number|null; name:string; role_title:string; role_titles:string; role_status:string; church_name:string|null; region:string|null; denomination:string|null; photo_url:string|null; source_url:string|null; merged_count:number };
+type RankingItem = { id:number; publicId:number; name:string; pastor?:string|null; churchName?:string|null; uniqueVisitors:number; views:number };
 type JourneyDay = { key:string; label:string; complete:boolean; today:boolean };
 
 const normalizeSearchText=normalizeSearchValue;
@@ -213,6 +214,7 @@ export default function Home() {
   const [journeyWeek,setJourneyWeek]=useState<JourneyDay[]>([]);
   const [personalStateReady,setPersonalStateReady]=useState(false);
   const [recentSearches,setRecentSearches]=useState<string[]>([]);
+  const [rankings,setRankings]=useState<{churches:RankingItem[];pastors:RankingItem[]}>({churches:[],pastors:[]});
   async function runPastorBatch(status:"approved"|"removed"|"deleted"){
     const ids=[...selectedPastors];if(!ids.length)return;
     const action=status==="approved"?"공개":status==="removed"?"보류":"삭제";
@@ -254,6 +256,7 @@ export default function Home() {
   useEffect(()=>{if(prefersLowData())return;const controller=new AbortController(),fresh=sessionStorage.getItem("airchurch:church-cache-bust"),params=new URLSearchParams({countOnly:"1"});if(fresh)params.set("adminFresh",fresh);fetch(`/api/churches?${params}`,{cache:fresh?"no-store":"default",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const controller=new AbortController();fetch("/api/admin/session",{cache:"no-store",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((session)=>{if(!controller.signal.aborted)setIsAdmin(session?.role==="admin");}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetchSearchSuggestions(term,controller.signal).then(setSearchSuggestions).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
+  useEffect(()=>{const controller=new AbortController();fetch("/api/rankings",{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&result)setRankings({churches:Array.isArray(result.churches)?result.churches:[],pastors:Array.isArray(result.pastors)?result.pastors:[]});}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
     const onTouchStart=(event:TouchEvent)=>{pullToRefreshStartRef.current=window.scrollY===0&&event.touches.length===1?event.touches[0].clientY:null;pullToRefreshDistanceRef.current=0;};
@@ -754,6 +757,15 @@ export default function Home() {
       <section className="daily-journey" aria-labelledby="daily-journey-title">
         <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
         <div className="daily-paths"><a className={dailyCompleted.includes("bible")?"is-complete":""} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><span>01</span><strong>성경 한 구절</strong><small>{dailyCompleted.includes("bible")?"오늘 읽었습니다 ✓":"공식 한국어 성경에서 읽습니다"}</small></a><a className={dailyCompleted.includes("sermon")?"is-complete":""} href="#sermons"><span>02</span><strong>말씀 한 편</strong><small>{dailyCompleted.includes("sermon")?"오늘 들었습니다 ✓":"재생하면 자동으로 기록됩니다"}</small></a><a className={dailyCompleted.includes("praise")?"is-complete":""} href="#praises"><span>03</span><strong>찬양 한 곡</strong><small>{dailyCompleted.includes("praise")?"오늘 들었습니다 ✓":"재생하면 오늘 여정이 완성됩니다"}</small></a></div>
+      </section>
+
+      <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
+        <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h2 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h2><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><span className="result-count">7일 기준</span></div>
+        <div className="interest-ranking-grid">
+          <div className="interest-ranking-column"><h3>교회</h3>{rankings.churches.length?<ol>{rankings.churches.map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · {item.views.toLocaleString("ko-KR")}회</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+          <div className="interest-ranking-column"><h3>목회자</h3>{rankings.pastors.length?<ol>{rankings.pastors.map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+        </div>
+        <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>
       </section>
 
       {personalStateReady&&savedPastors.length>0&&<section className="favorite-pastors" aria-labelledby="favorite-pastors-title"><div><span className="section-kicker">성경과 말씀 곁에</span><h2 id="favorite-pastors-title">내가 찜한 목회자</h2><p>자주 찾는 목회자의 페이지와 새 말씀을 바로 확인하세요.</p></div><div className="favorite-pastor-list">{savedPastors.slice(0,8).map((item)=><a href={item.url} key={item.id}><span aria-hidden="true">♧</span><strong>{item.title}</strong><small>{item.subtitle}</small>{hasNewSermon(item)&&<b>NEW</b>}</a>)}</div></section>}
