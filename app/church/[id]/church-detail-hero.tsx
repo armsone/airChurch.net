@@ -28,3 +28,10 @@ export default function ChurchDetailHero({image,publicId,name,pastor,region,deno
   const style=accent?{"--church-hero-start":cssRgb(shade(accent,-0.56)),"--church-hero-end":cssRgb(shade(accent,-0.32)),"--church-hero-glow":cssRgb(accent,0.3)} as React.CSSProperties:undefined;
   return <section className={`church-detail-hero${accent?" has-logo-palette":""}`} style={style} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image?<img ref={imageRef} src={image} alt="" width={96} height={96} loading="eager" decoding="async" crossOrigin="anonymous" referrerPolicy="no-referrer"/>:<span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p><a className="church-pastor-profile-link" href={primaryPerson?`/pastors/${primaryPerson.public_id}`:`/church/${publicId}`}>{pastor} 목회 기록 보기 →</a> · {region} · {denomination}</p></div></div><div className="church-detail-actions">{children}</div></section>;
 }
+
+export function LogoPaletteSection({image,className,children}:{image:string|null;className:string;children:ReactNode}){
+  const imageRef=useRef<HTMLImageElement>(null);const [accent,setAccent]=useState<Rgb|null>(null);
+  useEffect(()=>{const imageElement=imageRef.current;if(!imageElement)return;const updateColor=()=>{try{setAccent(dominantColor(imageElement));}catch{/* 외부 이미지가 색상 읽기를 허용하지 않으면 기본 팔레트를 사용합니다. */}};if(imageElement.complete)updateColor();else imageElement.addEventListener("load",updateColor);return()=>imageElement.removeEventListener("load",updateColor);},[image]);
+  const style=accent?{"--church-hero-start":cssRgb(shade(accent,-0.56)),"--church-hero-end":cssRgb(shade(accent,-0.32)),"--church-hero-glow":cssRgb(accent,0.3)} as React.CSSProperties:undefined;
+  return <section className={`${className}${accent?" has-logo-palette":""}`} style={style}>{image&&<img ref={imageRef} className="logo-palette-source" src={image} alt="" crossOrigin="anonymous" referrerPolicy="no-referrer"/>}{children}</section>;
+}
