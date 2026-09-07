@@ -8,6 +8,7 @@ export type LogoPalette = {
 // 외부 로고가 CORS로 색상 읽기를 막아도 안정적으로 적용할 수 있는 팔레트입니다.
 export const churchLogoPalettes: Readonly<Record<string,LogoPalette>> = {
   "거룩한빛광성교회": { primary: [38, 104, 151], secondary: [232, 116, 45], accent: [222, 67, 91] },
+  "등주교회": { primary: [108, 38, 91], secondary: [220, 39, 102], accent: [241, 169, 52] },
 };
 
 export const denominationLogoPalettes: Readonly<Record<string,LogoPalette>> = {

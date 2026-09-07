@@ -53,8 +53,8 @@ function paletteStyle(palette: LogoPalette): React.CSSProperties {
   return {
     "--church-hero-start": cssRgb(shade(palette.primary, -0.56)),
     "--church-hero-end": cssRgb(shade(palette.primary, -0.32)),
-    "--church-hero-glow": cssRgb(palette.secondary, 0.3),
-    "--church-hero-accent": cssRgb(palette.accent, 0.24),
+    "--church-hero-glow": cssRgb(palette.secondary, 0.48),
+    "--church-hero-accent": cssRgb(palette.accent, 0.38),
   } as React.CSSProperties;
 }
 
