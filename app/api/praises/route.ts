@@ -18,6 +18,23 @@ function scheduleSync() {
 
 export async function GET(request:Request) {
   const db = database();
+  const params=new URL(request.url).searchParams;
+  if(params.get("browse")==="1") {
+    const terms=(params.get("q")||"").trim().slice(0,120).toLowerCase().split(/\s+/).filter(Boolean).slice(0,6);
+    const conditions=["c.review_status='approved'","p.status='published'"];
+    const bindings:(string|number)[]=[];
+    for(const term of terms){conditions.push("instr(lower(p.title||' '||c.name||' '||c.region||' '||c.pastor||' '||c.denomination),?)>0");bindings.push(term);}
+    const region=(params.get("region")||"").slice(0,60),denomination=(params.get("denomination")||"").slice(0,100);
+    if(region&&region!=="전체"){conditions.push("instr(c.region,?)=1");bindings.push(region);}
+    if(denomination&&denomination!=="전체 교단"){conditions.push("c.denomination=?");bindings.push(denomination);}
+    const where=conditions.join(" AND ");
+    const cursor=Number(params.get("before")||0);
+    if(!Number.isSafeInteger(cursor)||cursor<0)return Response.json({error:"잘못된 목록 위치입니다."},{status:400});
+    const rows=await db.prepare(`SELECT p.id,p.youtube_id AS youtubeId,p.title,c.name AS church,c.region FROM praise_videos p JOIN churches c ON c.id=p.church_id WHERE ${where}${cursor?" AND p.id<?":""} ORDER BY p.id DESC LIMIT 51`).bind(...bindings,...(cursor?[cursor]:[])).all<{id:number;youtubeId:string;title:string;church:string;region:string}>();
+    const page=rows.results.slice(0,50);
+    const total=cursor?undefined:(await db.prepare(`SELECT COUNT(*) AS total FROM praise_videos p JOIN churches c ON c.id=p.church_id WHERE ${where}`).bind(...bindings).first<{total:number}>())?.total||0;
+    return Response.json({items:page.map(item=>({id:item.youtubeId,title:item.title,channel:`${item.church} · ${item.region}`,duration:0})),total,nextCursor:rows.results.length>50?page[page.length-1].id:null},{headers:{"cache-control":"public, max-age=60, s-maxage=300, stale-while-revalidate=600"}});
+  }
   const requested=Number(new URL(request.url).searchParams.get("limit")||300),limit=Number.isInteger(requested)?Math.min(300,Math.max(12,requested)):300;
   const poolLimit=Math.min(1200,Math.max(96,limit*4));
   const rows = await db.prepare(`SELECT p.youtube_id AS youtubeId,p.title,p.published_at AS publishedAt,c.id AS churchId,c.name AS church,c.pastor,c.region,c.denomination,c.priority_weight AS priorityWeight FROM praise_videos p JOIN churches c ON c.id=p.church_id WHERE c.review_status='approved' AND p.status='published' ORDER BY c.priority_weight DESC,p.published_at DESC LIMIT ${poolLimit}`).all<PraiseRow>();

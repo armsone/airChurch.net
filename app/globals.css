@@ -689,3 +689,5 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 @media(max-width:760px){.ccm-layout{grid-template-columns:1fr;border-radius:15px}.ccm-intro{align-items:flex-start}.ccm-intro p{font-size:15px}.ccm-intro a{font-size:13px;white-space:nowrap}.ccm-now{padding:20px 18px}.ccm-now h3{font-size:19px}.ccm-queue{padding:18px 12px 14px;border-top:1px solid var(--line)}.ccm-tracks{height:clamp(240px,55svh,560px);flex:0 0 auto}.ccm-actions{flex-wrap:wrap}.praise-tabs button{padding:10px 20px}.ccm-track img{width:76px;height:43px}}
 
 .ccm-player-host{width:100%;height:100%}
+
+.ccm-load-more{width:100%;min-height:44px;margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--cream);color:var(--ink);font-size:14px;cursor:pointer}.ccm-load-more:disabled{opacity:.6}

@@ -6,7 +6,7 @@ import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { hasSavedItemNewSermon, readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
-import CcmPlayer from "./ccm-player";
+import CcmPlayer, { type Track } from "./ccm-player";
 import { loadYouTubeApi, type YouTubePlayer, type YouTubeEvent } from "./youtube-api";
 import SkipLink from "./skip-link";
 import { shouldUseLowData } from "./low-data";
@@ -16,7 +16,6 @@ import PastorDirectoryCard from "./pastor-directory-card";
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
 
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; publishedAt?:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
-type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string; pinned?:boolean };
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
@@ -132,7 +131,16 @@ export default function Home() {
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
   const [sermonLoading,setSermonLoading]=useState(true);
   const [visibleSermonCount,setVisibleSermonCount]=useState(8);
-  const [praiseItems,setPraiseItems]=useState<Praise[]>([]);
+  const [churchPraiseTracks,setChurchPraiseTracks]=useState<Track[]>([]);
+  const [praiseSearch,setPraiseSearch]=useState("");
+  const [praiseTotal,setPraiseTotal]=useState(0);
+  const [praiseCursor,setPraiseCursor]=useState<number|null>(null);
+  const [praiseMoreLoading,setPraiseMoreLoading]=useState(false);
+  const [praiseError,setPraiseError]=useState("");
+  const [praiseRevision,setPraiseRevision]=useState(0);
+  const praiseRequestRef=useRef(0);
+  const praiseMoreRef=useRef(false);
+  const praiseParamsRef=useRef("");
   const [praiseLoading,setPraiseLoading]=useState(true);
   const [shortItems,setShortItems]=useState<Short[]>([]);
   const [shortLoading,setShortLoading]=useState(true);
@@ -274,12 +282,6 @@ export default function Home() {
         setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),publishedAt:item.publishedAt,tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
         setSermonLoading(false);
       }),
-      praises: ()=>loadItems(`/api/praises?limit=${lowData?12:48}`).then((data)=>{
-        if(!alive) return;
-        const items=(data as {items?:Praise[]}).items||[];
-        setPraiseItems([...items.filter((item)=>item.pinned),...shuffled(items.filter((item)=>!item.pinned))]);
-        setPraiseLoading(false);
-      }),
       shorts: ()=>loadItems(`/api/shorts?limit=${lowData?96:300}&batch=1&offset=0`).then((data)=>{
         if(!alive) return;
         const result=data as {items?:Short[];nextOffset?:number|null},items=shuffled(result.items||[]),visibleCount=lowData?24:60;
@@ -384,11 +386,6 @@ export default function Home() {
   const visibleSermons = filtered.slice(0,visibleSermonCount);
   const previewSermons = filtered.slice(visibleSermonCount,visibleSermonCount+4);
   const sermonChurchCount = useMemo(() => new Set(filtered.map((sermon) => sermon.church)).size, [filtered]);
-  const filteredPraises = useMemo(() => praiseItems.filter((praise) => {
-    const haystack = metadataSearchValue(praise.church,praise.pastor,praise.region,praise.denomination,praise.title);
-    return matchesSearchTerms(haystack,query) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
-  }), [praiseItems, query, region, denomination]);
-  const churchPraiseTracks=useMemo(()=>filteredPraises.map(praise=>({id:praise.youtubeId,title:praise.title,channel:`${praise.church} · ${praise.region}`,duration:0})),[filteredPraises]);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
     const haystack = metadataSearchValue(short.church,short.pastor,short.region,short.denomination,short.title);
     return matchesSearchTerms(haystack,query) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
@@ -532,7 +529,7 @@ export default function Home() {
       return matchesGlobal && (region === "전체" || church.region.startsWith(region)) && (denomination === "전체 교단" || church.denomination === denomination);
     });
   }, [churchItems, currentChurchSearch, hasActiveChurchFilter, query, region, denomination]);
-  const denominationOptions=useMemo(()=>["전체 교단",...Array.from(new Set([...knownDenominations,...churchItems.map((church)=>church.denomination),...sermonItems.map((sermon)=>sermon.denomination),...praiseItems.map((praise)=>praise.denomination)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,"ko"))],[churchItems,sermonItems,praiseItems]);
+  const denominationOptions=useMemo(()=>["전체 교단",...Array.from(new Set([...knownDenominations,...churchItems.map((church)=>church.denomination),...sermonItems.map((sermon)=>sermon.denomination)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,"ko"))],[churchItems,sermonItems]);
   const radarChurches=useMemo(()=>{
     if(hasActiveChurchFilter) return filteredChurches;
     const prioritized=filteredChurches.filter((church)=>(church.priorityWeight??1)>1).sort((a,b)=>(b.priorityWeight??1)-(a.priorityWeight??1));
@@ -623,21 +620,39 @@ export default function Home() {
     }
   }
 
-  async function loadDifferentPraises() {
-    setPraiseLoading(true);
+  function loadDifferentPraises(){setPraiseRevision(value=>value+1);}
+
+  useEffect(()=>{
+    if(praiseTab!=="church")return;
+    const generation=++praiseRequestRef.current,controller=new AbortController();
+    setPraiseLoading(true);setPraiseError("");setPraiseMoreLoading(false);praiseMoreRef.current=false;
+    const params=new URLSearchParams({browse:"1",q:`${query} ${praiseSearch}`.trim(),region,denomination});
+    praiseParamsRef.current=params.toString();
+    const delay=window.setTimeout(()=>{
+      const timeout=window.setTimeout(()=>controller.abort(),10000);
+      fetch(`/api/praises?${params}`,{signal:controller.signal}).then(async response=>{
+        if(!response.ok)throw new Error();
+        const data=await response.json() as {items:Track[];total:number;nextCursor:number|null};
+        if(generation!==praiseRequestRef.current)return;
+        setChurchPraiseTracks(data.items);setPraiseTotal(data.total);setPraiseCursor(data.nextCursor);
+      }).catch(()=>{if(generation===praiseRequestRef.current){setChurchPraiseTracks([]);setPraiseCursor(null);setPraiseError("찬양을 불러오지 못했어요. 다시 불러오기를 눌러 주세요.");}})
+      .finally(()=>{clearTimeout(timeout);if(generation===praiseRequestRef.current)setPraiseLoading(false);});
+    },350);
+    return()=>{++praiseRequestRef.current;clearTimeout(delay);controller.abort();};
+  },[praiseTab,praiseSearch,query,region,denomination,praiseRevision]);
+
+  async function loadMorePraises(){
+    if(praiseCursor===null||praiseMoreRef.current||praiseLoading)return;
+    const generation=praiseRequestRef.current;
+    praiseMoreRef.current=true;setPraiseMoreLoading(true);setPraiseError("");
     try {
-      const response=await fetch(`/api/praises?limit=${prefersLowData()?24:48}`);
-      const items=response.ok?((await response.json()) as {items?:Praise[]}).items||[]:praiseItems;
-      const pinned=items.filter((item)=>item.pinned);
-      const next=shuffled(items.filter((item)=>!item.pinned));
-      const previousFirst=praiseItems.find((item)=>!item.pinned);
-      if(next.length>1&&next[0]?.youtubeId===previousFirst?.youtubeId) next.push(next.shift() as Praise);
-      setPraiseItems([...pinned,...next]);
-    } catch {
-      setPraiseItems((items)=>shuffled(items));
-    } finally {
-      setPraiseLoading(false);
-    }
+      const response=await fetch(`/api/praises?${praiseParamsRef.current}&before=${praiseCursor}`,{signal:AbortSignal.timeout(10000)});
+      if(!response.ok)throw new Error();
+      const data=await response.json() as {items:Track[];nextCursor:number|null};
+      if(generation!==praiseRequestRef.current)return;
+      setChurchPraiseTracks(previous=>{const known=new Set(previous.map(item=>item.id));return [...previous,...data.items.filter(item=>!known.has(item.id))];});setPraiseCursor(data.nextCursor);
+    }catch{if(generation===praiseRequestRef.current)setPraiseError("다음 찬양을 불러오지 못했어요. 아래 버튼으로 다시 시도해 주세요.");}
+    finally{if(generation===praiseRequestRef.current){praiseMoreRef.current=false;setPraiseMoreLoading(false);}}
   }
 
   async function submitChurchRecommendation(event:FormEvent<HTMLFormElement>) {
@@ -809,11 +824,11 @@ export default function Home() {
       </div>}
 
       <section className="content-section praise-section" id="praises">
-        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다른 찬양 보기"}</button></div>
+        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다시 불러오기"}</button></div>
         <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button></div>
         <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
         <div hidden={praiseTab!=="church"}>
-        <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
+        <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,total:praiseTotal,query:praiseSearch,onQuery:setPraiseSearch,hasMore:praiseCursor!==null,moreLoading:praiseMoreLoading,onMore:loadMorePraises,error:praiseError,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
         <form className="praise-youtube-search" style={{marginTop:24,marginBottom:0}} role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         </div>
       </section>
