@@ -51,10 +51,10 @@ function extractPalette(image: HTMLImageElement): LogoPalette | null {
 
 function paletteStyle(palette: LogoPalette): React.CSSProperties {
   return {
-    "--church-hero-start": cssRgb(shade(palette.primary, -0.56)),
-    "--church-hero-end": cssRgb(shade(palette.primary, -0.32)),
-    "--church-hero-glow": cssRgb(palette.secondary, 0.48),
-    "--church-hero-accent": cssRgb(palette.accent, 0.38),
+    "--lake-primary": cssRgb(palette.primary, 0.62),
+    "--lake-secondary": cssRgb(palette.secondary, 0.66),
+    "--lake-accent": cssRgb(palette.accent, 0.60),
+    "--lake-highlight": cssRgb(shade(palette.primary, 0.34), 0.42),
   } as React.CSSProperties;
 }
 
