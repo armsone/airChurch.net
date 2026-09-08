@@ -14,7 +14,7 @@ WHERE name IN ('은퇴','은퇴예식','은퇴장로');
 -- Only the matching church and retired-clergy label in the legacy directory.
 UPDATE church_ministry_profiles SET review_status='removed',updated_at=CURRENT_TIMESTAMP
 WHERE role_title='은퇴목사' AND (
-  (name='전국' AND church_id IN (SELECT id FROM churches WHERE name='성광교회'))
-  OR (name='전북' AND church_id IN (SELECT id FROM churches WHERE name='드림교회'))
-  OR (name='여수' AND church_id IN (SELECT id FROM churches WHERE name='영광교회'))
+  (name='전국' AND church_id IN (SELECT r.church_id FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE p.public_id=16874 AND p.name='전국'))
+  OR (name='전북' AND church_id IN (SELECT r.church_id FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE p.public_id=15792 AND p.name='전북'))
+  OR (name='여수' AND church_id IN (SELECT r.church_id FROM pastor_church_roles r JOIN pastor_people p ON p.id=r.pastor_id WHERE p.public_id=16582 AND p.name='여수'))
 );
