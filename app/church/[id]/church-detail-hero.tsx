@@ -1,8 +1,8 @@
 "use client";
 
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import type { LogoColor, LogoPalette } from "../../logo-palettes";
-import { churchLogoPalettes, denominationLogoPalettes } from "../../logo-palettes";
+import { denominationMark } from "../../directory-cards";
 
 type Rgb = LogoColor;
 
@@ -54,48 +54,43 @@ function paletteStyle(palette: LogoPalette): React.CSSProperties {
     "--lake-swatch-primary": cssRgb(palette.primary),
     "--lake-swatch-secondary": cssRgb(palette.secondary),
     "--lake-swatch-accent": cssRgb(palette.accent),
-    "--lake-primary": cssRgb(palette.primary, 0.94),
-    "--lake-secondary": cssRgb(palette.secondary, 0.94),
-    "--lake-accent": cssRgb(palette.accent, 0.90),
-    "--lake-highlight": cssRgb(shade(palette.primary, 0.34), 0.60),
+    "--lake-primary": cssRgb(palette.primary, 0.78),
+    "--lake-secondary": cssRgb(palette.secondary, 0.80),
+    "--lake-accent": cssRgb(palette.accent, 0.75),
+    "--lake-highlight": cssRgb(shade(palette.primary, 0.34), 0.51),
   } as React.CSSProperties;
 }
 
-export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, palette, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; palette?: LogoPalette; children: ReactNode }) {
-  const imageRef = useRef<HTMLImageElement>(null);
-  const [activePalette, setActivePalette] = useState<LogoPalette | null>(palette ?? churchLogoPalettes[name] ?? denominationLogoPalettes[denomination] ?? null);
-  useEffect(() => {
-    const imageElement = imageRef.current;
-    if (!imageElement) return;
-    const updateColor = () => {
-      try {
-        const extracted = extractPalette(imageElement);
-        if (extracted) setActivePalette(extracted);
-      } catch { /* CORS가 허용되지 않으면 사전 팔레트를 유지합니다. */ }
-    };
-    if (imageElement.complete) updateColor();
-    else imageElement.addEventListener("load", updateColor);
-    return () => imageElement.removeEventListener("load", updateColor);
-  }, [image]);
-  return <section className={`church-detail-hero${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img ref={imageRef} src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a> · {region} · {denomination}</p></div></div><div className="church-detail-actions">{children}</div></section>;
+export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
+  const activePalette = useLogoPalette(image, denominationMark(denomination)?.src ?? null);
+  return <section className={`church-detail-hero${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a> · {region} · {denomination}</p></div></div><div className="church-detail-actions">{children}</div></section>;
 }
 
-export function LogoPaletteSection({ image, className, palette, children }: { image: string | null; className: string; palette?: LogoPalette; children: ReactNode }) {
-  const imageRef = useRef<HTMLImageElement>(null);
-  const fallbackPalette = image?.includes("kwangsung") ? churchLogoPalettes["거룩한빛광성교회"] : image?.includes("gocheok") ? denominationLogoPalettes["대한예수교장로회 통합"] : image?.includes("prok") ? denominationLogoPalettes["한국기독교장로회"] : image?.includes("kmc") ? denominationLogoPalettes["기독교대한감리회"] : image?.includes("koreabaptist") ? denominationLogoPalettes["기독교한국침례회"] : null;
-  const [activePalette, setActivePalette] = useState<LogoPalette | null>(palette ?? fallbackPalette);
+function useLogoPalette(image: string | null, fallbackImage: string | null) {
+  const [palette, setPalette] = useState<LogoPalette | null>(null);
   useEffect(() => {
-    const imageElement = imageRef.current;
-    if (!imageElement) return;
-    const updateColor = () => {
-      try {
-        const extracted = extractPalette(imageElement);
-        if (extracted) setActivePalette(extracted);
-      } catch { /* CORS가 허용되지 않으면 사전 팔레트를 유지합니다. */ }
-    };
-    if (imageElement.complete) updateColor();
-    else imageElement.addEventListener("load", updateColor);
-    return () => imageElement.removeEventListener("load", updateColor);
-  }, [image]);
-  return <section className={`${className}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{image && <img ref={imageRef} className="logo-palette-source" src={image} alt="" crossOrigin="anonymous" referrerPolicy="no-referrer" />}{children}</section>;
+    let cancelled = false;
+    setPalette(null);
+    const sources = [...new Set([image, fallbackImage].filter((value): value is string => Boolean(value)))];
+    async function extract() {
+      for (const source of sources) {
+        if (cancelled) return;
+        try {
+          const logo = new Image();
+          logo.src = source.startsWith("/") && !source.startsWith("//") ? source : `/api/logo-image?url=${encodeURIComponent(source)}`;
+          await logo.decode();
+          const extracted = extractPalette(logo);
+          if (extracted) { if (!cancelled) setPalette(extracted); return; }
+        } catch { /* If the logo cannot load, extract from the actual denomination logo. */ }
+      }
+    }
+    void extract();
+    return () => { cancelled = true; };
+  }, [image, fallbackImage]);
+  return palette;
+}
+
+export function LogoPaletteSection({ image, fallbackImage = null, className, children }: { image: string | null; fallbackImage?: string | null; className: string; children: ReactNode }) {
+  const activePalette = useLogoPalette(image, fallbackImage);
+  return <section className={`${className}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{children}</section>;
 }
