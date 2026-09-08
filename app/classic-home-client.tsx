@@ -813,8 +813,8 @@ export default function Home() {
         <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button></div>
         <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
         <div hidden={praiseTab!=="church"}>
-        <form className="praise-youtube-search" role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
+        <form className="praise-youtube-search" style={{marginTop:24,marginBottom:0}} role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         </div>
       </section>
 
