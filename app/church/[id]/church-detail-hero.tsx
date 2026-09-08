@@ -51,10 +51,13 @@ function extractPalette(image: HTMLImageElement): LogoPalette | null {
 
 function paletteStyle(palette: LogoPalette): React.CSSProperties {
   return {
-    "--lake-primary": cssRgb(palette.primary, 0.62),
-    "--lake-secondary": cssRgb(palette.secondary, 0.66),
-    "--lake-accent": cssRgb(palette.accent, 0.60),
-    "--lake-highlight": cssRgb(shade(palette.primary, 0.34), 0.42),
+    "--lake-swatch-primary": cssRgb(palette.primary),
+    "--lake-swatch-secondary": cssRgb(palette.secondary),
+    "--lake-swatch-accent": cssRgb(palette.accent),
+    "--lake-primary": cssRgb(palette.primary, 0.94),
+    "--lake-secondary": cssRgb(palette.secondary, 0.94),
+    "--lake-accent": cssRgb(palette.accent, 0.90),
+    "--lake-highlight": cssRgb(shade(palette.primary, 0.34), 0.60),
   } as React.CSSProperties;
 }
 
