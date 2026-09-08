@@ -127,13 +127,13 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [praiseTab,setPraiseTab]=useState<"ccm"|"church">("ccm");
+  useEffect(()=>{if(new URLSearchParams(window.location.search).get("praise")==="church")setPraiseTab("church");},[]);
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
   const [sermonLoading,setSermonLoading]=useState(true);
   const [visibleSermonCount,setVisibleSermonCount]=useState(8);
   const [praiseItems,setPraiseItems]=useState<Praise[]>([]);
   const [praiseLoading,setPraiseLoading]=useState(true);
-  const [showAllPraise,setShowAllPraise]=useState(false);
   const [shortItems,setShortItems]=useState<Short[]>([]);
   const [shortLoading,setShortLoading]=useState(true);
   const [activeShortIndex,setActiveShortIndex]=useState<number|null>(null);
@@ -388,7 +388,7 @@ export default function Home() {
     const haystack = metadataSearchValue(praise.church,praise.pastor,praise.region,praise.denomination,praise.title);
     return matchesSearchTerms(haystack,query) && (region === "전체" || praise.region.startsWith(region)) && (denomination === "전체 교단" || praise.denomination === denomination);
   }), [praiseItems, query, region, denomination]);
-  const visiblePraises = (showAllPraise ? filteredPraises : filteredPraises.slice(0, 4)).slice(0, 12);
+  const churchPraiseTracks=useMemo(()=>filteredPraises.map(praise=>({id:praise.youtubeId,title:praise.title,channel:`${praise.church} · ${praise.region}`,duration:0})),[filteredPraises]);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
     const haystack = metadataSearchValue(short.church,short.pastor,short.region,short.denomination,short.title);
     return matchesSearchTerms(haystack,query) && (region === "전체" || short.region.startsWith(region)) && (denomination === "전체 교단" || short.denomination === denomination);
@@ -633,10 +633,8 @@ export default function Home() {
       const previousFirst=praiseItems.find((item)=>!item.pinned);
       if(next.length>1&&next[0]?.youtubeId===previousFirst?.youtubeId) next.push(next.shift() as Praise);
       setPraiseItems([...pinned,...next]);
-      setShowAllPraise(false);
     } catch {
       setPraiseItems((items)=>shuffled(items));
-      setShowAllPraise(false);
     } finally {
       setPraiseLoading(false);
     }
@@ -816,12 +814,7 @@ export default function Home() {
         <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
         <div hidden={praiseTab!=="church"}>
         <form className="praise-youtube-search" role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
-        <div className={`praise-preview${!praiseLoading && !showAllPraise && filteredPraises.length > 4 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{praiseLoading ? <LoadingCards count={4} /> : visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
-          {videoThumbnail({youtubeId:praise.youtubeId,thumbnailUrl:praise.thumbnailUrl,marker:"♪",date:new Date(praise.publishedAt).toLocaleDateString("ko-KR"),title:praise.title,church:praise.church,kind:"찬양"})}
-          <div className="sermon-copy"><span className="fresh">✓ 검증 교회 · 공식 채널</span><h3>{praise.title}</h3><p>{praise.church} · {praise.region}</p><div className="card-actions"><button type="button" onClick={()=>void shareVideo(praise)}>↗ 찬양 공유</button><button className={isSaved(`praise:${praise.youtubeId}`)?"is-saved":""} type="button" onClick={()=>toggleSaved({id:`praise:${praise.youtubeId}`,kind:"praise",title:praise.title,subtitle:`${praise.church} · ${praise.region}`,url:`https://www.youtube.com/watch?v=${praise.youtubeId}`})}>{isSaved(`praise:${praise.youtubeId}`)?"♥ 찜됨":"♡ 찜"}</button></div></div>
-        </article>)}</div>{!praiseLoading && !showAllPraise && filteredPraises.length > 4 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
-        {!praiseLoading && !visiblePraises.length && <div className="empty">아직 연결된 찬양이 없습니다.</div>}
-        {!praiseLoading && filteredPraises.length > 4 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "4개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
+        <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
         </div>
       </section>
 
