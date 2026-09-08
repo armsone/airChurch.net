@@ -6,6 +6,8 @@ import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { hasSavedItemNewSermon, readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
+import CcmPlayer from "./ccm-player";
+import { loadYouTubeApi, type YouTubePlayer, type YouTubeEvent } from "./youtube-api";
 import SkipLink from "./skip-link";
 import { shouldUseLowData } from "./low-data";
 import {ChurchCardContent} from "./directory-cards";
@@ -18,12 +20,6 @@ type Praise = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
 type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
-type YouTubePlayer = { loadVideoById:(videoId:string)=>void; playVideo:()=>void; mute:()=>void; unMute:()=>void; getVideoData:()=>{video_id?:string} };
-type YouTubeEvent = { data?:number; target:YouTubePlayer };
-type YouTubeApi = { Player:new(
-  element:HTMLIFrameElement,
-  options:{events:{onReady:(event:YouTubeEvent)=>void; onStateChange:(event:YouTubeEvent)=>void; onError:(event:YouTubeEvent)=>void}}
-)=>YouTubePlayer };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
 type ChurchItem = { id:number; name:string; pastor:string; pastorPublicId?:number|null; region:string; denomination:string; youtubeChannelId?:string|null; channelImageUrl?:string|null; homepageUrl?:string|null; priorityWeight?:number };
@@ -106,26 +102,6 @@ function shuffled<T>(items: T[]) {
   return result;
 }
 
-let youtubeApiPromise:Promise<YouTubeApi>|null=null;
-function loadYouTubeApi() {
-  if(youtubeApiPromise) return youtubeApiPromise;
-  youtubeApiPromise=new Promise<YouTubeApi>((resolve)=>{
-    const browserWindow=window as Window&{YT?:YouTubeApi;onYouTubeIframeAPIReady?:()=>void};
-    if(browserWindow.YT?.Player) { resolve(browserWindow.YT); return; }
-    const previousReady=browserWindow.onYouTubeIframeAPIReady;
-    browserWindow.onYouTubeIframeAPIReady=()=>{
-      previousReady?.();
-      if(browserWindow.YT?.Player) resolve(browserWindow.YT);
-    };
-    if(!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-      const script=document.createElement("script");
-      script.src="https://www.youtube.com/iframe_api";
-      document.head.appendChild(script);
-    }
-  });
-  return youtubeApiPromise;
-}
-
 function LoadingCards({ count = 3 }: { count?: number }) {
   return Array.from({ length: count }, (_, index) => (
     <article className="sermon-card skeleton-card" aria-hidden="true" key={`skeleton-${index}`}>
@@ -150,6 +126,7 @@ export default function Home() {
   const [denomination, setDenomination] = useState("전체 교단");
   const [notice, setNotice] = useState("");
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
+  const [praiseTab,setPraiseTab]=useState<"ccm"|"church">("ccm");
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
   const [sermonLoading,setSermonLoading]=useState(true);
@@ -834,7 +811,10 @@ export default function Home() {
       </div>}
 
       <section className="content-section praise-section" id="praises">
-        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button className="shorts-refresh-button unified-other-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "다른 찬양 보기"}</button></div>
+        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다른 찬양 보기"}</button></div>
+        <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button></div>
+        <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
+        <div hidden={praiseTab!=="church"}>
         <form className="praise-youtube-search" role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         <div className={`praise-preview${!praiseLoading && !showAllPraise && filteredPraises.length > 4 ? " is-collapsed" : ""}`}><div className="sermon-grid praise-grid">{praiseLoading ? <LoadingCards count={4} /> : visiblePraises.map((praise)=><article className="sermon-card" key={praise.youtubeId}>
           {videoThumbnail({youtubeId:praise.youtubeId,thumbnailUrl:praise.thumbnailUrl,marker:"♪",date:new Date(praise.publishedAt).toLocaleDateString("ko-KR"),title:praise.title,church:praise.church,kind:"찬양"})}
@@ -842,6 +822,7 @@ export default function Home() {
         </article>)}</div>{!praiseLoading && !showAllPraise && filteredPraises.length > 4 && <button className="praise-peek-expand" type="button" onClick={()=>setShowAllPraise(true)} aria-label="숨겨진 찬양 전체 펼치기"><span>눌러서 더 보기</span></button>}</div>
         {!praiseLoading && !visiblePraises.length && <div className="empty">아직 연결된 찬양이 없습니다.</div>}
         {!praiseLoading && filteredPraises.length > 4 && <button className="praise-more" type="button" onClick={()=>setShowAllPraise((shown)=>!shown)}>{showAllPraise ? "4개만 보기" : `전체 ${Math.min(12,filteredPraises.length)}개 펼쳐보기`}</button>}
+        </div>
       </section>
 
       <section className="church-directory-section" id="church-directory">
