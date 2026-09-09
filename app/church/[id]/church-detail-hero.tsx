@@ -119,15 +119,15 @@ function paletteStyle(palette: LogoPalette): React.CSSProperties {
   } as React.CSSProperties;
 }
 
-function SeasonLabel({ season }: { season: LiturgicalSeason }) {
+function SeasonLabel({ season, inActions = false }: { season: LiturgicalSeason; inActions?: boolean }) {
   if (season.key === "ordinary") return null;
-  return <div className="liturgical-season" aria-label={season.christmasDays === undefined ? `현재 ${season.name}` : `현재 ${season.name}, 성탄절까지 ${season.christmasDays}일`}><span>{season.name}</span>{season.christmasDays !== undefined && <strong>성탄절까지 D-{season.christmasDays}</strong>}</div>;
+  return <div className={`liturgical-season${inActions ? " season-in-actions" : ""}`} aria-label={season.christmasDays === undefined ? `현재 ${season.name}` : `현재 ${season.name}, 성탄절까지 ${season.christmasDays}일`}><span>{season.name}</span>{season.christmasDays !== undefined && <strong>성탄절까지 D-{season.christmasDays}</strong>}</div>;
 }
 
 export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
   const activePalette = useLogoPalette(image, denominationMark(denomination)?.src ?? null);
   const season = useCurrentSeason();
-  return <section className={`church-detail-hero season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><SeasonLabel season={season}/><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a> · {region} · {denomination}</p></div></div><div className="church-detail-actions">{children}</div></section>;
+  return <section className={`church-detail-hero season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a> · {region} · {denomination}</p></div></div><div className="church-detail-actions"><SeasonLabel season={season} inActions/>{children}</div></section>;
 }
 
 function useLogoPalette(image: string | null, fallbackImage: string | null) {
