@@ -5,7 +5,7 @@ import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, 
 import { koreaDate } from "./types";
 
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
-const COLLECTOR_VERSION=3;
+const COLLECTOR_VERSION=4;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -15,7 +15,7 @@ async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<voi
     const u=new URL(url);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port||!(host(url)===host(source.url)||(source.kind==="rss"&&host(url)===host(source.homepage))))throw Error("source_boundary");
     if(robots!==undefined&&!robotsAllowed(robots,url))throw Error("robots_disallowed");
     await pace?.();
-    const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"text/html,application/rss+xml,application/xml,text/xml,text/plain;q=0.8,*/*;q=0.1"}});
+    const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"*/*"}});
     if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
     if(!r.ok){void r.body?.cancel();return {text:"",status:r.status};}
     if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status};
@@ -147,10 +147,11 @@ export async function syncEvents(){
   const db=database(),now=new Date().toISOString();
   const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
   await db.batch(seeds);
-  // Parser upgrades recheck old rejected candidates once; no public facts or history are deleted.
+  // Version 4 only changes content negotiation. Retry failed requests once,
+  // without resetting healthy sources, denied paths, or rejected event facts.
   await db.batch([
-    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)) AND status IN ('checking','ignored','failed')").bind(COLLECTOR_VERSION,now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=? WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN status IN ('failed','empty') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});
