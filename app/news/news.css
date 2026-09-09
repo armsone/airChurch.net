@@ -7,5 +7,5 @@
 .news-list-toolbar p{margin:0 0 12px;color:var(--muted);font-size:14px;white-space:nowrap}
 .news-list-message{padding:24px 0;color:var(--muted);font-size:16px;line-height:1.7}
 .news-list-message button{min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font:inherit;cursor:pointer}
-.news-list-more{display:block;margin:28px auto 0}
+.news-page .news-list-more{display:flex!important;width:max-content!important;margin:28px auto 0}
 @media(max-width:760px){.news-page{padding:24px 16px 48px}.news-list-toolbar label{min-width:0;flex:1}.news-page-grid .church-news-copy>strong{font-size:16px;line-height:1.5}}
