@@ -438,6 +438,15 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 @media(max-width:760px){.source-directory-group ul{grid-template-columns:1fr}.source-directory-group li>strong{min-height:0}.source-directory-group li{padding:12px}.source-directory-links a{min-height:44px}}
 .church-news-sources{margin:-8px 0 22px;border:1px solid var(--line);border-radius:14px;background:#f8fbf9}.church-news-sources summary{padding:13px 16px;cursor:pointer;color:var(--ink);font-size:12px;font-weight:850}.church-news-sources>div{padding:0 16px 14px;display:flex;flex-wrap:wrap;gap:10px}.church-news-sources span{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:white}.church-news-sources strong{font-size:12px}.church-news-sources a{color:var(--muted);font-size:10px;font-weight:750;text-decoration:underline;text-underline-offset:2px}
 .church-news-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.news-home-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sermon-grid.sermon-preview-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(min-width:761px) and (max-width:1000px){.sermon-grid.sermon-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sermon-preview-grid>:nth-child(n+7){display:none}}
+@media(max-width:760px){.sermon-grid.sermon-preview-grid{grid-template-columns:1fr}.sermon-preview-grid>:nth-child(n+4){display:none}}
+@media(min-width:761px) and (max-width:1100px){.shorts-home-grid>:nth-child(n+9){display:none}}
+@media(min-width:481px) and (max-width:760px){.shorts-home-grid>:nth-child(n+7){display:none}}
+@media(max-width:480px){.shorts-home-grid>:nth-child(n+5){display:none}}
+@media(min-width:761px) and (max-width:999px){.news-preview-grid>.church-news-card:nth-child(n+7){display:none}}
+@media(max-width:760px){.news-preview-grid>.church-news-card:nth-child(n+4){display:none}}
 .church-news-card{min-width:0;min-height:144px;display:grid;grid-template-columns:100px minmax(0,1fr);overflow:hidden;border:1px solid var(--line);border-radius:16px;background:white;transition:.16s ease}
 .church-news-card:hover{transform:translateY(-2px);border-color:#a9beb4;box-shadow:0 14px 34px rgba(24,54,47,.1)}
 .church-news-thumb{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;background:#dce9e2;color:var(--ink);text-align:center}.church-news-card>.skeleton-thumb{width:100%;height:100%;aspect-ratio:auto}

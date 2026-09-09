@@ -1,4 +1,4 @@
-export type SavedItem={id:string;kind:"sermon"|"praise"|"church"|"pastor";title:string;subtitle:string;url:string;savedAt?:string;pastorName?:string;churchNames?:string[]};
+export type SavedItem={id:string;kind:"sermon"|"praise"|"church"|"pastor"|"event";title:string;subtitle:string;url:string;savedAt?:string;pastorName?:string;churchNames?:string[]};
 const normalized=(value:string)=>value.toLocaleLowerCase("ko-KR").replace(/[^\p{L}\p{N}]/gu,"");
 
 export const SAVED_ITEMS_KEY="airchurch:saved";
@@ -11,7 +11,7 @@ export function isSavedItem(item:unknown):item is SavedItem{
   const safeUrl=(url.startsWith("/")&&!url.startsWith("//"))||url.startsWith("#")||url.startsWith("https://www.youtube.com/")||url.startsWith("https://youtu.be/");
   const savedAt=value.savedAt===undefined||value.savedAt===null||typeof value.savedAt==="string"&&!Number.isNaN(Date.parse(value.savedAt));
   const pastorName=value.pastorName===undefined||typeof value.pastorName==="string"&&value.pastorName.length<=100,churchNames=value.churchNames===undefined||Array.isArray(value.churchNames)&&value.churchNames.length<=20&&value.churchNames.every((name)=>typeof name==="string"&&name.length<=200);
-  return typeof value.id==="string"&&["sermon","praise","church","pastor"].includes(kind)&&value.id.startsWith(`${kind}:`)&&typeof value.title==="string"&&typeof value.subtitle==="string"&&safeUrl&&savedAt&&pastorName&&churchNames&&value.id.length<=300&&value.title.length<=300&&value.subtitle.length<=500&&url.length<=1000;
+  return typeof value.id==="string"&&["sermon","praise","church","pastor","event"].includes(kind)&&value.id.startsWith(`${kind}:`)&&typeof value.title==="string"&&typeof value.subtitle==="string"&&safeUrl&&savedAt&&pastorName&&churchNames&&value.id.length<=300&&value.title.length<=300&&value.subtitle.length<=500&&url.length<=1000;
 }
 
 export function readSavedItems(){
