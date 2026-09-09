@@ -1,6 +1,9 @@
-export type SourceConfig = { id:string;name:string;homepage:string;url:string;kind:"official"|"rss";detailPattern:string;churchName?:string;organizer?:string;listingUrls?:string[];charset?:string;eventOnly?:boolean };
+export type SourceConfig = { id:string;name:string;homepage:string;url:string;kind:"official"|"rss";detailPattern:string;churchName?:string;organizer?:string;listingUrls?:string[];charset?:string;eventOnly?:boolean;christianOnly?:boolean;singlePage?:boolean };
 // Official ownership and listing URLs checked 2026-09-09. Dates/venues are never inferred from headquarters.
 export const officialEventSources:SourceConfig[] = [
+  {id:"coommi",name:"꿈이있는미래 꿈미",homepage:"https://www.coommi.org/",url:"https://www.coommi.org/Page/Index/34681",kind:"official",detailPattern:"/Page/Index/34681\\?[^#]*idx=\\d+",eventOnly:true},
+  {id:"melon",name:"멜론티켓",homepage:"https://ticket.melon.com/",url:"https://ticket.melon.com/plan/index.htm?planId=100101",kind:"official",detailPattern:"/performance/index\\.htm\\?prodId=\\d+",eventOnly:true,christianOnly:true},
+  {id:"sorrygom",name:"소리곰 교회음향 세미나",homepage:"https://sorrygom.dothome.co.kr/",url:"https://sorrygom.dothome.co.kr/",kind:"official",detailPattern:"^https://sorrygom\\.dothome\\.co\\.kr/(?:#occurrence=.+)?$",eventOnly:true,singlePage:true},
   {id:"bbb",name:"한국직장선교연합 BBB",homepage:"https://www.bbb.or.kr/",url:"https://www.bbb.or.kr/Notice",kind:"official",detailPattern:"/Notice/\\d+"},
   {id:"joy",name:"죠이선교회",homepage:"https://www.joymission.org/",url:"https://www.joymission.org/news/",kind:"official",detailPattern:"/news/view\\.php\\?no=\\d+"},
   {id:"pbp",name:"대한예수교장로회 평북노회",homepage:"https://pbp.or.kr/",url:"https://pbp.or.kr/Board/Index/26",kind:"official",detailPattern:"/Board/Detail/(?:26|28)/\\d+",listingUrls:["https://pbp.or.kr/Board/Index/28"]},
@@ -42,7 +45,6 @@ export const additionalDiscoverySources:SourceConfig[]=[
 // These do not enter the public event pipeline until a bounded, accurate adapter is available.
 export const eventSourceCandidates=[
   {name:"제주열방대학",url:"https://uofnjeju.org/schedule/",reason:"날짜 목록 확인 · 상세 장소 검증 필요"},
-  {name:"한국전문인선교훈련원 GPTI",url:"http://gpti.or.kr/모집안내",reason:"보안 연결 오류 · 포스터 일정 확인 필요"},
   {name:"한국선교훈련원 GMTC",url:"https://gmtc.co.kr/공지사항/",reason:"모집 목록 확인 · 미래 날짜 검증 필요"},
   {name:"기독연구원 느헤미야",url:"https://www.nics.or.kr/",reason:"보안 연결 오류 · 수집 보류"},
   {name:"한국기독학생회 IVF",url:"https://www.ivf.or.kr/",reason:"연결 지연 · 수집 경로 확인 필요"},
@@ -50,7 +52,6 @@ export const eventSourceCandidates=[
   {name:"한국오픈도어",url:"https://www.opendoors.or.kr/board/list.do?iboardgroupseq=7&iboardmanagerseq=55",reason:"정기모임 휴지 공지 확인 · 재개 여부 확인 필요"},
   {name:"성서유니온",url:"https://www.su.or.kr/",reason:"동적 화면 · 행사 목록 연결 필요"},
   {name:"한국 예수전도단",url:"https://www.ywamkorea.org/dts.php",reason:"훈련 목록의 날짜·장소 검증 필요"},
-  {name:"한국해외선교회 GMF",url:"https://www.gmf.or.kr/",reason:"기관 발견용 · 개별 일정 원천 연결 필요"},
   {name:"티켓링크",url:"https://www.ticketlink.co.kr/bridge/283",reason:"CCM 전용 목록 갱신 부족 · 일반 추천 제외 필요"},
   {name:"YES24 티켓",url:"https://ticket.yes24.com/Genre/Concert?Gcode=009_202_001",reason:"자동 접근 제한 · 원주최 안내 확인 필요"},
   {name:"NOL 티켓",url:"https://nol.yanolja.com/ticket",reason:"기독교 공연·주최자 범위 검증 필요"},
@@ -58,7 +59,6 @@ export const eventSourceCandidates=[
   {name:"공연예술통합전산망 KOPIS",url:"https://kopis.or.kr/por/db/pblprfr/pblprfr.do?menuId=MNU_00020",reason:"동적 공연 목록 · 기독교 작품 분류 필요"},
   {name:"서울문화포털",url:"https://culture.seoul.go.kr/culture/culture/cultureEvent/list.do?menuNo=200008",reason:"지역 문화행사 · 기독교 범위 검증 필요"},
   {name:"스테이지픽",url:"https://www.stagepick.co.kr/venues/detail/161",reason:"공연장만으로 기독교 분류 불가 · 주최 확인 필요"},
-  {name:"멜론티켓",url:"https://ticket.melon.com/",reason:"동적 공연 목록 · 기독교 아티스트 확인 필요"},
   {name:"갓피플몰",url:"https://mall.godpeople.com/",reason:"상품과 날짜 있는 행사 티켓 구분 필요"},
   {name:"히즈쇼",url:"https://www.hisshow.co.kr/addpage/EventMusical/exhibition.html?menuS3=",reason:"공연 목록 이미지 중심 · 일정 검증 필요"},
   {name:"대한예수교장로회 광주동노회",url:"https://gdpck.kr/",reason:"동적 공지 목록 · 연결 경로 확인 필요"},

@@ -8,12 +8,25 @@ export function lines(html:string) { return decode(html.replace(/<!--[\s\S]*?-->
 export function links(html:string,base:string) { const found=new Map<string,string>(); for(const m of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){try{const u=new URL(decode(m[1]),base);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port)continue;u.hash="";for(const key of [...u.searchParams.keys()])if(/^utm_|^(fbclid|gclid|back_url)$/.test(key))u.searchParams.delete(key);u.searchParams.sort();const key=u.href.replace(/%[0-9a-f]{2}/gi,x=>x.toUpperCase()),title=plain(m[2]);if(!title||/^(자세히\s*보기|더\s*보기|보기|바로가기|MORE)$/i.test(title)){if(!found.has(key))found.set(key,"");continue;}if(!found.get(key)||title.length>found.get(key)!.length)found.set(key,title);}catch{}}return [...found].map(([url,title])=>({url,title})); }
 export function validDate(value:string){if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const d=new Date(`${value}T00:00:00Z`);return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===value;}
 function dates(value:string) { return [...value.matchAll(/(20\d{2})\s*[년.\-/]\s*(\d{1,2})\s*[월.\-/]\s*(\d{1,2})\s*일?/g)].map(m=>`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`); }
+function weekdayMatches(date:string,text:string){const day=text.match(/\(([일월화수목금토])(?:요일)?\)/)?.[1];return !day||"일월화수목금토"[new Date(`${date}T00:00:00Z`).getUTCDay()]===day;}
 function field(rows:string[],pattern:RegExp) { const index=rows.findIndex(x=>pattern.test(x));if(index<0)return "";const value=rows[index].replace(pattern,"").replace(/^[\s:：|｜]+/,"").trim();return (value||rows[index+1]||"").slice(0,400); }
-function regionOf(venue:string){const aliases:Record<string,string>={충청북도:"충북",충청남도:"충남",전라북도:"전북",전북특별자치도:"전북",전라남도:"전남",경상북도:"경북",경상남도:"경남",분당:"경기",수지:"경기",성남:"경기",용인:"경기",동대문:"서울",종로:"서울"};return eventRegions.find(x=>venue.includes(x))||Object.entries(aliases).find(([a])=>venue.includes(a))?.[1]||"지역 확인 필요";}
+function regionOf(venue:string){const aliases:Record<string,string>={충청북도:"충북",충청남도:"충남",전라북도:"전북",전북특별자치도:"전북",전라남도:"전남",경상북도:"경북",경상남도:"경남",춘천:"강원",익산:"전북",일산:"경기",분당:"경기",수지:"경기",성남:"경기",용인:"경기",동대문:"서울",종로:"서울"};return eventRegions.find(x=>venue.includes(x))||Object.entries(aliases).find(([a])=>venue.includes(a))?.[1]||"지역 확인 필요";}
 function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*>/gi)){if(m[0].includes(`"${key}"`)||m[0].includes(`'${key}'`))return plain(m[0].match(/content=["']([\s\S]*?)["']/i)?.[1]||"");}return "";}
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
+  if(source.id==="sorrygom"){
+    const year=html.match(/alt=["'](20\d{2}) 올인원 믹싱세미나 포스터["']/)?.[1],rows=lines(html),start=rows.indexOf("장소 및 일시"),end=rows.indexOf("신청 및 준비");
+    if(!year||start<0||end<=start)return [];
+    const schedule=rows.slice(start+1,end),time=schedule.join(" ").match(/세미나 시간\s*:\s*(\d{1,2})시\s*-\s*(\d{1,2})시/);if(!time||Number(time[1])>=Number(time[2])||Number(time[2])>23)return [];
+    const entries=[];
+    for(let i=0;i<schedule.length;i++){const dateParts=schedule[i].match(/^(\d{1,2})월\s*(\d{1,2})일\s*\([월화수목금토일]\)$/);if(!dateParts)continue;const place=schedule[i+1],address=schedule[i+2],region=eventRegions.find(region=>address?.startsWith(region));if(!place?.includes("·")||!region)continue;
+      const date=`${year}-${dateParts[1].padStart(2,"0")}-${dateParts[2].padStart(2,"0")}`;if(!validDate(date)||!weekdayMatches(date,schedule[i]))continue;
+      const title=`${year} 올인원 믹싱세미나 · ${place.split("/")[0]}`,venue=`${place.split("·").slice(1).join("·").trim()} (${address})`,startTime=`${time[1].padStart(2,"0")}:00`;
+      entries.push({key:`${date}_${startTime}_${encodeURIComponent(title)}`,title,evidence:`${year} 올인원 믹싱세미나 포스터 (공식 이미지 대체텍스트)\n${schedule[i]}\n${place}\n${address}\n${time[0]}`,reason:"",event:{title,startDate:date,endDate:date,startTime,venue,region,attendance:"현장",organizer:"소리곰",audience:"대상 확인 필요",category:"세미나·교육",registrationUrl:null,status:noticeStatus(rows.join("\n"))||"published"} satisfies ExtractedEvent});
+    }
+    return entries;
+  }
   if(source.id!=="snnh")return [];
   const rows=lines(html),heading=rows.find(x=>/^20\d{2}년 노회 행사 및 임직예배 일정$/.test(x));if(!heading)return [];
   const year=heading.slice(0,4),entries=[];
@@ -21,7 +34,7 @@ export function extractScheduleEntries(html:string,source:SourceConfig){
   for(const row of rows){
     const match=row.match(/^\*?\s*(\d{1,2})월\s*(\d{1,2})일\([월화수목금토일]\)\s*(오전|오후|저녁)\s*(\d{1,2})시\s*(?:(\d{1,2})분)?\s*,\s*([^,\s]+교회)\s+(.+)$/);
     if(!match||/\//.test(match[7]))continue;
-    const date=`${year}-${match[1].padStart(2,"0")}-${match[2].padStart(2,"0")}`,hour=Number(match[4]),minute=Number(match[5]||0);if(!validDate(date)||hour<1||hour>12||minute>59)continue;
+    const date=`${year}-${match[1].padStart(2,"0")}-${match[2].padStart(2,"0")}`,hour=Number(match[4]),minute=Number(match[5]||0);if(!validDate(date)||!weekdayMatches(date,row)||hour<1||hour>12||minute>59)continue;
     const time=`${String(hour%12+(match[3]==="오전"?0:12)).padStart(2,"0")}:${String(minute).padStart(2,"0")}`,venue=match[6],title=`${venue} ${match[7]}`;
     entries.push({key:`${date}_${time}_${encodeURIComponent(title)}`,title,evidence:`${heading}\n${row}`,reason:"",event:{title,startDate:date,endDate:date,startTime:time,venue,region:regionOf(venue),attendance:"현장",organizer:"주최 확인 필요",audience:"대상 확인 필요",category:"집회",registrationUrl:null,status:notice||noticeStatus(row)||"published"} satisfies ExtractedEvent});
   }
@@ -34,8 +47,8 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const currentHeading=headings.find(x=>knownTitle.length>2&&x.includes(knownTitle));
   const og=meta(html,"og:title");
   const boardTitle=plain(html.match(/<h[1-4][^>]*id=["']bo_v_title["'][^>]*>([\s\S]*?)<\/h[1-4]>/i)?.[1]||"");
-  const rawTitle=boardTitle||(source.eventOnly&&og?og:currentHeading)||(og&&eventWords.test(og)?og:knownTitle)||og||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
-  const title=rawTitle.replace(new RegExp(`^${source.name}\\s*[|:>-]\\s*`),"").replace(/\s*[|>].*$/,"").trim().slice(0,180);
+  const rawTitle=boardTitle||(source.id==="coommi"?headings.find(x=>/20\d{2}/.test(x)):null)||(source.eventOnly&&og?og:currentHeading)||(og&&eventWords.test(og)?og:knownTitle)||og||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
+  const title=(source.id==="coommi"?rawTitle.replace(/^접수(?:중|마감|예정)\s*\[/,"").replace(/\s*신청\s*[:：].*\]$/,""):rawTitle).replace(new RegExp(`^${source.name}\\s*[|:>-]\\s*`),"").replace(/\s*[|>].*$/,"").trim().slice(0,180);
   const titleIndex=rows.findIndex(x=>title.length>2&&x.includes(title));
   const structuredIndex=source.id==="jiguchon"?rows.findIndex(x=>x==="일정안내"):-1;
   const articleStart=structuredIndex>=0?structuredIndex:titleIndex;
@@ -45,15 +58,16 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const body=end>=0?articleRows.slice(0,end):articleRows;
   const evidence=body.join("\n").slice(0,2500);
   const fail=(reason:string)=>({event:null,title,evidence,reason});
+  if(source.christianOnly&&!/찬양|워십|그리스도|기독교|예배|가스펠/.test(body.slice(0,8).join(" ")))return fail("outside_christian_scope");
   if((!source.eventOnly&&!eventWords.test(title)&&!body.some(x=>/^(진행\s*일시|사역\s*일정)/.test(x)))||/채용|입찰|당첨|장학생 명단|결과 보고|성료|후기|다시보기/.test(title))return fail("not_an_upcoming_event");
   if(source.id==="duranno-college"&&/녹화·편집|녹화\s*영상|녹화된\s*강의|VOD/.test(body.join("\n")))return fail("recorded_course_not_event");
   const datePattern=/^[\d\s\p{P}\p{S}\uFE0F]*(?:진행\s*일시|사역\s*일정|(?:행사|공연|전시|강의)\s*(?:일시|일정|기간)|일\s*시|일\s*정|교육\s*기간|기\s*간)(?=\s|[:：|｜]|$)\s*[:：|｜]?\s*/u;
   const datedIndex=body.findIndex(x=>datePattern.test(x)&&/20\d{2}\s*[년./-]/.test(x));
   const di=datedIndex>=0?datedIndex:body.findIndex(x=>datePattern.test(x));
   let when=field(di>=0?body.slice(di):body,datePattern);
-  if(di>=0&&body[di+2]&&/^\s*[-~～–]/.test(body[di+2]))when+=` ${body[di+2]}`;
+  if(di>=0&&body[di+2]&&/^\s*[-~～–]\s*(?:20\d{2}\s*[년.\-/]\s*\d|\d{1,2}\s*[월./]\s*\d)/.test(body[di+2]))when+=` ${body[di+2]}`;
   // Short month/day labels may use a year explicitly present in the event title, never the publication date.
-  if(!/20\d{2}/.test(when)){const years=[...new Set(title.match(/20\d{2}/g)||[])];if(years.length===1&&/^\d{1,2}\s*[월./]\s*\d{1,2}/.test(when))when=`${years[0]}년 ${when}`;}
+  if(!/20\d{2}/.test(when)){const years=[...new Set(title.match(/20\d{2}/g)||[])];if(years.length===1){const shortYear=new RegExp(`^${years[0].slice(2)}(?=\\s*[./-]\\s*\\d{1,2}\\s*[./-]\\s*\\d{1,2})`);if(shortYear.test(when))when=when.replace(shortYear,years[0]);else if(/^\d{1,2}\s*[월./]\s*\d{1,2}/.test(when))when=`${years[0]}년 ${when}`;}}
   const ds=dates(when);
   if(/[,•·]\s*(?:\d{1,2}\s*월\s*)?\d{1,2}\s*일/.test(when))return fail("multiple_sessions_require_explicit_dates");
   if(ds.length<1||ds.length>2||ds.some(x=>!validDate(x)))return fail("explicit_event_date_required");
@@ -70,16 +84,17 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   else if(/매주|매월|격주|회차|\d+차\s*[:：]/.test(when))return fail("multiple_sessions_require_explicit_dates");
   if(!validDate(endDate)||endDate<startDate||Date.parse(endDate)-Date.parse(startDate)>366*86400000)return fail("ambiguous_date_range");
   const venue=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*(?:행사\s*장소|강의\s*장소|공연장|장\s*소)(?=\s|[:：|｜]|$)\s*[:：|｜]?\s*/u)||(source.id==="chungeoram"?field(body,/^진행\s*방식\s*[:：]\s*/):"");
-  const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최\s*[:：|｜]?\s*/u)||"주최 확인 필요";
+  const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최(?:\s*\/\s*(?:주\s*관|기획))?\s*[:：|｜]?\s*/u)||"주최 확인 필요";
   if(!venue)return fail("venue_required");
   const time=when.match(/(오전|오후|저녁|밤|낮)\s*(\d{1,2})\s*(?:시|:)(?:\s*(\d{1,2})\s*분?)?/);
   let startTime:string|null=null;
   if(time){let h=Number(time[2]),m=Number(time[3]||0);if(h>=1&&h<=12&&m<60){h=h%12+(time[1]==="오전"?0:12);startTime=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;}}
   else{const clock=when.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)/);if(clock)startTime=`${clock[1].padStart(2,"0")}:${clock[2]}`;}
   if(source.id==="duranno-college"&&!startTime){const intro=body.findIndex(x=>x==="세미나 소개"),clock=body.slice(Math.max(0,di),intro<0?di+15:intro).find(x=>/^([01]?\d|2[0-3]):[0-5]\d\s*[-~]/.test(x));if(clock)startTime=clock.match(/^\d{1,2}:\d{2}/)![0].padStart(5,"0");}
+  if(source.id==="melon"&&!startTime){const clock=field(body,/^공연시간\s*[:：]?\s*/).match(/(오전|오후)\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);if(clock&&Number(clock[2])<=12&&Number(clock[2])>0&&Number(clock[3]||0)<60)startTime=`${String(Number(clock[2])%12+(clock[1]==="오후"?12:0)).padStart(2,"0")}:${String(clock[3]||0).padStart(2,"0")}`;}
   const audienceText=field(body,/^(?:[\d.•○●\s-]*)?대\s*상\s*[:：]?\s*/)||title;
   const audience=["어린이","청소년","청년","가정","목회자"].find(x=>audienceText.includes(x))||(/목사/.test(audienceText)?"목회자":"대상 확인 필요");
-  const category=source.id==="gwangya"||/찬양|공연|뮤지컬|음악회|콘서트|전시|영화제/.test(title)?"찬양·공연":source.id==="duranno-college"||source.id==="chungeoram"||/세미나|워크숍|컨퍼런스|교육|훈련|학교|포럼|대학|강좌|강연|클래스|배움터/.test(title)?"세미나·교육":/봉사|선교/.test(title)?"봉사·선교":/수련회|캠프|수양회/.test(title)?"수련회":/집회|예배/.test(title)?"집회":"기타 행사";
+  const category=/북\s*콘서트/.test(title)?"세미나·교육":(source.id==="gwangya"||source.id==="melon")||/찬양|공연|뮤지컬|음악회|콘서트|전시|영화제/.test(title)?"찬양·공연":source.id==="duranno-college"||source.id==="chungeoram"||/세미나|워크숍|컨퍼런스|교육|훈련|학교|포럼|대학|강좌|강연|클래스|배움터/.test(title)?"세미나·교육":/봉사|선교/.test(title)?"봉사·선교":/수련회|캠프|수양회/.test(title)?"수련회":/집회|예배/.test(title)?"집회":"기타 행사";
   const attendance=/온라인|[Zz][Oo][Oo][Mm]|유튜브/.test(venue)?(/현장|병행/.test(venue)?"현장·온라인":"온라인"):"현장";
   // External application buttons are followed by the user, never fetched by the collector.
   const registrationUrl=links(html,url).find(x=>/^(신청하기|신청가기|신청페이지가기|참가신청|등록하기)$/.test(x.title))?.url||null;

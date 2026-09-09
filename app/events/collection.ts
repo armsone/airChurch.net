@@ -48,10 +48,11 @@ function nextListing(source:SourceConfig,html:string,base:string){
   return links(html,base).find(link=>{const u=new URL(link.url),next=Number(u.searchParams.get("page")||u.pathname.match(/\/page\/(\d+)\//)?.[1]||0);return host(link.url)===host(source.url)&&next===page+1&&(u.pathname===root.pathname||u.pathname===`${root.pathname.replace(/\/$/,"")}/page/${next}/`)&&(!root.searchParams.has("bo_table")||u.searchParams.get("bo_table")===root.searchParams.get("bo_table"));})?.url||null;
 }
 async function discover(source:SourceConfig,html:string,base=source.url){
+  if(source.singlePage)return [{url:source.url,title:source.name}];
   if(/<item\b/i.test(html)){
     return [...html.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].flatMap(m=>{const title=plain(m[1].match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||""),url=plain(m[1].match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]||"");try{return (source.kind==="rss"?eventWords.test(title)&&host(url)===host(source.url):isDetail(source,url))?[{url,title}]:[];}catch{return [];}});
   }
-  const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title)));
+  const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title))&&(!source.christianOnly||/찬양|워십|그리스도|기독교|예배|가스펠/.test(x.title)));
   // The official page's locations(id) links are read as data, never executed.
   if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
   return [...new Map(found.map(item=>[item.url,item])).values()];
