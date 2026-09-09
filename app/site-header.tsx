@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import HomeReloadLink from "./home-reload-link";
 import SavedNavLink from "./saved-nav-link";
 
-const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["행사", "/events"], ["교계소식", "/#church-news"], ["공동체", "/#community"], ["착한나눔", "/#goodshare"], ["소개", "/#vision"]] as const;
+const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["행사", "/#events"], ["교계소식", "/#church-news"], ["공동체", "/#community"], ["착한나눔", "/#goodshare"], ["소개", "/#vision"]] as const;
 
 export default function SiteHeader() {
   const pathname = usePathname();
@@ -25,7 +25,7 @@ export default function SiteHeader() {
     return () => { window.removeEventListener("keydown", closeOnEscape); document.removeEventListener("pointerdown", closeOutside); desktop.removeEventListener("change", closeOnDesktop); };
   }, [open]);
   const hrefFor = (href: string) => pathname === "/" && href.startsWith("/#") ? href.slice(1) : href;
-  const navigation = menuItems.map(([label, href]) => <a key={href} href={hrefFor(href)} aria-current={href === "/events" && pathname?.startsWith("/events") ? "page" : undefined} onClick={() => setOpen(false)}>{label}</a>);
+  const navigation = menuItems.map(([label, href]) => <a key={href} href={hrefFor(href)} onClick={() => setOpen(false)}>{label}</a>);
   return <header className="site-header shared-site-header" ref={header}>
     <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink>
     <nav className="shared-primary-nav" aria-label="주요 메뉴">{navigation}</nav>
