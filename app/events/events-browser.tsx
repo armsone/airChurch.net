@@ -11,7 +11,7 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
   const container=useRef<HTMLDivElement>(null);const [visible,setVisible]=useState(!compact);
   useEffect(()=>{if(!compact||!container.current)return;const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"350px"});observer.observe(container.current);return()=>observer.disconnect();},[compact]);
   useEffect(()=>{const id=Number(new URLSearchParams(window.location.search).get("church"));if(Number.isInteger(id)&&id>0)setQueryChurch(id);setReady(true);},[]);
-  const params = new URLSearchParams(compact ? {upcoming:"1",limit:"9"} : month ? {...bounds(month),limit:"100"} : {upcoming:"1",limit:"100"});
+  const params = new URLSearchParams(compact ? {preview:"1",limit:"9"} : month ? {...bounds(month),limit:"100"} : {upcoming:"1",limit:"100"});
   const selectedChurch=churchId||queryChurch;
   if(selectedChurch)params.set("church",String(selectedChurch));
   if(region&&!selectedChurch)params.set("region",region);
@@ -33,7 +33,8 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
   const title=churchId?"이 교회의 예정 행사":"다가오는 기독교 행사";
   const shown=(data?.items||[]).filter(item=>view==="calendar"?(item.startDate===item.endDate&&(!day||item.startDate===day)):true);
   const periods=view==="calendar"?(data?.items||[]).filter(item=>item.startDate!==item.endDate):[];
-  const groups=new Map<string,ChurchEvent[]>();for(const item of shown){const key=day||item.startDate;(groups.get(key)||groups.set(key,[]).get(key)!).push(item);}
+  const groups=new Map<string,ChurchEvent[]>();for(const item of shown){const key=view!=="calendar"&&item.startDate<today?"ongoing":item.startDate.slice(0,7);(groups.get(key)||groups.set(key,[]).get(key)!).push(item);}
+  const orderedGroups=Array.from(groups).sort(([a],[b])=>a==="ongoing"?1:b==="ongoing"?-1:a.localeCompare(b));
   const calendar=month?bounds(month):null;
   return <div className="events-browser" ref={container}>
     {compact&&<div className="section-heading"><div><span className="section-kicker">함께하는 신앙</span><h2>{title}</h2><p>공식 공지에서 확인한 행사 일정입니다. 정확한 진행일과 참여 방법은 원문에서 확인해 주세요.</p></div><a className="church-news-shuffle unified-other-button" href={churchId?`/events?church=${churchId}`:"/events"}>전체 일정 보기 →</a></div>}
@@ -45,11 +46,11 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
       {(month||region||online||category||audience||selectedChurch)&&<button type="button" onClick={()=>{setQueryChurch(undefined);window.history.replaceState(null,"","/events");setMonth("");setView("list");setRegion("");setOnline(false);setCategory("");setAudience("");setDay("");}}>초기화</button>}
     </div>}
     {!compact&&<div className="event-view-switch"><button type="button" aria-pressed={view==="list"} onClick={()=>{setView("list");setDay("");}}>날짜순</button><button type="button" aria-pressed={view==="calendar"} onClick={()=>{setView("calendar");if(!month)setMonth(today.slice(0,7));}}>달력</button><span>{loading?"확인 중…":`확인된 일정 ${data?.items.length||0}${data?.nextCursor?"+":""}건`}</span></div>}
-    {!compact&&<p className="event-range-note">진행 중인 행사를 포함합니다. 기간·정기 행사의 개별 회차는 원문을 확인해 주세요.{selectedChurch&&" 현재 특정 교회의 행사만 보고 있습니다."}</p>}
+    {!compact&&view==="calendar"&&<p className="event-range-note">날짜가 확정된 단일 행사만 달력에 표시합니다. 기간·정기 행사는 아래에서 확인하세요.</p>}
     {!compact&&view==="calendar"&&calendar&&<><div className="event-calendar" aria-label={`${month} 행사 달력`}>{["일","월","화","수","목","금","토"].map(x=><span className="event-weekday" key={x}>{x}</span>)}{Array.from({length:new Date(`${calendar.from}T00:00:00Z`).getUTCDay()},(_,i)=><span key={`empty-${i}`}/>)}{Array.from({length:Number(calendar.to.slice(-2))},(_,i)=>{const date=`${month}-${String(i+1).padStart(2,"0")}`,count=(data?.items||[]).filter(x=>x.startDate===date&&x.endDate===date).length;return <button key={date} type="button" aria-pressed={day===date} aria-label={`${dateLabel(date)}, 행사 ${count}건`} className={date===today?"is-today":""} onClick={()=>setDay(day===date?"":date)}><time dateTime={date}>{i+1}</time>{count>0&&<small>{count}건</small>}</button>;})}</div>{data?.nextCursor&&<p>아래 ‘더 불러오기’를 누르면 나머지 일정도 달력에 표시됩니다.</p>}</>}
     <div aria-live="polite" aria-busy={loading}>{loading?<p className="event-empty">공식 행사 일정을 불러오고 있습니다…</p>:<>
       {error&&<p className="event-empty" role="alert">일정을 불러오지 못했습니다. <button type="button" onClick={()=>data?.nextCursor?void more():setRevision(x=>x+1)}>다시 시도</button></p>}
-      {compact?<div className="event-grid church-news-grid event-preview-grid">{shown.map(item=><EventCard key={item.id} item={item} compact/>)}</div>:Array.from(groups,([date,items])=><section className="event-day-group" key={date}><h2>{dateLabel(date)}{date<today&&<small>진행 중</small>}</h2><div className="event-agenda">{items.map(item=><EventCard key={item.id} item={item}/>)}</div></section>)}
+      {compact?<div className="event-grid church-news-grid event-preview-grid">{shown.map(item=><EventCard key={item.id} item={item} compact/>)}</div>:orderedGroups.map(([date,items])=><section className="event-day-group" key={date}><h2>{date==="ongoing"?"진행 중인 행사":`${date.slice(0,4)}년 ${Number(date.slice(5))}월`}</h2><div className="event-agenda">{items.map(item=><EventCard key={item.id} item={item}/>)}</div></section>)}
       {!shown.length&&!error&&<p className="event-empty">{day?`${dateLabel(day)}에 수집된 행사가 없습니다.`:"선택한 조건에 수집된 예정 행사가 없습니다."} 공식 출처의 안내도 함께 확인해 주세요.</p>}
       {!compact&&periods.length>0&&<section className="event-day-group"><h2>기간·정기 행사</h2><p className="event-range-note">아래 행사는 개별 회차를 확인해야 하므로 달력의 날짜별 건수에는 넣지 않았습니다.</p><div className="event-agenda">{periods.map(item=><EventCard key={item.id} item={item}/>)}</div></section>}
       {!compact&&data?.nextCursor&&<button className="event-more" type="button" disabled={moreBusy} onClick={()=>void more()}>{moreBusy?"불러오는 중…":"일정 더 불러오기"}</button>}

@@ -14,7 +14,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Collect due sources in bounded batches
         env:
@@ -23,7 +23,7 @@ jobs:
           node --input-type=module <<'JS'
           const token = process.env.EVENTS_SYNC_TOKEN;
           if (!token || token.length < 32) throw new Error('EVENTS_SYNC_TOKEN is not configured');
-          for (let batch = 0; batch < 12; batch++) {
+          for (let batch = 0; batch < 24; batch++) {
             const response = await fetch('https://airchurch.net/api/events/sync', {
               method: 'POST', redirect: 'error',
               headers: { authorization: `Bearer ${token}` },

@@ -1,12 +1,12 @@
 import { database } from "../api/_shared";
 import { sources as newsSources } from "../api/church-news/route";
-import { officialEventSources, type SourceConfig } from "./sources";
+import { officialEventSources, additionalDiscoverySources, type SourceConfig } from "./sources";
 import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
 const COLLECTOR_VERSION=2;
-export const collectionSources:SourceConfig[]=[...officialEventSources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""}))];
+export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""}))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
 function after(hours:number){return new Date(Date.now()+hours*3600000).toISOString();}
@@ -51,7 +51,7 @@ async function discover(source:SourceConfig,html:string,base=source.url){
   if(/<item\b/i.test(html)){
     return [...html.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].flatMap(m=>{const title=plain(m[1].match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||""),url=plain(m[1].match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]||"");try{return (source.kind==="rss"?eventWords.test(title)&&host(url)===host(source.url):isDetail(source,url))?[{url,title}]:[];}catch{return [];}});
   }
-  const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly));
+  const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title)));
   // The official page's locations(id) links are read as data, never executed.
   if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
   return [...new Map(found.map(item=>[item.url,item])).values()];
