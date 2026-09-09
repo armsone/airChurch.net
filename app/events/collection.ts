@@ -87,7 +87,10 @@ async function processSource(source:SourceConfig){
     queue.results.sort((a,b)=>score(a)-score(b)||(a.checkedAt||"").localeCompare(b.checkedAt||""));
     let failed=0,blocked=0,processed=0;
     for(const candidate of queue.results){
-      if(processed>=10||Date.now()-started>50000)break;
+      // The remote scheduler's gateway closes long-lived requests at roughly 45
+      // seconds. Stop this source early; the next 15-minute batch resumes its
+      // remaining queue from the saved checkpoint.
+      if(processed>=10||Date.now()-started>32_000)break;
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
       if(!robotsAllowed(robots.text,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
