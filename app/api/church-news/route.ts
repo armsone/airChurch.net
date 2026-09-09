@@ -1,8 +1,10 @@
 import { database } from "../_shared";
+import { getRequestExecutionContext } from "vinext/shims/request-context";
 
 type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string};
 type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string;markUrl:string};
-type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string}>};
+type FeedState={items:NewsItem[];checkedAt:string;lastSuccessAt?:string;nextCheckAt:string;failures:number;etag?:string;modified?:string};
+type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string;status:string;lastSuccessAt?:string}>;refreshedAt?:string;sourcesProcessed?:number;target:number};
 type SnapshotRow={payload:string;refreshedAt:string};
 
 export const sources:FeedSource[]=[
@@ -31,6 +33,33 @@ export const sources:FeedSource[]=[
   {name:"기독일보",url:"https://www.christiandaily.co.kr/rss/articles/topnews/all.rss",homepage:"https://www.christiandaily.co.kr/",allowedHost:"www.christiandaily.co.kr",tone:"christiandaily",markUrl:"https://www.christiandaily.co.kr/views/images/aboutus/logo.png"},
   {name:"크리스찬저널",url:"https://www.kcjlogos.org/rss/allArticle.xml",homepage:"https://www.kcjlogos.org/",allowedHost:"www.kcjlogos.org",tone:"kcjlogos",markUrl:"https://cdn.kcjlogos.org/image/logo/toplogo_20210726090555.png"},
   {name:"뉴스제이",url:"https://www.newsjesus.net/rss/allArticle.xml",homepage:"https://www.newsjesus.net/",allowedHost:"www.newsjesus.net",tone:"newsjesus",markUrl:"https://www.newsjesus.net/image/logo/toplogo_20240104032146.gif"},
+  ...[
+    ["침례신문","https://www.baptistnews.co.kr","https://www.baptistnews.co.kr/data/rss/news.xml"],
+    ["에큐메니안","https://www.ecumenian.com","https://cdn.ecumenian.com/rss/gn_rss_allArticle.xml"],
+    ["한국장로신문","https://jangro.kr","https://jangro.kr/feed/"],
+    ["컵뉴스","https://www.cupnews.kr","https://www.cupnews.kr/rss/gns_allArticle.xml"],
+    ["복음in","https://www.ingn.net","https://cdn.ingn.net/rss/gn_rss_allArticle.xml"],
+    ["한국기독신문","https://www.kcnp.com","https://www.kcnp.com/rss/"],
+    ["KMC뉴스","https://www.kmcnews.kr","https://cdn.kmcnews.kr/rss/gn_rss_allArticle.xml"],
+    ["뉴스앤넷","https://www.newsnnet.com","https://cdn.newsnnet.com/rss/gn_rss_allArticle.xml"],
+    ["그신문 월드리뷰","https://www.christianwr.com","https://cdn.christianwr.com/rss/gn_rss_allArticle.xml"],
+    ["국제기독교뉴스","https://www.christiannews.co.kr","https://www.christiannews.co.kr/rss/rss_news.php"],
+    ["뉴스파워","https://www.newspower.co.kr","https://www.newspower.co.kr/rss/rss_news.php"],
+    ["i기독타임즈","https://www.kidoktimes.co.kr","https://www.kidoktimes.co.kr/rss/rss_news.php"],
+    ["미주뉴스앤조이","https://www.newsnjoy.us","https://cdn.newsnjoy.us/rss/gns_allArticle.xml"],
+    ["크리스찬투데이·미주","https://www.christiantoday.us","https://www.christiantoday.us/rss/rss_news.php"],
+    ["웨슬리안타임즈","https://www.kmcdaily.com","http://www.kmcdaily.com/rss/allArticle.xml"],
+    ["가스펠투데이","https://www.gospeltoday.co.kr","http://www.gospeltoday.co.kr/rss/allArticle.xml"],
+    ["한국기독저널","https://www.christian-journal.com","https://cdn.christian-journal.com/rss/gns_allArticle.xml"],
+    ["리폼드뉴스","https://www.reformednews.co.kr","https://www.reformednews.co.kr/rss/rss_news.php"],
+    ["기독교라인","https://www.kidokline.com","https://www.kidokline.com/rss/allArticle.xml"],
+    ["평화나무","https://www.logosian.com","https://www.logosian.com/rss/allArticle.xml"],
+    ["크리스천비전","https://www.christianvision.net","https://www.christianvision.net/rss/rss_news.php"],
+    ["코람데오닷컴","https://www.kscoramdeo.com","https://www.kscoramdeo.com/rss/allArticle.xml"],
+    ["리폼드투데이","https://www.reformedtoday.net","https://www.reformedtoday.net/rss/allArticle.xml"],
+    ["국민일보 더미션","https://www.themission.co.kr","https://www.themission.co.kr/rss/allArticle.xml"],
+    ["크리스천투데이","https://www.christiantoday.co.kr","https://www.christiantoday.co.kr/rss/"],
+  ].map(([name,homepage,url])=>({name,homepage,url,allowedHost:new URL(homepage).hostname,tone:"newsnjoy",markUrl:""})),
 ];
 
 function decodeXml(value:string) {
@@ -51,16 +80,18 @@ function tag(item:string,name:string) {
 
 function parseFeed(xml:string,source:FeedSource):NewsItem[] {
   const items:NewsItem[]=[];
-  for(const match of xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)) {
+  for(const match of xml.matchAll(/<(?:item|entry)(?:\s[^>]*)?>([\s\S]*?)<\/(?:item|entry)>/gi)) {
     const item=match[1];
     const title=plainText(tag(item,"title"));
-    const rawUrl=plainText(tag(item,"link"));
-    const publishedAt=plainText(tag(item,"pubDate")||tag(item,"dc:date"));
+    const rawUrl=plainText(tag(item,"link")||item.match(/<link\b[^>]*href=["']([^"']+)["']/i)?.[1]||"");
+    const rawDate=plainText(tag(item,"pubDate")||tag(item,"dc:date")||tag(item,"atom:updated")||tag(item,"published")||tag(item,"updated"));
+    const timestamp=Date.parse(/^\d{4}-\d\d-\d\d \d\d:\d\d(?::\d\d)?$/.test(rawDate)?rawDate.replace(" ","T")+"+09:00":rawDate.replace(/\bKST\b/,"+0900"));
+    if(!Number.isFinite(timestamp)||timestamp>Date.now()+3600000)continue;
+    const publishedAt=new Date(timestamp).toISOString();
     const summary=plainText(tag(item,"description")).slice(0,140);
     try {
       const url=new URL(rawUrl);
-      if(url.hostname!==source.allowedHost||!title) continue;
-      if(url.protocol==="http:") url.protocol="https:";
+      if(url.hostname.replace(/^www\./,"")!==source.allowedHost.replace(/^www\./,"")||!title||!/^https?:$/.test(url.protocol)||url.username||url.password) continue;
       items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone,markUrl:source.markUrl});
     } catch { /* 형식이 잘못된 외부 링크는 뉴스 목록에서 제외합니다. */ }
   }
@@ -74,13 +105,27 @@ async function limitedText(response:Response,maxBytes=1_000_000) {
   const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
   while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){void reader.cancel().catch(()=>{});return null;}chunks.push(value);}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-  return new TextDecoder().decode(bytes);
+  const encoding=response.headers.get("content-type")?.match(/charset=["']?([^;\s"']+)/i)?.[1]||new TextDecoder().decode(bytes.slice(0,200)).match(/encoding=["']([^"']+)/i)?.[1]||"utf-8";
+  return new TextDecoder(encoding).decode(bytes);
 }
 
-async function loadSource(source:FeedSource) {
-  const response=await fetch(source.url,{headers:{accept:"application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1"},signal:AbortSignal.timeout(8_000)}).catch(()=>null);
-  if(!response?.ok) return [];
-  const xml=await limitedText(response);return xml===null?[]:parseFeed(xml,source);
+async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
+  const checkedAt=new Date().toISOString();
+  try{
+    const headers:Record<string,string>={accept:"application/rss+xml, application/atom+xml, application/xml;q=0.9","user-agent":"AirChurchNews/1.0 (+https://airchurch.net/contact)"};
+    if(previous?.etag)headers["if-none-match"]=previous.etag;
+    if(previous?.modified)headers["if-modified-since"]=previous.modified;
+    const response=await fetch(source.url,{headers,signal:AbortSignal.timeout(8_000)});
+    const nextCheckAt=new Date(Date.now()+2*3600000).toISOString();
+    if(response.status===304&&previous?.items.length)return {...previous,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0};
+    if(!response.ok)throw Error("feed_unavailable");
+    const xml=await limitedText(response),items=xml===null?[]:parseFeed(xml,source).sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).slice(0,10);
+    if(!items.length)throw Error("feed_has_no_valid_articles");
+    return {items,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,etag:response.headers.get("etag")||undefined,modified:response.headers.get("last-modified")||undefined};
+  }catch{
+    const failures=(previous?.failures||0)+1;
+    return {...previous,items:previous?.items||[],checkedAt,nextCheckAt:new Date(Date.now()+Math.min(24,2**failures)*3600000).toISOString(),failures};
+  }
 }
 
 async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Promise<R>):Promise<R[]> {
@@ -92,7 +137,7 @@ async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Pro
   return results;
 }
 
-const MAX_PER_SOURCE=2;
+const MAX_PER_SOURCE=10;
 
 function capPerSource(items:NewsItem[],limit:number) {
   const counts=new Map<string,number>();
@@ -106,19 +151,35 @@ function capPerSource(items:NewsItem[],limit:number) {
   return result;
 }
 
-const publicSources=()=>sources.map(({name,url,homepage})=>({name,rssUrl:url,homepage}));
+const feedKey=(source:FeedSource)=>`feed:${source.allowedHost}`;
+const publicSources=(states=new Map<string,FeedState>())=>sources.map(source=>{
+  const state=states.get(feedKey(source));
+  return {name:source.name,rssUrl:source.url,homepage:source.homepage,status:!state?"pending":state.failures?"failed":Date.now()-Date.parse(state.checkedAt)>6*3600000?"stale":"ok",lastSuccessAt:state?.lastSuccessAt};
+});
 
+// One short batch per lease. Public reads never wait for fifty external servers.
 export async function refreshChurchNewsSnapshot() {
-  const loaded=await mapWithConcurrency(sources,6,async(source)=>loadSource(source).catch(()=>[]));
-  const items=capPerSource(
-    loaded.flat()
-      .sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)),
-    MAX_PER_SOURCE,
-  ).slice(0,50);
-  if(!items.length)return null;
-  const payload:NewsPayload={items,sources:publicSources()};
-  await database().prepare("INSERT INTO church_news_snapshots (key,payload,item_count,refreshed_at) VALUES ('latest',?,?,CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=CURRENT_TIMESTAMP").bind(JSON.stringify(payload),items.length).run();
-  return payload;
+  const db=database(),now=new Date().toISOString(),token=crypto.randomUUID();
+  const claim=await db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES('refresh-lock',?,0,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,refreshed_at=excluded.refreshed_at WHERE church_news_snapshots.refreshed_at<?").bind(token,new Date(Date.now()+60000).toISOString(),now).run();
+  if(Number(claim.meta.changes)!==1)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:50}),sourcesProcessed:0};
+  try{
+    const rows=await db.prepare("SELECT key,payload FROM church_news_snapshots WHERE key LIKE 'feed:%'").all<{key:string;payload:string}>();
+    const states=new Map<string,FeedState>();
+    for(const row of rows.results){try{states.set(row.key,JSON.parse(row.payload));}catch{/* Retain the last aggregate until this feed can be refreshed. */}}
+    const due=sources.filter(s=>!states.get(feedKey(s))||states.get(feedKey(s))!.nextCheckAt<=now).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
+    if(!due.length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:50}),sourcesProcessed:0};
+    const loaded=await mapWithConcurrency(due,3,async source=>({source,state:await loadSource(source,states.get(feedKey(source)))}));
+    await db.batch(loaded.map(({source,state})=>db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(feedKey(source),JSON.stringify(state),state.items.length,state.checkedAt)));
+    for(const {source,state} of loaded)states.set(feedKey(source),state);
+    const previous=await readChurchNewsSnapshot();
+    const current=sources.flatMap(s=>states.get(feedKey(s))?.items.length?states.get(feedKey(s))!.items:previous?.items.filter(i=>i.source===s.name)||[]);
+    const items=capPerSource([...new Map(current.map(item=>[item.url,item])).values()].sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0)),MAX_PER_SOURCE).slice(0,500);
+    const payload:NewsPayload={items,sources:publicSources(states),refreshedAt:now,sourcesProcessed:due.length,target:50};
+    await db.prepare("INSERT INTO church_news_snapshots (key,payload,item_count,refreshed_at) VALUES ('latest',?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(JSON.stringify(payload),items.length,now).run();
+    return payload;
+  }finally{
+    await db.prepare("UPDATE church_news_snapshots SET refreshed_at=? WHERE key='refresh-lock' AND payload=?").bind(new Date().toISOString(),token).run();
+  }
 }
 
 async function readChurchNewsSnapshot(){
@@ -127,13 +188,14 @@ async function readChurchNewsSnapshot(){
   try {
     const payload=JSON.parse(row.payload) as NewsPayload;
     const marks=new Map(sources.map((source)=>[source.name,source.markUrl]));
-    return {...payload,items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
+    return {...payload,target:50,refreshedAt:row.refreshedAt,sources:publicSources().map(source=>({...source,...payload.sources.find(s=>s.name===source.name),rssUrl:source.rssUrl})),items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
   } catch{return null;}
 }
 
 export async function GET() {
   const stored=await readChurchNewsSnapshot();
-  const payload=stored??await refreshChurchNewsSnapshot()??{items:[],sources:publicSources()};
-  const cacheControl=payload.items.length?"public, max-age=300, s-maxage=21600, stale-while-revalidate=86400":"no-store";
+  if(!stored||Date.now()-Date.parse(stored.refreshedAt||"")>5*60000)getRequestExecutionContext()?.waitUntil(refreshChurchNewsSnapshot().catch(()=>null));
+  const payload=stored??{items:[],sources:publicSources(),target:50};
+  const cacheControl=payload.items.length?"public, max-age=60, s-maxage=300, stale-while-revalidate=600":"no-store";
   return Response.json(payload,{headers:{"cache-control":cacheControl}});
 }

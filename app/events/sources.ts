@@ -30,6 +30,11 @@ export const officialEventSources:SourceConfig[] = [
   {id:"sarang",name:"사랑의교회",homepage:"https://www.sarang.org/",url:"https://www.sarang.org/info/notice.asp",kind:"official",detailPattern:"/info/notice.*(?:[?&](?:id|idx|seq|num)=)",churchName:"사랑의교회",organizer:"사랑의교회"},
   {id:"ucck",name:"한국교회총연합",homepage:"https://www.ucck.org/Main/Index",url:"https://www.ucck.org/InfoMap/Notice",kind:"official",detailPattern:"/InfoMap/(?:Detail|Notice)[/?].+"},
   {id:"emik",name:"한국기독교장로회 총회교육국",homepage:"https://www.emik.org/",url:"https://www.emik.org/g5/bbs/board.php?bo_table=s6_1",kind:"official",detailPattern:"[?&]wr_id=\\d+"},
+  {id:"anointing",name:"어노인팅",homepage:"https://anointing.kr/",url:"https://anointing.kr/community.php?cate=news",kind:"official",detailPattern:"/communityview\\.php\\?[^#]*idx=\\d+",organizer:"어노인팅"},
+  {id:"paidion",name:"파이디온선교회",homepage:"https://www.paidion.org/",url:"https://paidionsquare.com/seminar/pindex2.php",kind:"official",detailPattern:"/seminar/view1\\.php\\?sm_id=\\d+",organizer:"파이디온선교회",eventOnly:true},
+  {id:"juba",name:"주바라기선교회",homepage:"https://www.juba.co.kr/kor/main/",url:"https://www.juba.co.kr/kor/sub/?cg01_idx=28&cg02_idx=121",kind:"official",detailPattern:"/kor/sub/\\?[^#]*pmode=view[^#]*table_idx=\\d+",organizer:"주바라기선교회",listingUrls:["https://www.juba.co.kr/kor/main/"]},
+  {id:"cbmc",name:"한국CBMC",homepage:"https://cbmc.or.kr/",url:"https://cbmc.or.kr/bbs/board.php?bo_table=notice",kind:"official",detailPattern:"[?&]wr_id=\\d+",organizer:"한국CBMC"},
+  {id:"gms-training",name:"총회세계선교회 GMS",homepage:"https://gms.kr/",url:"https://gms.kr/bbs/board.php?bo_table=444",kind:"official",detailPattern:"[?&]wr_id=\\d+",organizer:"총회세계선교회"},
 ];
 
 // Extra aggregators discover official references only; articles never become confirmed events by themselves.

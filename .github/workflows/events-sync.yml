@@ -23,16 +23,22 @@ jobs:
           node --input-type=module <<'JS'
           const token = process.env.EVENTS_SYNC_TOKEN;
           if (!token || token.length < 32) throw new Error('EVENTS_SYNC_TOKEN is not configured');
-          for (let batch = 0; batch < 24; batch++) {
-            const response = await fetch('https://airchurch.net/api/events/sync', {
+          for (let batch = 0; batch < 75; batch++) {
+            let response;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              response = await fetch('https://airchurch.net/api/events/sync', {
               method: 'POST', redirect: 'error',
               headers: { authorization: `Bearer ${token}` },
               signal: AbortSignal.timeout(110000),
-            });
+              }).catch(() => null);
+              if (response?.ok || (response && response.status < 500 && response.status !== 429)) break;
+              if (attempt < 2) await new Promise(resolve => setTimeout(resolve, 15000 * (attempt + 1)));
+            }
+            if (!response) throw new Error('Content collection network unavailable');
             if (!response.ok) throw new Error(`Event collection failed: HTTP ${response.status}`);
             const result = await response.json();
             if (result.ok !== true) throw new Error('Event collection returned an invalid result');
-            console.log(`Batch ${batch + 1}: ${result.sourcesProcessed} sources processed, ${result.published ?? 0} events published, ${result.pending ?? 0} candidates pending`);
-            if (!result.sourcesProcessed) break;
+            console.log(`Batch ${batch + 1}: ${result.sourcesProcessed} event sources, ${result.newsSourcesProcessed ?? 0} news sources, ${result.published ?? 0} events published`);
+            if (!result.sourcesProcessed && !result.newsSourcesProcessed) break;
           }
           JS

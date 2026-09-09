@@ -85,7 +85,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   if(!validDate(endDate)||endDate<startDate||Date.parse(endDate)-Date.parse(startDate)>366*86400000)return fail("ambiguous_date_range");
   const venue=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*(?:행사\s*장소|강의\s*장소|공연장|장\s*소)(?=\s|[:：|｜]|$)\s*[:：|｜]?\s*/u)||(source.id==="chungeoram"?field(body,/^진행\s*방식\s*[:：]\s*/):"");
   const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최(?:\s*\/\s*(?:주\s*관|기획))?\s*[:：|｜]?\s*/u)||"주최 확인 필요";
-  if(!venue)return fail("venue_required");
+  if(!venue||/추후\s*(?:공지|안내|공개|확정)|미정|확정\s*예정|TBD|장소\s*협의/i.test(venue))return fail("venue_required");
   const time=when.match(/(오전|오후|저녁|밤|낮)\s*(\d{1,2})\s*(?:시|:)(?:\s*(\d{1,2})\s*분?)?/);
   let startTime:string|null=null;
   if(time){let h=Number(time[2]),m=Number(time[3]||0);if(h>=1&&h<=12&&m<60){h=h%12+(time[1]==="오전"?0:12);startTime=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;}}
