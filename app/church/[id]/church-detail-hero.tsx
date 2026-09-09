@@ -26,10 +26,10 @@ function easterSunday(year: number) {
 }
 
 function koreaToday() {
-  const [year, month, day] = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" })
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" })
     .formatToParts(new Date())
     .reduce<Record<string, string>>((parts, part) => ({ ...parts, [part.type]: part.value }), {});
-  return utcDate(Number(year), Number(month) - 1, Number(day));
+  return utcDate(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
 }
 
 function currentSeason(today = koreaToday()): LiturgicalSeason {
