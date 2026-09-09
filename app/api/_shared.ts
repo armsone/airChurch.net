@@ -295,11 +295,25 @@ const ensureChurchPrimaryPastorsV29=async(db:D1Database)=>{
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v29',CURRENT_TIMESTAMP)"),
   ]);
 };
+const ensurePastorDenominationsV30=async(db:D1Database)=>{
+  const columns=await db.prepare("PRAGMA table_info(pastor_people)").all<{name:string}>();
+  await addColumnIfMissing(db,columns.results,"denomination","ALTER TABLE pastor_people ADD COLUMN denomination TEXT");
+  await db.batch([
+    db.prepare("UPDATE pastor_people SET denomination=(SELECT r.denomination FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id AND r.review_status='approved' AND TRIM(COALESCE(r.denomination,''))<>'' ORDER BY CASE r.role_status WHEN 'current' THEN 0 ELSE 1 END,CASE r.role_category WHEN 'current_primary' THEN 0 ELSE 1 END,COALESCE(r.end_date,r.start_date,'') DESC,r.id DESC LIMIT 1) WHERE TRIM(COALESCE(denomination,''))=''"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_denomination ON pastor_people(denomination,review_status)"),
+    db.prepare("DROP TRIGGER IF EXISTS trg_pastor_people_denomination"),
+    db.prepare("CREATE TRIGGER trg_pastor_people_denomination AFTER INSERT ON pastor_church_roles WHEN NEW.review_status='approved' AND TRIM(COALESCE(NEW.denomination,''))<>'' AND TRIM(COALESCE((SELECT denomination FROM pastor_people WHERE id=NEW.pastor_id),''))='' BEGIN UPDATE pastor_people SET denomination=NEW.denomination,updated_at=CURRENT_TIMESTAMP WHERE id=NEW.pastor_id; END"),
+    db.prepare("DROP TRIGGER IF EXISTS trg_pastor_people_denomination_approved"),
+    db.prepare("CREATE TRIGGER trg_pastor_people_denomination_approved AFTER UPDATE OF review_status ON pastor_church_roles WHEN NEW.review_status='approved' AND TRIM(COALESCE(NEW.denomination,''))<>'' AND TRIM(COALESCE((SELECT denomination FROM pastor_people WHERE id=NEW.pastor_id),''))='' BEGIN UPDATE pastor_people SET denomination=NEW.denomination,updated_at=CURRENT_TIMESTAMP WHERE id=NEW.pastor_id; END"),
+    db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v30',CURRENT_TIMESTAMP)"),
+  ]);
+};
 export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
-  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v29' LIMIT 1").first<{key:string}>();if(ready)return;
-  const publicIdsReady=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v28' LIMIT 1").first<{key:string}>();if(publicIdsReady){await ensureChurchPrimaryPastorsV29(db);return;}
-  const previous=await db.prepare("SELECT key FROM maintenance_state WHERE key IN ('schema-pastor-people-v26','schema-pastor-people-v27') LIMIT 1").first<{key:string}>();if(previous){await ensurePastorPublicIdsV28(db);await ensureChurchPrimaryPastorsV29(db);return;}
+  const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v30' LIMIT 1").first<{key:string}>();if(ready)return;
+  const denominationsReady=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v29' LIMIT 1").first<{key:string}>();if(denominationsReady){await ensurePastorDenominationsV30(db);return;}
+  const publicIdsReady=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-pastor-people-v28' LIMIT 1").first<{key:string}>();if(publicIdsReady){await ensureChurchPrimaryPastorsV29(db);await ensurePastorDenominationsV30(db);return;}
+  const previous=await db.prepare("SELECT key FROM maintenance_state WHERE key IN ('schema-pastor-people-v26','schema-pastor-people-v27') LIMIT 1").first<{key:string}>();if(previous){await ensurePastorPublicIdsV28(db);await ensureChurchPrimaryPastorsV29(db);await ensurePastorDenominationsV30(db);return;}
   await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS pastor_people (id INTEGER PRIMARY KEY AUTOINCREMENT,directory_id TEXT UNIQUE,name TEXT NOT NULL,public_summary TEXT,photo_url TEXT,photo_source_url TEXT,photo_sha256 TEXT,photo_usage_basis TEXT,photo_review_status TEXT NOT NULL DEFAULT 'pending',review_status TEXT NOT NULL DEFAULT 'pending',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pastor_people_review_name ON pastor_people(review_status,name)"),
@@ -467,6 +481,7 @@ export const ensurePastorPeopleTables=memoizeEnsure(async(db:D1Database)=>{
   await db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-pastor-people-v26',CURRENT_TIMESTAMP)").run();
   await ensurePastorPublicIdsV28(db);
   await ensureChurchPrimaryPastorsV29(db);
+  await ensurePastorDenominationsV30(db);
 });
 export async function rebuildPastorAdminBuckets(db:D1Database){
   await ensurePastorPeopleTables(db);
