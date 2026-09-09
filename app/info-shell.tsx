@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import HomeReloadLink from "./home-reload-link";
+import SiteFooter from "./site-footer";
 import SkipLink from "./skip-link";
 
 const infoLinks = [
@@ -23,6 +24,6 @@ export default function InfoShell({ kicker, title, intro, children }: { kicker: 
       <aside aria-label="안내 문서">{infoLinks.map(([label,href])=><a href={href} key={href}>{label}</a>)}</aside>
       <article className="info-content">{children}</article>
     </div>
-    <footer className="info-footer"><a href="/">airChurch 홈</a><span>공개 자료를 모으고 정리해 사람과 교회를 잇습니다.</span></footer>
+    <SiteFooter />
   </main>;
 }
