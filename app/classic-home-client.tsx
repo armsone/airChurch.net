@@ -18,7 +18,7 @@ const ChurchControls = lazy(() => import("./admin/admin-controls").then((module)
 
 type Sermon = { id:number; church:string; pastor:string; region:string; denomination:string; title:string; verse:string; date:string; publishedAt?:string; tone:string; rank:number; verified:boolean; thumbnailUrl?:string; youtubeId?:string };
 type Short = { youtubeId:string; title:string; thumbnailUrl:string; publishedAt:string; church:string; pastor:string; region:string; denomination:string };
-type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string };
+type ChurchNews = { title:string; summary:string; url:string; publishedAt:string; source:string; tone:string; markUrl:string };
 type ChurchNewsSource = { name:string; rssUrl:string; homepage:string };
 type CommunityItem = { id:number; category:string; nickname:string; content:string; createdAt:string };
 type TalentItem = { id:number; title:string; region:string; description:string; createdAt:string };
@@ -898,7 +898,7 @@ export default function Home() {
         {!churchNewsLoading&&churchNewsSources.length>0&&<details className="church-news-sources"><summary>현재 소식을 가져오는 곳 · {churchNewsSources.length}곳</summary><div>{churchNewsSources.map((source)=><span key={source.rssUrl}><strong>{source.name}</strong><a href={source.homepage} target="_blank" rel="noopener noreferrer">홈페이지 ↗</a><a href={source.rssUrl} target="_blank" rel="noopener noreferrer">RSS ↗</a></span>)}</div></details>}
         <div className="church-news-grid">
           {churchNewsLoading ? Array.from({length:9},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
-            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark">{item.source.slice(0,2)}</span><small>{item.source}</small></span>
+            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark"><b>{item.source.slice(0,2)}</b>{item.markUrl&&<img src={item.markUrl} alt="" />}</span><small>{item.source}</small></span>
             <span className="church-news-copy"><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR")}</small><strong>{item.title}</strong><span>{item.summary}</span><em>원문에서 읽기 ↗</em></span>
           </a>)}
           {!churchNewsLoading&&!churchNews.length&&<div className="empty">새 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}

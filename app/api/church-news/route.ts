@@ -1,7 +1,7 @@
 import { database } from "../_shared";
 
 type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string};
-type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string};
+type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string;markUrl:string};
 type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string}>};
 type SnapshotRow={payload:string;refreshedAt:string};
 
@@ -61,7 +61,7 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
       const url=new URL(rawUrl);
       if(url.hostname!==source.allowedHost||!title) continue;
       if(url.protocol==="http:") url.protocol="https:";
-      items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone});
+      items.push({title,summary:summary ? `${summary}${summary.length===140?"…":""}` : "원문에서 자세한 소식을 확인해 보세요.",url:url.toString(),publishedAt,source:source.name,tone:source.tone,markUrl:source.markUrl});
     } catch { /* 형식이 잘못된 외부 링크는 뉴스 목록에서 제외합니다. */ }
   }
   return items;
@@ -124,7 +124,11 @@ export async function refreshChurchNewsSnapshot() {
 async function readChurchNewsSnapshot(){
   const row=await database().prepare("SELECT payload,refreshed_at AS refreshedAt FROM church_news_snapshots WHERE key='latest' LIMIT 1").first<SnapshotRow>();
   if(!row)return null;
-  try{return JSON.parse(row.payload) as NewsPayload;}catch{return null;}
+  try {
+    const payload=JSON.parse(row.payload) as NewsPayload;
+    const marks=new Map(sources.map((source)=>[source.name,source.markUrl]));
+    return {...payload,items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
+  } catch{return null;}
 }
 
 export async function GET() {
