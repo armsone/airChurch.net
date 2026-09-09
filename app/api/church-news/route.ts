@@ -113,7 +113,7 @@ export async function readFeedText(response:Response,maxBytes=1_000_000) {
   return {text:new TextDecoder(encoding).decode(bytes),truncated};
 }
 
-const FEED_VERSION=3;
+const FEED_VERSION=4;
 async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
   const checkedAt=new Date().toISOString();
   try{
@@ -128,6 +128,7 @@ async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedSta
     if(!fresh.length){
       const entries=[...feed.text.matchAll(/<(?:item|entry)\b/gi)].length;
       const dates=[...feed.text.matchAll(/<(?:pubDate|dc:date|atom:updated|published|updated)\b/gi)].length;
+      if(!entries&&/<html\b/i.test(feed.text))throw Error(`feed_not_xml:${plainText(tag(feed.text,"title")).slice(0,70)||"HTML page returned"}`);
       throw Error(`feed_has_no_valid_articles:entries=${entries},dates=${dates},bytes=${feed.text.length},type=${response.headers.get("content-type")||"unknown"}`);
     }
     // A bounded prefix can add/update articles but cannot erase the last good tail.
@@ -165,7 +166,7 @@ function capPerSource(items:NewsItem[],limit:number) {
 const feedKey=(source:FeedSource)=>`feed:${source.allowedHost}`;
 const publicSources=(states=new Map<string,FeedState>())=>sources.map(source=>{
   const state=states.get(feedKey(source));
-  return {name:source.name,rssUrl:source.url,homepage:source.homepage,status:!state?"pending":state.failures?"failed":Date.now()-Date.parse(state.checkedAt)>6*3600000?"stale":"ok",lastSuccessAt:state?.lastSuccessAt};
+  return {name:source.name,rssUrl:source.url,homepage:source.homepage,status:!state?"pending":state.failures?state.lastError?.startsWith("feed_not_xml")?"invalid":"failed":Date.now()-Date.parse(state.checkedAt)>6*3600000?"stale":"ok",lastSuccessAt:state?.lastSuccessAt};
 });
 
 // One short batch per lease. Public reads never wait for fifty external servers.
