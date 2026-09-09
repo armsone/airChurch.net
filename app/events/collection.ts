@@ -80,6 +80,7 @@ async function processSource(source:SourceConfig){
     if(!Number.isFinite(delay)||delay>5000)throw Error("crawl_delay_requires_separate_schedule");
     let previous=Date.now();const pace=async()=>{await new Promise(resolve=>setTimeout(resolve,Math.max(0,delay-(Date.now()-previous))));previous=Date.now();};
     const page=await boundedFetch(source.url,source,pace,robots.text);if(page.status!==200)throw Error(`source_http_${page.status}`);
+    if(source.kind==="rss"&&!source.detailPattern&&!/<(?:rss|feed|rdf:RDF)\b/i.test(page.text))throw Error("rss_document_required");
     const found=await discover(source,page.text);
     let nextScan=nextListing(source,page.text,source.url);
     const state=await db.prepare("SELECT scan_url AS scanUrl FROM event_sources WHERE id=?").bind(source.id).first<{scanUrl:string|null}>();
