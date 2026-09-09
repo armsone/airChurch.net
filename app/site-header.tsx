@@ -13,6 +13,33 @@ export default function SiteHeader() {
   const header = useRef<HTMLElement>(null), button = useRef<HTMLButtonElement>(null), panel = useRef<HTMLDivElement>(null);
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
+    if (pathname !== "/") return;
+    let stop = () => {};
+    const followEventAnchor = () => {
+      stop();
+      if (window.location.hash !== "#events") return;
+      const target = document.getElementById("events");
+      const content = document.getElementById("site-content");
+      if (!target || !content) return;
+      // Keep the destination aligned while the preceding DB-backed sections load.
+      const align = () => target.scrollIntoView({ block: "start", behavior: "instant" });
+      const observer = new ResizeObserver(align);
+      const userEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+      const timer = window.setTimeout(() => stop(), 20000);
+      stop = () => {
+        observer.disconnect();
+        window.clearTimeout(timer);
+        userEvents.forEach(event => window.removeEventListener(event, stop));
+      };
+      observer.observe(content);
+      userEvents.forEach(event => window.addEventListener(event, stop, { passive: true, once: true }));
+      align();
+    };
+    followEventAnchor();
+    window.addEventListener("hashchange", followEventAnchor);
+    return () => { stop(); window.removeEventListener("hashchange", followEventAnchor); };
+  }, [pathname]);
+  useEffect(() => {
     if (!open) return;
     panel.current?.querySelector<HTMLAnchorElement>("a")?.focus();
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") { setOpen(false); button.current?.focus(); } };

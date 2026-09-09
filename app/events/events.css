@@ -35,6 +35,9 @@
 .event-card-compact .event-date>strong{font-size:34px;line-height:1.1;letter-spacing:-.04em}
 .event-card-compact .event-date>span{font-size:13px;color:var(--ink)}
 .event-card-compact .event-date .event-date-end{margin-top:10px;font-size:12px;line-height:1.5}
+.event-card-saturday .event-date{background:#e3eefb;color:#244f78}
+.event-card-sunday .event-date{background:#f9e4e5;color:#873d43}
+.event-card-saturday .event-date>span,.event-card-sunday .event-date>span{color:inherit}
 .event-card-compact .event-card-copy{padding:16px}
 .event-card-compact .event-source-label{margin:0 0 6px;color:var(--orange);font-size:12px;font-weight:800}
 .event-card-compact .event-tags{font-size:12px;gap:6px}
