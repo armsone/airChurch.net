@@ -4,7 +4,7 @@ export const officialEventSources:SourceConfig[] = [
   {id:"coommi",name:"꿈이있는미래 꿈미",homepage:"https://www.coommi.org/",url:"https://www.coommi.org/Page/Index/34681",kind:"official",detailPattern:"/Page/Index/34681\\?[^#]*idx=\\d+",eventOnly:true},
   {id:"melon",name:"멜론티켓",homepage:"https://ticket.melon.com/",url:"https://ticket.melon.com/plan/index.htm?planId=100101",kind:"official",detailPattern:"/performance/index\\.htm\\?prodId=\\d+",eventOnly:true,christianOnly:true},
   {id:"sorrygom",name:"소리곰 교회음향 세미나",homepage:"https://sorrygom.dothome.co.kr/",url:"https://sorrygom.dothome.co.kr/",kind:"official",detailPattern:"^https://sorrygom\\.dothome\\.co\\.kr/(?:#occurrence=.+)?$",eventOnly:true,singlePage:true},
-  {id:"bbb",name:"한국직장선교연합 BBB",homepage:"https://www.bbb.or.kr/",url:"https://www.bbb.or.kr/Notice",kind:"official",detailPattern:"/Notice/\\d+"},
+  {id:"bbb",name:"BBB",homepage:"https://www.bbb.or.kr/",url:"https://www.bbb.or.kr/Notice",kind:"official",detailPattern:"/Notice/\\d+"},
   {id:"joy",name:"죠이선교회",homepage:"https://www.joymission.org/",url:"https://www.joymission.org/news/",kind:"official",detailPattern:"/news/view\\.php\\?no=\\d+"},
   {id:"pbp",name:"대한예수교장로회 평북노회",homepage:"https://pbp.or.kr/",url:"https://pbp.or.kr/Board/Index/26",kind:"official",detailPattern:"/Board/Detail/(?:26|28)/\\d+",listingUrls:["https://pbp.or.kr/Board/Index/28"]},
   {id:"spck",name:"대한예수교장로회 서울노회",homepage:"https://www.spck.org/",url:"https://www.spck.org/Board/Index/46",kind:"official",detailPattern:"/Board/Detail/46/\\d+"},

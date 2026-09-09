@@ -51,7 +51,7 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
     <div aria-live="polite" aria-busy={loading}>{loading?<p className="event-empty">공식 행사 일정을 불러오고 있습니다…</p>:<>
       {error&&<p className="event-empty" role="alert">일정을 불러오지 못했습니다. <button type="button" onClick={()=>data?.nextCursor?void more():setRevision(x=>x+1)}>다시 시도</button></p>}
       {compact?<div className="event-grid church-news-grid event-preview-grid">{shown.map(item=><EventCard key={item.id} item={item} compact/>)}</div>:orderedGroups.map(([date,items])=><section className="event-day-group" key={date}><h2>{date==="ongoing"?"진행 중인 행사":`${date.slice(0,4)}년 ${Number(date.slice(5))}월`}</h2><div className="event-agenda">{items.map(item=><EventCard key={item.id} item={item}/>)}</div></section>)}
-      {!shown.length&&!error&&<p className="event-empty">{day?`${dateLabel(day)}에 수집된 행사가 없습니다.`:"선택한 조건에 수집된 예정 행사가 없습니다."} 공식 출처의 안내도 함께 확인해 주세요.</p>}
+      {!shown.length&&!error&&<p className="event-empty">{view==="calendar"?day?`${dateLabel(day)}에 확인된 단일 행사가 없습니다.`:"이달에 확인된 단일 행사가 없습니다.":"선택한 조건에 수집된 예정 행사가 없습니다."} {periods.length?"기간·정기 행사는 아래에서 확인해 주세요.":"공식 출처의 안내도 함께 확인해 주세요."}</p>}
       {!compact&&periods.length>0&&<section className="event-day-group"><h2>기간·정기 행사</h2><p className="event-range-note">아래 행사는 개별 회차를 확인해야 하므로 달력의 날짜별 건수에는 넣지 않았습니다.</p><div className="event-agenda">{periods.map(item=><EventCard key={item.id} item={item}/>)}</div></section>}
       {!compact&&data?.nextCursor&&<button className="event-more" type="button" disabled={moreBusy} onClick={()=>void more()}>{moreBusy?"불러오는 중…":"일정 더 불러오기"}</button>}
     </>}</div>

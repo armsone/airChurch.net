@@ -4,6 +4,7 @@
 .events-page .section-heading p,.event-detail>p{color:var(--muted);font-size:16px;line-height:1.7}
 .events-browser .section-heading{gap:20px;align-items:center;flex-wrap:wrap}
 .events-browser .section-heading p{max-width:620px;margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
+@media(max-width:760px){.events-browser .section-heading>.unified-other-button{margin-left:0;margin-right:auto}}
 .event-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:0 0 22px}
 .event-filters label{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:650}
 .event-filters select,.event-filters input[type=month]{min-height:44px;padding:9px 12px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font:inherit}

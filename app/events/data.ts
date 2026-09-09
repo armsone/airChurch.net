@@ -24,12 +24,13 @@ export async function readEvents(params:URLSearchParams){
   if(audience){if(!eventAudiences.includes(audience))throw Error("invalid_filter");filters.push("e.audience=?");values.push(audience);}
   if(church){if(!/^\d+$/.test(church))throw Error("invalid_filter");filters.push("c.public_id=?");values.push(Number(church));}
   if(params.get("online")==="1")filters.push("e.attendance IN ('온라인','현장·온라인')");
-  const cursor=params.get("cursor");if(cursor){const [date,id]=cursor.split("|");if(!validDate(date)||!id?.match(/^[a-f0-9]{32}$/))throw Error("invalid_filter");filters.push("(e.start_date>? OR (e.start_date=? AND e.id>?))");values.push(date,date,id);}
+  const timeOrder="COALESCE(e.start_time,'99:99')";
+  const cursor=params.get("cursor");if(cursor){const parts=cursor.split("|"),[date,time,id]=parts;if(parts.length!==3||!validDate(date)||!(time==="99:99"||/^([01]\d|2[0-3]):[0-5]\d$/.test(time))||!id?.match(/^[a-f0-9]{32}$/)||params.get("preview")==="1")throw Error("invalid_filter");filters.push(`(e.start_date>? OR (e.start_date=? AND (${timeOrder}>? OR (${timeOrder}=? AND e.id>?))))`);values.push(date,date,time,time,id);}
   const limit=Math.max(1,Math.min(100,Math.floor(Number(params.get("limit"))||100)));
   const preview=params.get("preview")==="1";
-  const order=preview?"CASE WHEN e.start_date<? THEN 1 ELSE 0 END,e.start_date,e.id":"e.start_date,e.id";
+  const order=`${preview?"CASE WHEN e.start_date<? THEN 1 ELSE 0 END,":""}e.start_date,${timeOrder},e.id`;
   const [rows,sources]=await Promise.all([database().prepare(`SELECT ${columns} ${joins} WHERE ${filters.join(" AND ")} ORDER BY ${order} LIMIT ?`).bind(...values,...(preview?[today]:[]),limit+1).all<ChurchEvent>(),readEventSources()]);
   const items=rows.results.slice(0,limit),last=items.at(-1);
-  return {items,sources,nextCursor:!preview&&rows.results.length>limit&&last?`${last.startDate}|${last.id}`:null};
+  return {items,sources,nextCursor:!preview&&rows.results.length>limit&&last?`${last.startDate}|${last.startTime||"99:99"}|${last.id}`:null};
 }
 export async function readEvent(id:string){if(!/^[a-f0-9]{32}$/.test(id))return null;return database().prepare(`SELECT ${columns},e.valid_until AS validUntil ${joins} WHERE e.id=? AND ${visible} LIMIT 1`).bind(id).first<ChurchEvent&{validUntil:string}>();}
