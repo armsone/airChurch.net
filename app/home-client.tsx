@@ -249,7 +249,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
   useEffect(()=>{
     let alive=true;
     const controller=new AbortController();
-    const loadItems=(url:string)=>fetch(url,{signal:controller.signal}).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
+    const loadItems=(url:string)=>fetch(url,{cache:url.startsWith("/api/church-news")?"no-cache":"default",signal:controller.signal}).then((response)=>response.ok?response.json():{items:[]}).catch(()=>({items:[]}));
     const lowData=prefersLowData();
     const todayBucket=Math.floor(Date.now()/86400000)%50;const storedBrowserSeed=sessionStorage.getItem("airchurch:pastor-bucket-seed");let browserSeed=Number(storedBrowserSeed);if(storedBrowserSeed===null||!Number.isInteger(browserSeed)||browserSeed<0||browserSeed>49){browserSeed=Math.floor(Math.random()*50);sessionStorage.setItem("airchurch:pastor-bucket-seed",String(browserSeed));}pastorBucketRef.current=(todayBucket+browserSeed)%50;
     const loaders: Record<string, () => void> = {
@@ -270,7 +270,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
         setShortItems((data as {items?:Short[]}).items||[]);
         setShortLoading(false);
       }),
-      "church-news": ()=>loadItems("/api/church-news").then((data)=>{
+      "church-news": ()=>loadItems("/api/church-news?v=2").then((data)=>{
         if(!alive) return;
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];

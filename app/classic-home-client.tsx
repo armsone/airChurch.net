@@ -251,7 +251,7 @@ export default function Home() {
         const requestController=new AbortController(),abort=()=>requestController.abort(),timeout=window.setTimeout(abort,8000);
         controller.signal.addEventListener("abort",abort,{once:true});
         try{
-          const response=await fetch(url,{signal:requestController.signal});
+          const response=await fetch(url,{cache:url.startsWith("/api/church-news")?"no-cache":"default",signal:requestController.signal});
           if(response.ok)return await response.json();
         }catch{
           if(controller.signal.aborted)return {items:[],loadFailed:true};
@@ -279,7 +279,7 @@ export default function Home() {
         shortNextOffsetRef.current=result.nextOffset??0;
         setShortLoading(false);
       }),
-      "church-news": ()=>loadItems("/api/church-news").then((data)=>{
+      "church-news": ()=>loadItems("/api/church-news?v=2").then((data)=>{
         if(!alive) return;
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];

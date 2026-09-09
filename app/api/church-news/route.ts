@@ -196,6 +196,6 @@ export async function GET() {
   const stored=await readChurchNewsSnapshot();
   if(!stored||Date.now()-Date.parse(stored.refreshedAt||"")>5*60000)getRequestExecutionContext()?.waitUntil(refreshChurchNewsSnapshot().catch(()=>null));
   const payload=stored??{items:[],sources:publicSources(),target:50};
-  const cacheControl=payload.items.length?"public, max-age=60, s-maxage=300, stale-while-revalidate=600":"no-store";
+  const cacheControl=payload.items.length?"public, max-age=0, s-maxage=60, must-revalidate":"no-store";
   return Response.json(payload,{headers:{"cache-control":cacheControl}});
 }

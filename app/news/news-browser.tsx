@@ -13,7 +13,7 @@ export default function NewsBrowser() {
     (async()=>{
       for(let attempt=0;attempt<2;attempt++){
         try{
-          const response=await fetch("/api/church-news",{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(8000)])});
+          const response=await fetch("/api/church-news?v=2",{cache:"no-cache",signal:AbortSignal.any([controller.signal,AbortSignal.timeout(8000)])});
           if(!response.ok)throw Error("unavailable");
           const data=await response.json() as {items:NewsItem[];sources:NewsSource[]};
           if(controller.signal.aborted)return;
