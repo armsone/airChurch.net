@@ -35,7 +35,8 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
   const groups=new Map<string,ChurchEvent[]>();for(const item of shown){const key=day||item.startDate;(groups.get(key)||groups.set(key,[]).get(key)!).push(item);}
   const calendar=month?bounds(month):null;
   return <div className="events-browser" ref={container}>
-    {compact&&<div className="section-heading"><div><span className="section-kicker">함께하는 신앙</span><h2>{title}</h2></div><a href={churchId?`/events?church=${churchId}`:"/events"}>전체 일정 보기 →</a></div>}
+    {compact&&<div className="section-heading"><div><span className="section-kicker">함께하는 신앙</span><h2>{title}</h2><p>공식 공지에서 확인한 행사 일정입니다. 정확한 진행일과 참여 방법은 원문에서 확인해 주세요.</p></div><a className="church-news-shuffle unified-other-button" href={churchId?`/events?church=${churchId}`:"/events"}>전체 일정 보기 →</a></div>}
+    {data&&<EventSources sources={data.sources}/>}
     <div className="event-filters">{!compact&&<label>행사 월<input type="month" value={month} onChange={e=>{if(e.target.value)setMonth(e.target.value);setDay("");}}/></label>}
       {!selectedChurch&&<label>지역<select value={region} onChange={e=>{setRegion(e.target.value);try{localStorage.setItem("airchurch:event-region",e.target.value);}catch{}}}><option value="">전국</option>{eventRegions.map(x=><option key={x}>{x}</option>)}</select></label>}
       <label className="event-online"><input type="checkbox" checked={online} onChange={e=>setOnline(e.target.checked)}/>온라인 포함 행사</label>
@@ -46,10 +47,9 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
     {!compact&&view==="calendar"&&calendar&&<><div className="event-calendar" aria-label={`${month} 행사 달력`}>{["일","월","화","수","목","금","토"].map(x=><span className="event-weekday" key={x}>{x}</span>)}{Array.from({length:new Date(`${calendar.from}T00:00:00Z`).getUTCDay()},(_,i)=><span key={`empty-${i}`}/>)}{Array.from({length:Number(calendar.to.slice(-2))},(_,i)=>{const date=`${month}-${String(i+1).padStart(2,"0")}`,count=(data?.items||[]).filter(x=>x.startDate<=date&&x.endDate>=date).length;return <button key={date} type="button" aria-pressed={day===date} aria-label={`${dateLabel(date)}, 행사 ${count}건`} className={date===today?"is-today":""} onClick={()=>setDay(day===date?"":date)}><time dateTime={date}>{i+1}</time>{count>0&&<small>{count}건</small>}</button>;})}</div>{data?.nextCursor&&<p>아래 ‘더 불러오기’를 누르면 나머지 일정도 달력에 표시됩니다.</p>}</>}
     <div aria-live="polite" aria-busy={loading}>{loading?<p className="event-empty">공식 행사 일정을 불러오고 있습니다…</p>:<>
       {error&&<p className="event-empty" role="alert">일정을 불러오지 못했습니다. <button type="button" onClick={()=>data?.nextCursor?void more():setRevision(x=>x+1)}>다시 시도</button></p>}
-      {compact?<div className="event-grid">{shown.map(item=><EventCard key={item.id} item={item}/>)}</div>:Array.from(groups,([date,items])=><section className="event-day-group" key={date}><h2>{dateLabel(date)}</h2><div className="event-grid">{items.map(item=><EventCard key={item.id} item={item}/>)}</div></section>)}
+      {compact?<div className="event-grid church-news-grid">{shown.map(item=><EventCard key={item.id} item={item} compact/>)}</div>:Array.from(groups,([date,items])=><section className="event-day-group" key={date}><h2>{dateLabel(date)}</h2><div className="event-grid">{items.map(item=><EventCard key={item.id} item={item}/>)}</div></section>)}
       {!shown.length&&!error&&<p className="event-empty">{day?`${dateLabel(day)}에 수집된 행사가 없습니다.`:"선택한 조건에 수집된 예정 행사가 없습니다."} 공식 출처의 안내도 함께 확인해 주세요.</p>}
       {!compact&&data?.nextCursor&&<button className="event-more" type="button" disabled={moreBusy} onClick={()=>void more()}>{moreBusy?"불러오는 중…":"일정 더 불러오기"}</button>}
     </>}</div>
-    {data&&<EventSources sources={data.sources}/>}
   </div>;
 }
