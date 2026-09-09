@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import type { LogoColor, LogoPalette } from "../../logo-palettes";
 import { denominationMark } from "../../directory-cards";
 
@@ -11,6 +11,11 @@ type LiturgicalSeason = {
   name: string;
   christmasDays?: number;
 };
+
+const SEASON_KEYS = ["advent", "christmas", "epiphany", "lent", "easter", "pentecost", "ordinary"] as const;
+type LiturgicalSeasonKey = typeof SEASON_KEYS[number];
+type SeasonExplorer = { season: LiturgicalSeason; setHovered: (key: LiturgicalSeasonKey | null) => void; setSelected: (key: LiturgicalSeasonKey) => void };
+const SeasonExplorerContext = createContext<SeasonExplorer | null>(null);
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -52,16 +57,27 @@ function currentSeason(today = koreaToday()): LiturgicalSeason {
   return { key: "ordinary", name: "일반절기" };
 }
 
-function previewSeason(key: string | null) {
+function previewSeason(key: string | null): LiturgicalSeason | null {
   if (key === "advent") return currentSeason(utcDate(2026, 10, 29));
   if (key === "christmas") return currentSeason(utcDate(2026, 11, 25));
+  if (key === "epiphany") return currentSeason(utcDate(2027, 0, 7));
+  if (key === "lent") return currentSeason(utcDate(2026, 2, 1));
+  if (key === "easter") return currentSeason(utcDate(2026, 3, 6));
+  if (key === "pentecost") return currentSeason(utcDate(2026, 4, 24));
+  if (key === "ordinary") return currentSeason(utcDate(2026, 6, 1));
   return null;
 }
 
-function useCurrentSeason() {
-  const [preview, setPreview] = useState<LiturgicalSeason | null>(null);
-  useEffect(() => setPreview(previewSeason(new URLSearchParams(window.location.search).get("seasonPreview"))), []);
-  return preview ?? currentSeason();
+function useSeasonExplorer(): SeasonExplorer {
+  const [urlPreview, setUrlPreview] = useState<LiturgicalSeason | null>(null);
+  const [hovered, setHovered] = useState<LiturgicalSeason | null>(null);
+  const [selected, setSelected] = useState<LiturgicalSeason | null>(null);
+  useEffect(() => setUrlPreview(previewSeason(new URLSearchParams(window.location.search).get("seasonPreview"))), []);
+  return {
+    season: hovered ?? selected ?? urlPreview ?? currentSeason(),
+    setHovered: (key) => setHovered(key ? previewSeason(key) : null),
+    setSelected: (key) => setSelected(previewSeason(key)),
+  };
 }
 
 function cssRgb([red, green, blue]: Rgb, alpha?: number) {
@@ -125,13 +141,18 @@ export function SeasonLabel({ season, inActions = false }: { season: LiturgicalS
 }
 
 export function SeasonActionSlot() {
-  return <SeasonLabel season={useCurrentSeason()} inActions />;
+  const explorer = useContext(SeasonExplorerContext);
+  return <SeasonLabel season={explorer?.season ?? currentSeason()} inActions />;
+}
+
+function SeasonExplorerStrip({ explorer }: { explorer: SeasonExplorer }) {
+  return <div className="liturgical-season-explorer" aria-label="절기 배경 미리보기" onPointerLeave={() => explorer.setHovered(null)}>{SEASON_KEYS.map((key) => <button key={key} type="button" aria-label={`${previewSeason(key)?.name} 배경 보기`} onPointerEnter={() => explorer.setHovered(key)} onFocus={() => explorer.setHovered(key)} onBlur={() => explorer.setHovered(null)} onClick={() => explorer.setSelected(key)} />)}</div>;
 }
 
 export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
   const activePalette = useLogoPalette(image, denominationMark(denomination)?.src ?? null);
-  const season = useCurrentSeason();
-  return <section className={`church-detail-hero season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta"><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a><span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={season} inActions/>{children}</div></section>;
+  const explorer = useSeasonExplorer();
+  return <SeasonExplorerContext.Provider value={explorer}><section className={`church-detail-hero season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta"><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a><span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={explorer.season} inActions/>{children}</div><SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
 }
 
 function useLogoPalette(image: string | null, fallbackImage: string | null) {
@@ -160,6 +181,6 @@ function useLogoPalette(image: string | null, fallbackImage: string | null) {
 
 export function LogoPaletteSection({ image, fallbackImage = null, className, children, showSeasonLabel = true }: { image: string | null; fallbackImage?: string | null; className: string; children: ReactNode; showSeasonLabel?: boolean }) {
   const activePalette = useLogoPalette(image, fallbackImage);
-  const season = useCurrentSeason();
-  return <section className={`${className} season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{showSeasonLabel && <SeasonLabel season={season}/>} {children}</section>;
+  const explorer = useSeasonExplorer();
+  return <SeasonExplorerContext.Provider value={explorer}><section className={`${className} season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{showSeasonLabel && <SeasonLabel season={explorer.season}/>} {children}<SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
 }
