@@ -38,7 +38,7 @@ async function writeJson(value) {
 const history = JSON.parse(await readFile(historyFile, "utf8"));
 const latestCommit = command(["rev-parse", "HEAD"]);
 const revisions = command(["log", "--format=%H%x1f%ct%x1f%s%x1e", `${history.lastScannedCommit}..${latestCommit}`])
-  .split("\x1e").filter(Boolean).map((record) => {
+  .split("\x1e").map((record) => record.trim()).filter(Boolean).map((record) => {
     const [hash, timestamp, subject] = record.split("\x1f");
     return { hash, timestamp: Number(timestamp), subject };
   }).reverse();
