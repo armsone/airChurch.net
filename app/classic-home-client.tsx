@@ -3,6 +3,7 @@
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import HomeReloadLink from "./home-reload-link";
 import SiteFooter from "./site-footer";
+import EventsBrowser from "./events/events-browser";
 import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./recent-searches";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
@@ -90,7 +91,7 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   access: "공개(로그인 없이 열람 가능)",
   lastChecked: "공개 자료 확인 시 갱신",
 }));
-const menuItems = [["말씀","#sermons"],["찬양","#praises"],["교회","#church-directory"],["목회자","#pastor-directory"],["교계소식","#church-news"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
+const menuItems = [["말씀","#sermons"],["찬양","#praises"],["행사","#events"],["교회","#church-directory"],["목회자","#pastor-directory"],["교계소식","#church-news"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
 const headerAdminLinks = [["나의 모음","/saved"],["운영 안내","/about"],["문의","/contact"]] as const;
 
 function shuffled<T>(items: T[]) {
@@ -834,6 +835,7 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="content-section events-home" id="events"><EventsBrowser compact/></section>
       <section className="church-directory-section" id="church-directory">
         <div className="section-heading"><div><span className="section-kicker">교회 레이더</span><h2>나와 맞는 교회를 찾아보세요</h2></div><span className="result-count">{churchLoading?"교회를 확인하는 중…":churchLoadFailed?"잠시 불러오지 못했습니다":`전국 ${churchTotal.toLocaleString("ko-KR")}곳`}</span></div>
         <div className="church-radar-intro"><span><img src="/church-radar-ai-badge.webp" alt="교회 공개 자료 확인 서비스 아이콘" width={42} height={42} loading="lazy" decoding="async" /></span><div><strong>공개 자료를 찾고, 운영 기준으로 확인한 교회만 소개합니다.</strong><p>교단·노회와 교회가 일반에 공개한 공식 정보를 확인합니다. 로그인·비공개 영역과 개인 민감정보는 수집하지 않습니다. 교회명·지역·담임목사와 공식 홈페이지 등 공개 출처를 정리하며, 문제 제보가 들어오면 즉시 보류해 다시 확인합니다.</p>

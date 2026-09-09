@@ -5,7 +5,7 @@ type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:
 type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string}>};
 type SnapshotRow={payload:string;refreshedAt:string};
 
-const sources:FeedSource[]=[
+export const sources:FeedSource[]=[
   {name:"뉴스앤조이",url:"https://www.newsnjoy.or.kr/rss/allArticle.xml",homepage:"https://www.newsnjoy.or.kr/",allowedHost:"www.newsnjoy.or.kr",tone:"newsnjoy",markUrl:"https://cdn.newsnjoy.or.kr/image/logo/toplogo_20250820092205.png"},
   {name:"아이굿뉴스",url:"https://www.igoodnews.net/rss/allArticle.xml",homepage:"https://www.igoodnews.net/",allowedHost:"www.igoodnews.net",tone:"igoodnews",markUrl:"https://www.igoodnews.net/image/logo/toplogo_20190425034423.png"},
   {name:"기독신문",url:"https://www.kidok.com/rss/allArticle.xml",homepage:"https://www.kidok.com/",allowedHost:"www.kidok.com",tone:"kidok",markUrl:"/news/kidok-logo.png"},

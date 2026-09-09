@@ -1,0 +1,16 @@
+import type { Metadata } from "next";
+import SiteFooter from "../../site-footer";
+import { readEvent,withDeadline } from "../data";
+import { dateLabel,koreaDate } from "../types";
+export const dynamic="force-dynamic";
+export const metadata:Metadata={title:"행사 안내 | airChurch"};
+export default async function EventPage({params}:{params:Promise<{id:string}>}){
+  const {id}=await params;let item;try{item=await withDeadline(readEvent(id));}catch{return <main className="events-page"><h1>일정을 잠시 불러오지 못했습니다</h1><a href={`/events/${id}`}>다시 시도</a><p><a href="/events">전체 일정 보기</a></p></main>;}
+  if(!item)return <main className="events-page"><h1>행사를 찾을 수 없습니다</h1><a href="/events">전체 일정 보기 →</a></main>;
+  const ended=item.endDate<koreaDate()||item.status==="ended",checking=item.status==="checking"||item.validUntil<new Date().toISOString(),cancelled=item.status==="cancelled";
+  const unavailable=ended||checking||cancelled;
+  return <main className="church-detail-shell"><header className="church-detail-header"><a className="brand" href="/">airchurch</a><a href="/events">전체 일정 →</a></header><article className="events-page event-detail"><span className="section-kicker">{item.category}</span><h1>{item.title}</h1>
+    {unavailable&&<p className="event-status" role="status">{cancelled?"취소된 행사입니다.":ended?"종료된 행사입니다.":"일정 변경 여부를 다시 확인하고 있습니다. 아래 정보는 마지막 확인 내용입니다."}</p>}
+    <dl><div><dt>일정</dt><dd>{dateLabel(item.startDate)}{item.endDate!==item.startDate&&` ~ ${dateLabel(item.endDate)}`} · {item.startTime||"시간은 공식 원문 확인"}</dd></div><div><dt>장소</dt><dd>{item.venue}</dd></div><div><dt>주최</dt><dd>{item.organizer}</dd></div><div><dt>참여 대상</dt><dd>{item.audience}</dd></div><div><dt>참여 방식</dt><dd>{item.attendance}</dd></div><div><dt>자료 출처</dt><dd><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{item.sourceName} · 공식 원문 ↗</a></dd></div><div><dt>마지막 확인</dt><dd>{new Date(item.checkedAt).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"})}</dd></div></dl>
+    <p>기간으로 안내된 행사는 실제 진행일·회차가 다를 수 있습니다. 참가비, 신청 마감과 참여 조건은 공식 안내에서 확인해 주세요.</p><div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">공식 행사 안내 ↗</a>{!unavailable&&item.registrationUrl&&<a href={item.registrationUrl} target="_blank" rel="noopener noreferrer">신청 안내 ↗</a>}{item.churchPublicId&&<a href={`/church/${item.churchPublicId}`}>주최 교회 보기 →</a>}<a href={`/contact?category=${encodeURIComponent("정보 수정")}&event=${id}`}>일정 오류 알려주기</a></div></article><SiteFooter/></main>;
+}

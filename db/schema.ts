@@ -23,6 +23,19 @@ export const syncState = sqliteTable("sync_state", { key: text("key").primaryKey
 export const churchNewsSnapshots = sqliteTable("church_news_snapshots", {
   key:text("key").primaryKey(),payload:text("payload").notNull(),itemCount:integer("item_count").notNull(),refreshedAt:text("refreshed_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+export const eventSources = sqliteTable("event_sources", {
+  id:text("id").primaryKey(), name:text("name").notNull(), homepage:text("homepage").notNull(), url:text("url").notNull(), kind:text("kind").notNull(),
+  enabled:integer("enabled").notNull().default(1), lastCheckedAt:text("last_checked_at"), lastSuccessAt:text("last_success_at"), nextCheckAt:text("next_check_at").notNull().default("1970-01-01T00:00:00.000Z"),
+  leaseToken:text("lease_token"), leaseUntil:text("lease_until"), status:text("status").notNull().default("pending"), failures:integer("failures").notNull().default(0), candidateCount:integer("candidate_count").notNull().default(0), lastError:text("last_error"),
+},t=>[index("idx_event_sources_due").on(t.enabled,t.nextCheckAt)]);
+export const events = sqliteTable("events", {
+  id:text("id").primaryKey(), sourceId:text("source_id").notNull().references(()=>eventSources.id), churchId:integer("church_id").references(()=>churches.id),
+  title:text("title").notNull(), startDate:text("start_date").notNull(), endDate:text("end_date").notNull(), startTime:text("start_time"), venue:text("venue").notNull(), region:text("region").notNull(), attendance:text("attendance").notNull(), organizer:text("organizer").notNull(), audience:text("audience").notNull(), category:text("category").notNull(),
+  sourceUrl:text("source_url").notNull(), registrationUrl:text("registration_url"), status:text("status").notNull().default("published"), checkedAt:text("checked_at").notNull(), validUntil:text("valid_until").notNull(), contentHash:text("content_hash").notNull(), updatedAt:text("updated_at").notNull(),
+},t=>[index("idx_events_dates").on(t.status,t.startDate,t.endDate),index("idx_events_church_dates").on(t.churchId,t.status,t.startDate),index("idx_events_source").on(t.sourceId,t.status)]);
+export const eventCandidates = sqliteTable("event_candidates", {
+  id:text("id").primaryKey(),sourceId:text("source_id").notNull().references(()=>eventSources.id),eventId:text("event_id").references(()=>events.id),url:text("url").notNull(),title:text("title").notNull(),evidence:text("evidence").notNull(),contentHash:text("content_hash").notNull(),payload:text("payload"),status:text("status").notNull(),reason:text("reason"),firstSeenAt:text("first_seen_at").notNull(),lastSeenAt:text("last_seen_at").notNull(),checkedAt:text("checked_at"),
+},t=>[index("idx_event_candidates_source").on(t.sourceId,t.lastSeenAt),index("idx_event_candidates_event").on(t.eventId)]);
 export const pageViews = sqliteTable("page_views", {
   id: integer("id").primaryKey({ autoIncrement: true }), path: text("path").notNull(), referrerDomain: text("referrer_domain"), visitorHash: text("visitor_hash").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_page_views_created").on(table.createdAt), index("idx_page_views_visitor_created").on(table.visitorHash, table.createdAt), index("idx_page_views_path_created").on(table.path, table.createdAt)]);
