@@ -11,6 +11,7 @@
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "history:update": "node scripts/update-site-history.mjs",
     "media:backfill": "node scripts/backfill-church-media.mjs",
     "test:pastor-history": "node --test tests/pastor-history-pipeline.test.mjs",
     "pastor-history:roster": "node scripts/build-pastor-history-roster.mjs",
