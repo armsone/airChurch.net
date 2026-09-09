@@ -9,10 +9,10 @@ export function scheduleSermonSync(){
   const context=getRequestExecutionContext();
   if(!context||Date.now()-lastAttemptAt<5*60*1000)return;
   if(!pendingSync){lastAttemptAt=Date.now();pendingSync=(async()=>{
+    await syncPraises();
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=photo_pastors&limit=1",{method:"POST"}));
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=database&limit=20",{method:"POST"}));
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync",{method:"POST"}));
-    await syncPraises();
   })().then(()=>undefined).catch(()=>undefined).finally(()=>{pendingSync=null;});}
   context.waitUntil(pendingSync);
 }
