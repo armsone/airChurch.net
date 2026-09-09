@@ -120,6 +120,7 @@ function paletteStyle(palette: LogoPalette): React.CSSProperties {
 }
 
 function SeasonLabel({ season }: { season: LiturgicalSeason }) {
+  if (season.key === "ordinary") return null;
   return <div className="liturgical-season" aria-label={season.christmasDays === undefined ? `현재 ${season.name}` : `현재 ${season.name}, 성탄절까지 ${season.christmasDays}일`}><span>{season.name}</span>{season.christmasDays !== undefined && <strong>성탄절까지 D-{season.christmasDays}</strong>}</div>;
 }
 
