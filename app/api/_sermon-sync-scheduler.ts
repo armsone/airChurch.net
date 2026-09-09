@@ -1,5 +1,6 @@
 import { getRequestExecutionContext } from "vinext/shims/request-context";
 import { POST as syncSermons } from "./sermons/sync/route";
+import { POST as syncPraises } from "./praises/sync/route";
 
 let pendingSync:Promise<void>|null=null;
 let lastAttemptAt=0;
@@ -11,6 +12,7 @@ export function scheduleSermonSync(){
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=photo_pastors&limit=1",{method:"POST"}));
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=database&limit=20",{method:"POST"}));
     await syncSermons(new Request("https://airchurch.internal/api/sermons/sync",{method:"POST"}));
+    await syncPraises();
   })().then(()=>undefined).catch(()=>undefined).finally(()=>{pendingSync=null;});}
   context.waitUntil(pendingSync);
 }
