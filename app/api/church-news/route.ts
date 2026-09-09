@@ -113,19 +113,23 @@ export async function readFeedText(response:Response,maxBytes=1_000_000) {
   return {text:new TextDecoder(encoding).decode(bytes),truncated};
 }
 
-const FEED_VERSION=2;
+const FEED_VERSION=3;
 async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
   const checkedAt=new Date().toISOString();
   try{
     const headers:Record<string,string>={accept:"application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1","user-agent":"AirChurchNews/1.0 (+https://airchurch.net/contact)"};
     if(previous?.etag)headers["if-none-match"]=previous.etag;
     if(previous?.modified)headers["if-modified-since"]=previous.modified;
-    const response=await fetch(source.url,{headers,signal:AbortSignal.timeout(8_000)});
+    const response=await fetch(source.url,{headers,signal:AbortSignal.timeout(15_000)});
     const nextCheckAt=new Date(Date.now()+2*3600000).toISOString();
     if(response.status===304&&previous?.items.length)return {...previous,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,lastError:undefined};
     if(!response.ok){void response.body?.cancel();throw Error(`feed_http_${response.status}`);}
     const feed=await readFeedText(response),fresh=parseFeed(feed.text,source);
-    if(!fresh.length)throw Error("feed_has_no_valid_articles");
+    if(!fresh.length){
+      const entries=[...feed.text.matchAll(/<(?:item|entry)\b/gi)].length;
+      const dates=[...feed.text.matchAll(/<(?:pubDate|dc:date|atom:updated|published|updated)\b/gi)].length;
+      throw Error(`feed_has_no_valid_articles:entries=${entries},dates=${dates},bytes=${feed.text.length},type=${response.headers.get("content-type")||"unknown"}`);
+    }
     // A bounded prefix can add/update articles but cannot erase the last good tail.
     const items=[...new Map([...(feed.truncated?previous?.items||[]:[]),...fresh].map(item=>[item.url,item])).values()].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).slice(0,10);
     return {items,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,etag:feed.truncated?undefined:response.headers.get("etag")||undefined,modified:feed.truncated?undefined:response.headers.get("last-modified")||undefined};
