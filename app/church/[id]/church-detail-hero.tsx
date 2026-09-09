@@ -14,7 +14,7 @@ type LiturgicalSeason = {
 
 const SEASON_KEYS = ["advent", "christmas", "epiphany", "lent", "easter", "pentecost", "ordinary"] as const;
 type LiturgicalSeasonKey = typeof SEASON_KEYS[number];
-type SeasonExplorer = { season: LiturgicalSeason; setHovered: (key: LiturgicalSeasonKey | null) => void; setSelected: (key: LiturgicalSeasonKey) => void };
+type SeasonExplorer = { season: LiturgicalSeason; defaultSeason: LiturgicalSeason; setHovered: (key: LiturgicalSeasonKey | null) => void; setSelected: (key: LiturgicalSeasonKey) => void };
 const SeasonExplorerContext = createContext<SeasonExplorer | null>(null);
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -73,8 +73,10 @@ function useSeasonExplorer(): SeasonExplorer {
   const [hovered, setHovered] = useState<LiturgicalSeason | null>(null);
   const [selected, setSelected] = useState<LiturgicalSeason | null>(null);
   useEffect(() => setUrlPreview(previewSeason(new URLSearchParams(window.location.search).get("seasonPreview"))), []);
+  const defaultSeason = urlPreview ?? currentSeason();
   return {
-    season: hovered ?? selected ?? urlPreview ?? currentSeason(),
+    season: hovered ?? selected ?? defaultSeason,
+    defaultSeason,
     setHovered: (key) => setHovered(key ? previewSeason(key) : null),
     setSelected: (key) => setSelected(previewSeason(key)),
   };
@@ -142,7 +144,7 @@ export function SeasonLabel({ season, inActions = false }: { season: LiturgicalS
 
 export function SeasonActionSlot() {
   const explorer = useContext(SeasonExplorerContext);
-  return <SeasonLabel season={explorer?.season ?? currentSeason()} inActions />;
+  return <SeasonLabel season={explorer?.defaultSeason ?? currentSeason()} inActions />;
 }
 
 function SeasonExplorerStrip({ explorer }: { explorer: SeasonExplorer }) {
@@ -152,7 +154,7 @@ function SeasonExplorerStrip({ explorer }: { explorer: SeasonExplorer }) {
 export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
   const activePalette = useLogoPalette(image, denominationMark(denomination)?.src ?? null);
   const explorer = useSeasonExplorer();
-  return <SeasonExplorerContext.Provider value={explorer}><section className={`church-detail-hero season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta"><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a><span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={explorer.season} inActions/>{children}</div><SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
+  return <SeasonExplorerContext.Provider value={explorer}><section className={`church-detail-hero season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta"><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a><span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={explorer.defaultSeason} inActions/>{children}</div><SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
 }
 
 function useLogoPalette(image: string | null, fallbackImage: string | null) {
@@ -182,5 +184,5 @@ function useLogoPalette(image: string | null, fallbackImage: string | null) {
 export function LogoPaletteSection({ image, fallbackImage = null, className, children, showSeasonLabel = true }: { image: string | null; fallbackImage?: string | null; className: string; children: ReactNode; showSeasonLabel?: boolean }) {
   const activePalette = useLogoPalette(image, fallbackImage);
   const explorer = useSeasonExplorer();
-  return <SeasonExplorerContext.Provider value={explorer}><section className={`${className} season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{showSeasonLabel && <SeasonLabel season={explorer.season}/>} {children}<SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
+  return <SeasonExplorerContext.Provider value={explorer}><section className={`${className} season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{showSeasonLabel && <SeasonLabel season={explorer.defaultSeason}/>} {children}<SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
 }
