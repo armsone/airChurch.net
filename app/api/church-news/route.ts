@@ -113,18 +113,28 @@ export async function readFeedText(response:Response,maxBytes=1_000_000) {
   return {text:new TextDecoder(encoding).decode(bytes),truncated};
 }
 
-const FEED_VERSION=4;
+const FEED_VERSION=5;
 async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
   const checkedAt=new Date().toISOString();
   try{
     const headers:Record<string,string>={accept:"application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1","user-agent":"AirChurchNews/1.0 (+https://airchurch.net/contact)"};
     if(previous?.etag)headers["if-none-match"]=previous.etag;
     if(previous?.modified)headers["if-modified-since"]=previous.modified;
-    const response=await fetch(source.url,{headers,signal:AbortSignal.timeout(15_000)});
+    const signal=AbortSignal.timeout(15_000);
+    let response=await fetch(source.url,{headers,signal});
     const nextCheckAt=new Date(Date.now()+2*3600000).toISOString();
     if(response.status===304&&previous?.items.length)return {...previous,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,lastError:undefined};
     if(!response.ok){void response.body?.cancel();throw Error(`feed_http_${response.status}`);}
-    const feed=await readFeedText(response),fresh=parseFeed(feed.text,source);
+    let feed=await readFeedText(response);
+    // Some legacy feeds negotiate an HTML wrapper for an XML-specific Accept.
+    // Retry only that successful non-feed response once, with the same identity,
+    // URL and overall deadline. Never retry a denied/challenge page this way.
+    if(!/<(?:rss|feed|rdf:RDF)\b/i.test(feed.text)&&/<html\b/i.test(feed.text)&&! /captcha|document\.cookie|access\s*denied|forbidden|challenge|접근\s*(?:제한|차단)|보안\s*확인/i.test(feed.text)){
+      response=await fetch(source.url,{headers:{accept:"*/*","user-agent":headers["user-agent"]},signal});
+      if(!response.ok){void response.body?.cancel();throw Error(`feed_http_${response.status}`);}
+      feed=await readFeedText(response);
+    }
+    const fresh=parseFeed(feed.text,source);
     if(!fresh.length){
       const entries=[...feed.text.matchAll(/<(?:item|entry)\b/gi)].length;
       const dates=[...feed.text.matchAll(/<(?:pubDate|dc:date|atom:updated|published|updated)\b/gi)].length;
