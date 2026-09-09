@@ -516,6 +516,28 @@ export const ensureAdminTables=memoizeEnsure(async(db:D1Database)=>{
 });
 let retentionCheckAfter=0;
 let retentionPromise:Promise<void>|null=null;
+// These caps cover only AirChurch's searchable catalog records. YouTube originals
+// remain untouched, and every church keeps its most recent published items.
+function catalogRetentionStatement(table:"sermons"|"praise_videos"|"church_shorts",cap:number,perChurch:number){
+  return `WITH overflow(n) AS (
+    SELECT MAX(COUNT(*)-${cap},0) FROM ${table} WHERE status='published'
+  ), candidates AS (
+    SELECT older.id
+    FROM ${table} older
+    WHERE older.status='published'
+      AND (
+        SELECT COUNT(*)
+        FROM ${table} newer
+        WHERE newer.church_id=older.church_id
+          AND newer.status='published'
+          AND (newer.published_at>older.published_at OR (newer.published_at=older.published_at AND newer.id>older.id))
+      )>=${perChurch}
+    ORDER BY older.published_at ASC,older.id ASC
+    LIMIT 250
+  )
+  DELETE FROM ${table}
+  WHERE id IN (SELECT id FROM candidates LIMIT (SELECT MIN(250,n) FROM overflow))`;
+}
 export async function maybeRunDataRetention(db:D1Database){
   if(Date.now()<retentionCheckAfter)return;
   if(!retentionPromise)retentionPromise=(async()=>{
@@ -542,6 +564,9 @@ export async function maybeRunDataRetention(db:D1Database){
     if(tables.has("private_contact_access_events"))statements.push(db.prepare("DELETE FROM private_contact_access_events WHERE created_at<datetime('now','-180 days')"));
     if(tables.has("encouragement_messages"))statements.push(db.prepare("DELETE FROM encouragement_messages WHERE status IN ('rejected','deleted') AND COALESCE(moderated_at,created_at)<datetime('now','-90 days')"));
     if(tables.has("ministry_profile_suggestions"))statements.push(db.prepare("DELETE FROM ministry_profile_suggestions WHERE (status='pending' AND created_at<datetime('now','-180 days')) OR (status IN ('approved','rejected') AND COALESCE(reviewed_at,created_at)<datetime('now','-30 days'))"));
+    if(tables.has("sermons"))statements.push(db.prepare(catalogRetentionStatement("sermons",40_000,3)));
+    if(tables.has("praise_videos"))statements.push(db.prepare(catalogRetentionStatement("praise_videos",4_000,2)));
+    if(tables.has("church_shorts"))statements.push(db.prepare(catalogRetentionStatement("church_shorts",2_000,2)));
     if(statements.length)try{await db.batch(statements);}catch(error){await db.prepare("UPDATE maintenance_state SET completed_at=datetime('now','-2 days') WHERE key='personal-data-retention-v1'").run().catch(()=>{});throw error;}
   })().catch(()=>{retentionCheckAfter=Date.now()+60*1000;}).finally(()=>{retentionPromise=null;});
   await retentionPromise;

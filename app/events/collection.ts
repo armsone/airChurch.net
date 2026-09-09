@@ -94,7 +94,10 @@ async function processSource(source:SourceConfig){
       if([...articleRobots.matchAll(/^crawl-delay:\s*([\d.]+)/gim)].some(m=>Number(m[1])*1000>delay))throw Error("article_crawl_delay_requires_separate_schedule");
     }
     for(const candidate of queue.results){
-      if(processed>=5||Date.now()-started>22000)break;
+      // The remote scheduler's gateway closes long-lived requests at roughly 45
+      // seconds. Stop this source early; the next 15-minute batch resumes its
+      // remaining queue from the saved checkpoint.
+      if(processed>=5||Date.now()-started>22_000)break;
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
       if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
