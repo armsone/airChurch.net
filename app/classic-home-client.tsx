@@ -3,7 +3,7 @@
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "./site-footer";
 import EventsBrowser from "./events/events-browser";
-import SourceDirectory from "./source-directory";
+import { NewsSources } from "./news/news-card";
 import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./recent-searches";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
@@ -871,7 +871,7 @@ export default function Home() {
 
       <section className="content-section church-news-section" id="church-news">
         <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
-        {!churchNewsLoading&&churchNewsSources.length>0&&<SourceDirectory title="현재 소식을 가져오는 곳" groups={[{label:"교계뉴스",sources:churchNewsSources.map(source=>({name:source.name,homepage:source.homepage,url:source.rssUrl,linkLabel:"RSS"}))}]}/>}
+        {!churchNewsLoading&&churchNewsSources.length>0&&<NewsSources sources={churchNewsSources}/>}
         <div className="church-news-grid news-preview-grid">
           {churchNewsLoading ? Array.from({length:12},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
             <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><span className="church-news-mark">{item.markUrl&&<img src={item.markUrl} alt="" />}</span><small>{item.source}</small></span>

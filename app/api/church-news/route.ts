@@ -3,7 +3,7 @@ import { getRequestExecutionContext } from "vinext/shims/request-context";
 
 type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string};
 type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string;markUrl:string};
-type FeedState={items:NewsItem[];checkedAt:string;lastSuccessAt?:string;nextCheckAt:string;failures:number;etag?:string;modified?:string};
+type FeedState={items:NewsItem[];checkedAt:string;lastSuccessAt?:string;nextCheckAt:string;failures:number;etag?:string;modified?:string;version?:number;lastError?:string};
 type NewsPayload={items:NewsItem[];sources:Array<{name:string;rssUrl:string;homepage:string;status:string;lastSuccessAt?:string}>;refreshedAt?:string;sourcesProcessed?:number;target:number};
 type SnapshotRow={payload:string;refreshedAt:string};
 
@@ -59,6 +59,10 @@ export const sources:FeedSource[]=[
     ["리폼드투데이","https://www.reformedtoday.net","https://www.reformedtoday.net/rss/allArticle.xml"],
     ["국민일보 더미션","https://www.themission.co.kr","https://www.themission.co.kr/rss/allArticle.xml"],
     ["크리스천투데이","https://www.christiantoday.co.kr","https://www.christiantoday.co.kr/rss/"],
+    ["기독교헤럴드","http://www.cherald.co.kr","http://www.cherald.co.kr/rss/allArticle.xml"],
+    ["크리스찬리뷰·호주","https://www.christianreview.com.au","https://www.christianreview.com.au/rss/rss_news.php"],
+    ["크리스천라이프·뉴질랜드","https://christianlife.nz","https://christianlife.nz/feed"],
+    ["크리스찬타임스·미주 베이","https://www.kchristian.com","https://www.kchristian.com/blog-feed.xml"],
   ].map(([name,homepage,url])=>({name,homepage,url,allowedHost:new URL(homepage).hostname,tone:"newsnjoy",markUrl:""})),
 ];
 
@@ -98,33 +102,36 @@ function parseFeed(xml:string,source:FeedSource):NewsItem[] {
   return items;
 }
 
-async function limitedText(response:Response,maxBytes=1_000_000) {
-  const declared=Number(response.headers.get("content-length"));
-  if(Number.isFinite(declared)&&declared>maxBytes)return null;
-  if(!response.body)return "";
-  const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
-  while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>maxBytes){void reader.cancel().catch(()=>{});return null;}chunks.push(value);}
+// Large full feeds are read only up to the byte budget. Parsers consume complete
+// item/entry elements only, so the unfinished tail can never become an article.
+export async function readFeedText(response:Response,maxBytes=1_000_000) {
+  if(!response.body)return {text:"",truncated:false};
+  const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0,truncated=false;
+  while(true){const {done,value}=await reader.read();if(done)break;const chunk=value.subarray(0,maxBytes-size);chunks.push(chunk);size+=chunk.byteLength;if(size>=maxBytes){truncated=true;void reader.cancel().catch(()=>{});break;}}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
   const encoding=response.headers.get("content-type")?.match(/charset=["']?([^;\s"']+)/i)?.[1]||new TextDecoder().decode(bytes.slice(0,200)).match(/encoding=["']([^"']+)/i)?.[1]||"utf-8";
-  return new TextDecoder(encoding).decode(bytes);
+  return {text:new TextDecoder(encoding).decode(bytes),truncated};
 }
 
+const FEED_VERSION=2;
 async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
   const checkedAt=new Date().toISOString();
   try{
-    const headers:Record<string,string>={accept:"application/rss+xml, application/atom+xml, application/xml;q=0.9","user-agent":"AirChurchNews/1.0 (+https://airchurch.net/contact)"};
+    const headers:Record<string,string>={accept:"application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1","user-agent":"AirChurchNews/1.0 (+https://airchurch.net/contact)"};
     if(previous?.etag)headers["if-none-match"]=previous.etag;
     if(previous?.modified)headers["if-modified-since"]=previous.modified;
     const response=await fetch(source.url,{headers,signal:AbortSignal.timeout(8_000)});
     const nextCheckAt=new Date(Date.now()+2*3600000).toISOString();
-    if(response.status===304&&previous?.items.length)return {...previous,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0};
-    if(!response.ok)throw Error("feed_unavailable");
-    const xml=await limitedText(response),items=xml===null?[]:parseFeed(xml,source).sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).slice(0,10);
-    if(!items.length)throw Error("feed_has_no_valid_articles");
-    return {items,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,etag:response.headers.get("etag")||undefined,modified:response.headers.get("last-modified")||undefined};
-  }catch{
+    if(response.status===304&&previous?.items.length)return {...previous,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,lastError:undefined};
+    if(!response.ok){void response.body?.cancel();throw Error(`feed_http_${response.status}`);}
+    const feed=await readFeedText(response),fresh=parseFeed(feed.text,source);
+    if(!fresh.length)throw Error("feed_has_no_valid_articles");
+    // A bounded prefix can add/update articles but cannot erase the last good tail.
+    const items=[...new Map([...(feed.truncated?previous?.items||[]:[]),...fresh].map(item=>[item.url,item])).values()].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt)).slice(0,10);
+    return {items,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,etag:feed.truncated?undefined:response.headers.get("etag")||undefined,modified:feed.truncated?undefined:response.headers.get("last-modified")||undefined};
+  }catch(error){
     const failures=(previous?.failures||0)+1;
-    return {...previous,items:previous?.items||[],checkedAt,nextCheckAt:new Date(Date.now()+Math.min(24,2**failures)*3600000).toISOString(),failures};
+    return {...previous,items:previous?.items||[],checkedAt,nextCheckAt:new Date(Date.now()+Math.min(24,2**failures)*3600000).toISOString(),failures,version:FEED_VERSION,lastError:error instanceof Error?error.message.slice(0,100):"feed_unavailable"};
   }
 }
 
@@ -161,20 +168,20 @@ const publicSources=(states=new Map<string,FeedState>())=>sources.map(source=>{
 export async function refreshChurchNewsSnapshot() {
   const db=database(),now=new Date().toISOString(),token=crypto.randomUUID();
   const claim=await db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES('refresh-lock',?,0,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,refreshed_at=excluded.refreshed_at WHERE church_news_snapshots.refreshed_at<?").bind(token,new Date(Date.now()+60000).toISOString(),now).run();
-  if(Number(claim.meta.changes)!==1)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:50}),sourcesProcessed:0};
+  if(Number(claim.meta.changes)!==1)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
   try{
     const rows=await db.prepare("SELECT key,payload FROM church_news_snapshots WHERE key LIKE 'feed:%'").all<{key:string;payload:string}>();
     const states=new Map<string,FeedState>();
     for(const row of rows.results){try{states.set(row.key,JSON.parse(row.payload));}catch{/* Retain the last aggregate until this feed can be refreshed. */}}
-    const due=sources.filter(s=>!states.get(feedKey(s))||states.get(feedKey(s))!.nextCheckAt<=now).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
-    if(!due.length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:50}),sourcesProcessed:0};
+    const due=sources.filter(s=>{const state=states.get(feedKey(s));return !state||state.nextCheckAt<=now||(state.failures>0&&(state.version||0)<FEED_VERSION);}).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
+    if(!due.length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
     const loaded=await mapWithConcurrency(due,3,async source=>({source,state:await loadSource(source,states.get(feedKey(source)))}));
     await db.batch(loaded.map(({source,state})=>db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(feedKey(source),JSON.stringify(state),state.items.length,state.checkedAt)));
     for(const {source,state} of loaded)states.set(feedKey(source),state);
     const previous=await readChurchNewsSnapshot();
     const current=sources.flatMap(s=>states.get(feedKey(s))?.items.length?states.get(feedKey(s))!.items:previous?.items.filter(i=>i.source===s.name)||[]);
-    const items=capPerSource([...new Map(current.map(item=>[item.url,item])).values()].sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0)),MAX_PER_SOURCE).slice(0,500);
-    const payload:NewsPayload={items,sources:publicSources(states),refreshedAt:now,sourcesProcessed:due.length,target:50};
+    const items=capPerSource([...new Map(current.map(item=>[item.url,item])).values()].sort((a,b)=>(Date.parse(b.publishedAt)||0)-(Date.parse(a.publishedAt)||0)),MAX_PER_SOURCE).slice(0,sources.length*MAX_PER_SOURCE);
+    const payload:NewsPayload={items,sources:publicSources(states),refreshedAt:now,sourcesProcessed:due.length,target:sources.length};
     await db.prepare("INSERT INTO church_news_snapshots (key,payload,item_count,refreshed_at) VALUES ('latest',?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(JSON.stringify(payload),items.length,now).run();
     return payload;
   }finally{
@@ -188,14 +195,14 @@ async function readChurchNewsSnapshot(){
   try {
     const payload=JSON.parse(row.payload) as NewsPayload;
     const marks=new Map(sources.map((source)=>[source.name,source.markUrl]));
-    return {...payload,target:50,refreshedAt:row.refreshedAt,sources:publicSources().map(source=>({...source,...payload.sources.find(s=>s.name===source.name),rssUrl:source.rssUrl})),items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
+    return {...payload,target:sources.length,refreshedAt:row.refreshedAt,sources:publicSources().map(source=>({...source,...payload.sources.find(s=>s.name===source.name),rssUrl:source.rssUrl})),items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
   } catch{return null;}
 }
 
 export async function GET() {
   const stored=await readChurchNewsSnapshot();
   if(!stored||Date.now()-Date.parse(stored.refreshedAt||"")>5*60000)getRequestExecutionContext()?.waitUntil(refreshChurchNewsSnapshot().catch(()=>null));
-  const payload=stored??{items:[],sources:publicSources(),target:50};
+  const payload=stored??{items:[],sources:publicSources(),target:sources.length};
   const cacheControl=payload.items.length?"public, max-age=0, s-maxage=60, must-revalidate":"no-store";
   return Response.json(payload,{headers:{"cache-control":cacheControl}});
 }

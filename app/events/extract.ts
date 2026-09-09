@@ -15,6 +15,20 @@ function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
+  if(source.id==="interserve"){
+    const title=meta(html,"og:title")||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
+    if(!/i-LAMS/i.test(title))return [];
+    const rows=lines(html),when=rows.find(row=>/^일\s*정\s*[:：]/.test(row)&&/온라인\s*ZOOM/.test(row)),count=rows.join(" ").match(/총\s*(\d+)회에\s*걸쳐/);
+    const m=when?.match(/(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일\s*~\s*(\d{1,2})월\s*(\d{1,2})일\s*\(매주\s*([월화수목금토일])요일\s*저녁\s*(\d{1,2})시\s*(?:(\d{1,2})분\s*)?(?=[,，)])/);
+    if(!m||!count)return [];
+    const first=`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`,last=`${m[1]}-${m[4].padStart(2,"0")}-${m[5].padStart(2,"0")}`,n=Number(count[1]),hour=Number(m[7]);
+    if(!validDate(first)||!validDate(last)||n<1||n>52||hour<1||hour>11||"일월화수목금토"[new Date(`${first}T00:00:00Z`).getUTCDay()]!==m[6]||Date.parse(last)-Date.parse(first)!==(n-1)*7*86400000)return [];
+    const minute=Number(m[8]||0);if(minute>59)return [];
+    const startTime=`${hour+12}:${String(minute).padStart(2,"0")}`,notice=noticeStatus(rows.join("\n"));
+    return Array.from({length:n},(_,i)=>{const date=new Date(Date.parse(first)+i*7*86400000).toISOString().slice(0,10),sessionTitle=`${m[1]} i-LAMS · ${i+1}회`;
+      return {key:`${date}_${startTime}`,title:sessionTitle,evidence:`${title}\n${when}\n${count[0]}`,reason:"",event:{title:sessionTitle,startDate:date,endDate:date,startTime,venue:"온라인 ZOOM",region:"온라인",attendance:"온라인",organizer:"인터서브코리아",audience:"대상 확인 필요",category:"세미나·교육",registrationUrl:null,status:notice||"published"} satisfies ExtractedEvent};
+    });
+  }
   if(source.id==="sorrygom"){
     const year=html.match(/alt=["'](20\d{2}) 올인원 믹싱세미나 포스터["']/)?.[1],rows=lines(html),start=rows.indexOf("장소 및 일시"),end=rows.indexOf("신청 및 준비");
     if(!year||start<0||end<=start)return [];

@@ -32,9 +32,15 @@ export const officialEventSources:SourceConfig[] = [
   {id:"emik",name:"한국기독교장로회 총회교육국",homepage:"https://www.emik.org/",url:"https://www.emik.org/g5/bbs/board.php?bo_table=s6_1",kind:"official",detailPattern:"[?&]wr_id=\\d+"},
   {id:"anointing",name:"어노인팅",homepage:"https://anointing.kr/",url:"https://anointing.kr/community.php?cate=news",kind:"official",detailPattern:"/communityview\\.php\\?[^#]*idx=\\d+",organizer:"어노인팅"},
   {id:"paidion",name:"파이디온선교회",homepage:"https://www.paidion.org/",url:"https://paidionsquare.com/seminar/pindex2.php",kind:"official",detailPattern:"/seminar/view1\\.php\\?sm_id=\\d+",organizer:"파이디온선교회",eventOnly:true},
-  {id:"juba",name:"주바라기선교회",homepage:"https://www.juba.co.kr/kor/main/",url:"https://www.juba.co.kr/kor/sub/?cg01_idx=28&cg02_idx=121",kind:"official",detailPattern:"/kor/sub/\\?[^#]*pmode=view[^#]*table_idx=\\d+",organizer:"주바라기선교회",listingUrls:["https://www.juba.co.kr/kor/main/"]},
+  {id:"juba",name:"주바라기선교회",homepage:"https://www.juba.co.kr/kor/main/",url:"https://www.juba.co.kr/kor/sub/?cg01_idx=28&cg02_idx=121",kind:"official",detailPattern:"/kor/sub/\\?(?=[^#]*pmode=view)(?=[^#]*table_idx=\\d+)",organizer:"주바라기선교회",eventOnly:true,listingUrls:["https://www.juba.co.kr/kor/main/"]},
   {id:"cbmc",name:"한국CBMC",homepage:"https://cbmc.or.kr/",url:"https://cbmc.or.kr/bbs/board.php?bo_table=notice",kind:"official",detailPattern:"[?&]wr_id=\\d+",organizer:"한국CBMC"},
   {id:"gms-training",name:"총회세계선교회 GMS",homepage:"https://gms.kr/",url:"https://gms.kr/bbs/board.php?bo_table=444",kind:"official",detailPattern:"[?&]wr_id=\\d+",organizer:"총회세계선교회"},
+  {id:"interserve",name:"인터서브코리아",homepage:"https://interserve.kr/",url:"https://interserve.kr/news/1297-2/",kind:"official",detailPattern:"/news/1297-2/\\?[^#]*vid=\\d+"},
+  {id:"panorama",name:"파노라마성경연구원",homepage:"https://www.panoramabible.co.kr/",url:"https://www.panoramabible.co.kr/bbs/board.php?bo_table=table53",kind:"official",detailPattern:"[?&]wr_id=\\d+"},
+  {id:"siaff",name:"서울국제사랑영화제",homepage:"https://siaff.kr/",url:"https://siaff.kr/cineforum.php",kind:"official",detailPattern:"/cineforum\\.php$",singlePage:true,eventOnly:true},
+  {id:"bibleforum",name:"한국성서학연구소",homepage:"https://bibleforum.org/",url:"https://bibleforum.org/seminars",kind:"official",detailPattern:"/seminars/[^/?]+",eventOnly:true},
+  {id:"eco-christ",name:"기독교환경교육센터 살림",homepage:"https://eco-christ.tistory.com/",url:"https://eco-christ.tistory.com/",kind:"official",detailPattern:"^https://eco-christ\\.tistory\\.com/\\d+$"},
+  {id:"greenchrist",name:"기독교환경운동연대",homepage:"https://greenchrist.org/",url:"https://greenchrist.org/community_1/",kind:"official",detailPattern:"/community_1/\\?(?=[^#]*mod=document)(?=[^#]*uid=\\d+)"},
 ];
 
 // Extra aggregators discover official references only; articles never become confirmed events by themselves.
@@ -53,7 +59,7 @@ export const eventSourceCandidates=[
   {name:"한국선교훈련원 GMTC",url:"https://gmtc.co.kr/공지사항/",reason:"모집 목록 확인 · 미래 날짜 검증 필요"},
   {name:"기독연구원 느헤미야",url:"https://www.nics.or.kr/",reason:"보안 연결 오류 · 수집 보류"},
   {name:"한국기독학생회 IVF",url:"https://www.ivf.or.kr/",reason:"연결 지연 · 수집 경로 확인 필요"},
-  {name:"인터서브코리아",url:"https://interserve.kr/category/news/",reason:"소식 목록 확인 · 미래 일정 검증 필요"},
+  {name:"세계관학술동역회",url:"https://www.worldview.or.kr/xe/community",reason:"목록·본문 확인 · 10초 간격 전용 수집 필요"},
   {name:"한국오픈도어",url:"https://www.opendoors.or.kr/board/list.do?iboardgroupseq=7&iboardmanagerseq=55",reason:"정기모임 휴지 공지 확인 · 재개 여부 확인 필요"},
   {name:"성서유니온",url:"https://www.su.or.kr/",reason:"동적 화면 · 행사 목록 연결 필요"},
   {name:"한국 예수전도단",url:"https://www.ywamkorea.org/dts.php",reason:"훈련 목록의 날짜·장소 검증 필요"},

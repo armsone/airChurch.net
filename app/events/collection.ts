@@ -1,11 +1,11 @@
 import { database } from "../api/_shared";
-import { sources as newsSources } from "../api/church-news/route";
+import { sources as newsSources, readFeedText } from "../api/church-news/route";
 import { officialEventSources, additionalDiscoverySources, type SourceConfig } from "./sources";
 import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
-const COLLECTOR_VERSION=2;
+const COLLECTOR_VERSION=3;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -15,9 +15,10 @@ async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<voi
     const u=new URL(url);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port||!(host(url)===host(source.url)||(source.kind==="rss"&&host(url)===host(source.homepage))))throw Error("source_boundary");
     if(robots!==undefined&&!robotsAllowed(robots,url))throw Error("robots_disallowed");
     await pace?.();
-    const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"text/html,application/rss+xml,application/xml,text/plain;q=0.8"}});
+    const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"text/html,application/rss+xml,application/xml,text/xml,text/plain;q=0.8,*/*;q=0.1"}});
     if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
     if(!r.ok){void r.body?.cancel();return {text:"",status:r.status};}
+    if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status};
     if(Number(r.headers.get("content-length")||0)>1500000){void r.body?.cancel();throw Error("response_too_large");}
     const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status};const chunks:Uint8Array[]=[];let size=0;
     while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error("response_too_large");}chunks.push(value);}
@@ -26,13 +27,18 @@ async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<voi
     return {text:new TextDecoder(charset).decode(bytes),status:r.status};
   }throw Error("too_many_redirects");
 }
-function robotsAllowed(text:string,url:string){
-  const groups:Array<{agents:string[];rules:Array<{allow:boolean;path:string}>}>=[];let group:typeof groups[number]={agents:[],rules:[]};
-  for(const raw of text.split(/\r?\n/)){const line=raw.replace(/#.*$/,"").trim(),colon=line.indexOf(":");if(colon<0)continue;const key=line.slice(0,colon).toLowerCase(),value=line.slice(colon+1).trim();
-    if(key==="user-agent"){if(group.rules.length){groups.push(group);group={agents:[],rules:[]};}group.agents.push(value.toLowerCase());}
-    else if((key==="allow"||key==="disallow")&&value)group.rules.push({allow:key==="allow",path:value});
+function robotsGroups(text:string){
+  const groups:Array<{agents:string[];rules:Array<{allow:boolean;path:string}>;delay:number}>=[];let group:typeof groups[number]={agents:[],rules:[],delay:0},hasDirectives=false;
+  for(const raw of text.split(/\r?\n/)){const line=raw.replace(/#.*$/,"").trim(),colon=line.indexOf(":");if(colon<0)continue;const key=line.slice(0,colon).trim().toLowerCase(),value=line.slice(colon+1).trim();
+    if(key==="user-agent"){if(hasDirectives){groups.push(group);group={agents:[],rules:[],delay:0};hasDirectives=false;}if(value)group.agents.push(value.toLowerCase());}
+    else if(group.agents.length){hasDirectives=true;if((key==="allow"||key==="disallow")&&value)group.rules.push({allow:key==="allow",path:value});else if(key==="crawl-delay"&&/^\d+(?:\.\d+)?$/.test(value))group.delay=Math.max(group.delay,Number(value)*1000);}
   }groups.push(group);
-  const specific=groups.filter(g=>g.agents.some(a=>a!=="*"&&AGENT.toLowerCase().includes(a))),selected=specific.length?specific:groups.filter(g=>g.agents.includes("*"));
+  const specific=groups.filter(g=>g.agents.some(a=>a!=="*"&&AGENT.toLowerCase().split("/")[0].includes(a)));
+  return specific.length?specific:groups.filter(g=>g.agents.includes("*"));
+}
+function robotsDelay(text:string){return Math.max(1000,...robotsGroups(text).map(g=>g.delay));}
+function robotsAllowed(text:string,url:string){
+  const selected=robotsGroups(text);
   const u=new URL(url),path=u.pathname+u.search;
   const matches=selected.flatMap(g=>g.rules).filter(r=>{const end=r.path.endsWith("$"),pattern=(end?r.path.slice(0,-1):r.path).split("*").map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join(".*");return new RegExp(`^${pattern}${end?"$":""}`).test(path);}).sort((a,b)=>b.path.length-a.path.length||Number(b.allow)-Number(a.allow));
   return matches[0]?.allow??true;
@@ -69,8 +75,8 @@ async function processSource(source:SourceConfig){
     const robots=await boundedFetch(new URL("/robots.txt",source.url).href,source);
     if(robots.status!==404&&robots.status!==200)throw Error("robots_unavailable");
     if(!robotsAllowed(robots.text,source.url))throw Error("robots_disallowed");
-    // Honor the most conservative declared delay, even for other bot groups.
-    const delay=Math.max(1000,...[...robots.text.matchAll(/^crawl-delay:\s*([\d.]+)/gim)].map(m=>Number(m[1])*1000));
+    // Only rules addressed to our crawler (or *) apply; Bing's delay is not ours.
+    let delay=robotsDelay(robots.text);
     if(!Number.isFinite(delay)||delay>5000)throw Error("crawl_delay_requires_separate_schedule");
     let previous=Date.now();const pace=async()=>{await new Promise(resolve=>setTimeout(resolve,Math.max(0,delay-(Date.now()-previous))));previous=Date.now();};
     const page=await boundedFetch(source.url,source,pace,robots.text);if(page.status!==200)throw Error(`source_http_${page.status}`);
@@ -91,7 +97,8 @@ async function processSource(source:SourceConfig){
       const rules=await boundedFetch(new URL("/robots.txt",source.homepage).href,source,pace);
       if(rules.status!==200&&rules.status!==404)throw Error("article_robots_unavailable");
       articleRobots=rules.text;
-      if([...articleRobots.matchAll(/^crawl-delay:\s*([\d.]+)/gim)].some(m=>Number(m[1])*1000>delay))throw Error("article_crawl_delay_requires_separate_schedule");
+      delay=Math.max(delay,robotsDelay(articleRobots));
+      if(!Number.isFinite(delay)||delay>5000)throw Error("article_crawl_delay_requires_separate_schedule");
     }
     for(const candidate of queue.results){
       // The remote scheduler's gateway closes long-lived requests at roughly 45
@@ -132,7 +139,7 @@ async function processSource(source:SourceConfig){
       ]);
     }
     const remaining=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END)").bind(source.id,after(-168),after(-4)).first<{n:number}>();
-    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"blocked",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":null,nextScan,source.id,token).run();
+    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"empty",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":null,nextScan,source.id,token).run();
   }catch(error){const state=await db.prepare("SELECT failures FROM event_sources WHERE id=?").bind(source.id).first<{failures:number}>();await db.prepare("UPDATE event_sources SET status=?,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=failures+1,last_error=? WHERE id=? AND lease_token=?").bind(String(error).includes("robots_disallowed")?"blocked":"failed",after(Math.min(24,2**Math.min(5,(state?.failures||0)+1))),String(error).slice(0,180),source.id,token).run();}
 }
 export async function syncEvents(){
