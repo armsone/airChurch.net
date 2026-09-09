@@ -7,14 +7,15 @@ type SourceEntry = {
   statusLabel?: string;
 };
 
-export default function SourceDirectory({ title, note, groups }: {
+export default function SourceDirectory({ title, note, groups, countLabel }: {
   title: string;
   note?: string;
+  countLabel?: string;
   groups: Array<{ label: string; sources: SourceEntry[] }>;
 }) {
   const populated = groups.filter(group => group.sources.length > 0);
   return <details className="source-directory">
-    <summary>{title} · {populated.reduce((total, group) => total + group.sources.length, 0)}곳</summary>
+    <summary>{title} · {countLabel || `${populated.reduce((total, group) => total + group.sources.length, 0)}곳`}</summary>
     {note && <p className="source-directory-note">{note}</p>}
     <div className="source-directory-groups">{populated.map(group => <section className="source-directory-group" key={group.label}>
       <h3>{group.label}<small>{group.sources.length}곳 · 가나다순</small></h3>
