@@ -11,7 +11,7 @@ export default function EventsBrowser({ compact=false, churchId }: { compact?:bo
   const container=useRef<HTMLDivElement>(null);const [visible,setVisible]=useState(!compact);
   useEffect(()=>{if(!compact||!container.current)return;const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"350px"});observer.observe(container.current);return()=>observer.disconnect();},[compact]);
   useEffect(()=>{const id=Number(new URLSearchParams(window.location.search).get("church"));if(Number.isInteger(id)&&id>0)setQueryChurch(id);setReady(true);},[]);
-  const params = new URLSearchParams(compact ? {preview:"1",limit:"9"} : month ? {...bounds(month),limit:"100"} : {upcoming:"1",limit:"100"});
+  const params = new URLSearchParams(compact ? {preview:"1",limit:"12"} : month ? {...bounds(month),limit:"100"} : {upcoming:"1",limit:"100"});
   const selectedChurch=churchId||queryChurch;
   if(selectedChurch)params.set("church",String(selectedChurch));
   if(region&&!selectedChurch)params.set("region",region);

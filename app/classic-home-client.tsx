@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import HomeReloadLink from "./home-reload-link";
 import SiteFooter from "./site-footer";
 import EventsBrowser from "./events/events-browser";
 import SourceDirectory from "./source-directory";
@@ -11,7 +10,6 @@ import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-c
 import { hasSavedItemNewSermon, readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
 import CcmPlayer, { type Track } from "./ccm-player";
 import { loadYouTubeApi, type YouTubePlayer, type YouTubeEvent } from "./youtube-api";
-import SkipLink from "./skip-link";
 import { shouldUseLowData } from "./low-data";
 import {ChurchCardContent} from "./directory-cards";
 import PastorDirectoryCard from "./pastor-directory-card";
@@ -92,8 +90,6 @@ const churchSourceRows = knownDenominations.map((denomination) => ({
   access: "공개(로그인 없이 열람 가능)",
   lastChecked: "공개 자료 확인 시 갱신",
 }));
-const menuItems = [["말씀","#sermons"],["찬양","#praises"],["교회","#church-directory"],["목회자","#pastor-directory"],["행사","#events"],["교계소식","#church-news"],["공동체","#community"],["착한나눔","#goodshare"],["소개","#vision"]] as const;
-const headerAdminLinks = [["나의 모음","/saved"],["운영 안내","/about"],["문의","/contact"]] as const;
 
 function shuffled<T>(items: T[]) {
   const result = [...items];
@@ -127,7 +123,6 @@ export default function Home() {
   const [region, setRegion] = useState("전체");
   const [denomination, setDenomination] = useState("전체 교단");
   const [notice, setNotice] = useState("");
-  const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
   const [praiseTab,setPraiseTab]=useState<"ccm"|"church">("ccm");
   useEffect(()=>{if(new URLSearchParams(window.location.search).get("praise")==="church")setPraiseTab("church");},[]);
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
@@ -151,8 +146,6 @@ export default function Home() {
   const [shortMuted,setShortMuted]=useState(true);
   const pullToRefreshStartRef=useRef<number|null>(null);
   const pullToRefreshDistanceRef=useRef(0);
-  const mobileMenuButtonRef=useRef<HTMLButtonElement>(null);
-  const mobileMenuPanelRef=useRef<HTMLDivElement>(null);
   const shortPlayerRef=useRef<HTMLIFrameElement>(null);
   const shortViewerRef=useRef<HTMLDivElement>(null);
   const shortCloseButtonRef=useRef<HTMLButtonElement>(null);
@@ -210,13 +203,6 @@ export default function Home() {
     setPastorBatchBusy(true);
     try{const response=await fetch("/api/admin/manage",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"pastor-batch",ids,status})});const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||"처리하지 못했습니다.");window.location.reload();}catch(error){window.alert((error as Error).message);setPastorBatchBusy(false);}
   }
-  useEffect(()=>{
-    if(!mobileMenuOpen)return;
-    mobileMenuPanelRef.current?.querySelector<HTMLAnchorElement>("a")?.focus();
-    const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==="Escape"){setMobileMenuOpen(false);mobileMenuButtonRef.current?.focus();}};
-    window.addEventListener("keydown",closeOnEscape);
-    return()=>window.removeEventListener("keydown",closeOnEscape);
-  },[mobileMenuOpen]);
   useEffect(()=>{
     const refreshPersonalState=()=>{try {
       const completed=JSON.parse(localStorage.getItem(`airchurch:daily:${todayKey}`)||"[]") as string[];
@@ -298,7 +284,7 @@ export default function Home() {
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];
         setChurchNews(items);
-        setVisibleChurchNews(shuffled(items).slice(0,9));
+        setVisibleChurchNews(shuffled(items).slice(0,12));
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
@@ -399,8 +385,8 @@ export default function Home() {
     setVisibleChurchNews((current)=>{
       const currentUrls=new Set(current.map((item)=>item.url));
       const unseen=churchNews.filter((item)=>!currentUrls.has(item.url));
-      const pool=unseen.length>=9?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
-      return shuffled(pool).slice(0,9);
+      const pool=unseen.length>=12?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
+      return shuffled(pool).slice(0,12);
     });
   }
   async function showDifferentPastors(){
@@ -717,15 +703,9 @@ export default function Home() {
   }
 
   return (
-    <main id="top"><SkipLink/>
+    <main id="top">
       {notice && <div className="toast" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
-      <header className="site-header">
-        <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
-        <nav aria-label="주요 메뉴">{menuItems.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
-        <nav className="header-admin-links" aria-label="운영 메뉴">{headerAdminLinks.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
-        <button ref={mobileMenuButtonRef} className="mobile-menu-button" type="button" aria-expanded={mobileMenuOpen} aria-controls="mobile-site-menu" onClick={()=>setMobileMenuOpen((open)=>!open)}><span aria-hidden="true">☰</span> 메뉴</button>
-        <div ref={mobileMenuPanelRef} className={`mobile-menu-panel${mobileMenuOpen?" is-open":""}`} id="mobile-site-menu" aria-hidden={!mobileMenuOpen}>{menuItems.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}<div className="mobile-menu-admin">{headerAdminLinks.map(([label,href])=><a href={href} key={href} onClick={()=>setMobileMenuOpen(false)}>{label}</a>)}</div></div>
-      </header>
+
 
       <section className="hero" id="primary-content" tabIndex={-1}>
         <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>

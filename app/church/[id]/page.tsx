@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { cache } from "react";
-import HomeReloadLink from "../../home-reload-link";
 import { churchHomepageUrls } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { database, ensureMediaTables } from "../../api/_shared";
@@ -8,7 +7,6 @@ import { ensureChurchDetailTables,ensureEncouragementTables,ensureMinistryProfil
 import ChurchSaveButton from "./church-save-button";
 import ChurchShareButton from "./church-share-button";
 import { safeHttpUrl } from "../../safe-url";
-import SkipLink from "../../skip-link";
 import DailyMediaLink from "../../daily-media-link";
 import { accessSession } from "../../admin-access";
 import { ensurePrivateContactTables } from "../../api/_shared";
@@ -60,7 +58,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
   const {id:rawId}=await params;const id=Number(rawId);
   const db=database();await Promise.all([ensureMediaTables(db),ensureChurchDetailTables(db),ensureEncouragementTables(db),ensureMinistryProfileTables(db),ensurePastorPeopleTables(db)]);
   const church=await publicChurch(id);
-  if(!church)return <main className="church-detail-shell"><SkipLink/><header className="church-detail-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink></header><section className="church-detail-missing" id="primary-content" tabIndex={-1}><span>CHURCH DIRECTORY</span><h1>현재 공개된 교회가 아닙니다</h1><p>정보가 변경되었거나 운영 기준에 따라 보류되었을 수 있습니다.</p><a href="/#church-directory">다른 교회 찾아보기 →</a></section></main>;
+  if(!church)return <main className="church-detail-shell"><section className="church-detail-missing" id="primary-content" tabIndex={-1}><span>CHURCH DIRECTORY</span><h1>현재 공개된 교회가 아닙니다</h1><p>정보가 변경되었거나 운영 기준에 따라 보류되었을 수 있습니다.</p><a href="/#church-directory">다른 교회 찾아보기 →</a></section></main>;
   const churchId=church.id;
   const regionPrefix=`${church.region.split(/\s+/)[0]}%`;
   const [sermons,praises,related,profile,schedules,encouragements,ministries,personMinistries]=await Promise.all([
@@ -80,8 +78,8 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
   const hasSchedules=schedules.results.length>0;
   const churchJsonLd={"@context":"https://schema.org","@type":"Church",name:church.name,url:`https://airchurch.net/church/${church.public_id}`,address:{"@type":"PostalAddress",addressRegion:church.region,addressCountry:"KR"},member:{"@type":"Person",name:church.pastor},sameAs:[homepage,church.youtube_channel_id?`https://www.youtube.com/channel/${church.youtube_channel_id}`:null].filter(Boolean)};
   const videoCard=(video:VideoRow,kind:"말씀"|"찬양")=><DailyMediaLink className="church-detail-video" href={`https://www.youtube.com/watch?v=${video.youtube_id}`} step={kind==="말씀"?"sermon":"praise"} key={`${kind}-${video.youtube_id}`}><img src={`https://i.ytimg.com/vi/${video.youtube_id}/mqdefault.jpg`} alt="" width={320} height={180} loading="lazy" decoding="async" referrerPolicy="no-referrer"/><span><small>{kind} · {new Date(video.published_at).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul"})}</small><strong>{video.title}</strong><em>YouTube에서 보기 ↗</em></span></DailyMediaLink>;
-  return <main className="church-detail-shell"><SkipLink/>
-    <header className="church-detail-header"><HomeReloadLink className="brand"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink></header>
+  return <main className="church-detail-shell">
+
     <ChurchDetailHero image={image} publicId={church.public_id} name={church.name} pastor={church.pastor} region={church.region} denomination={church.denomination} primaryPerson={primaryPerson}><ChurchSaveButton id={church.public_id} name={church.name} pastor={church.pastor} region={church.region}/><ChurchShareButton name={church.name}/>{homepage&&<a href={homepage} target="_blank" rel="noopener noreferrer">공식 홈페이지 ↗</a>}{church.youtube_channel_id&&<a href={`https://www.youtube.com/channel/${church.youtube_channel_id}`} target="_blank" rel="noopener noreferrer">공식 YouTube ↗</a>}<EncouragementJumpLink/></ChurchDetailHero>
     <section className="church-detail-trust"><span>✓ 공개 상태</span><p>교단·노회·교회가 공개한 정보와 공식 채널을 기준으로 소개합니다. 문제가 제보되면 운영 검토 동안 노출을 보류할 수 있습니다.</p><a href="/contact">정보 수정·비공개 요청</a></section>
     <section className="church-detail-content"><EventsBrowser compact churchId={church.public_id}/></section>

@@ -1,12 +1,10 @@
 "use client";
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import HomeReloadLink from "./home-reload-link";
 import SiteFooter from "./site-footer";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { hasSavedItemNewSermon, readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
-import SkipLink from "./skip-link";
 import { shouldUseLowData } from "./low-data";
 
 const ChurchControls = lazy(() => import("./admin/admin-controls").then((module) => ({ default: module.ChurchControls })));
@@ -276,7 +274,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];
         setChurchNews(items);
-        setVisibleChurchNews(shuffled(items).slice(0,9));
+        setVisibleChurchNews(shuffled(items).slice(0,12));
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
@@ -380,8 +378,8 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
     setVisibleChurchNews((current)=>{
       const currentUrls=new Set(current.map((item)=>item.url));
       const unseen=churchNews.filter((item)=>!currentUrls.has(item.url));
-      const pool=unseen.length>=9?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
-      return shuffled(pool).slice(0,9);
+      const pool=unseen.length>=12?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
+      return shuffled(pool).slice(0,12);
     });
   }
   async function showDifferentPastors(){
@@ -660,11 +658,9 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
   }
 
   return (
-    <main id="top"><SkipLink/>
+    <main id="top">
       {notice && <div className="toast" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} title="닫기" aria-label="알림 닫기">×</button></div>}
-      <header className="site-header simple-portal-header">
-        <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true" /><span>airchurch</span></HomeReloadLink>
-      </header>
+
 
       <section className="hero simple-portal-hero" id="primary-content" tabIndex={-1}>
         <h1>무엇을 찾으세요?</h1>
