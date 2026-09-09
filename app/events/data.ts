@@ -15,8 +15,8 @@ export async function readEventSources():Promise<EventSource[]>{
 }
 export async function readEvents(params:URLSearchParams){
   const today=koreaDate(),now=new Date().toISOString();
-  const from=params.get("from")||today,to=params.get("to")||koreaDate(new Date(Date.now()+90*86400000));
-  if(!validDate(from)||!validDate(to)||from>to||Date.parse(to)-Date.parse(from)>93*86400000)throw Error("invalid_filter");
+  const from=params.get("from")||today,to=params.get("to")||koreaDate(new Date(Date.now()+365*86400000));
+  if(!validDate(from)||!validDate(to)||from>to||Date.parse(to)-Date.parse(from)>366*86400000)throw Error("invalid_filter");
   const filters=[visible,"e.status='published'","e.valid_until>?","e.end_date>=?","e.end_date>=?","e.start_date<=?"],values:Array<string|number>=[now,today,from,to];
   const region=params.get("region"),category=params.get("category"),audience=params.get("audience"),church=params.get("church");
   if(region){if(!eventRegions.includes(region))throw Error("invalid_filter");filters.push("e.region=?");values.push(region);}

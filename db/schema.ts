@@ -27,6 +27,7 @@ export const eventSources = sqliteTable("event_sources", {
   id:text("id").primaryKey(), name:text("name").notNull(), homepage:text("homepage").notNull(), url:text("url").notNull(), kind:text("kind").notNull(),
   enabled:integer("enabled").notNull().default(1), lastCheckedAt:text("last_checked_at"), lastSuccessAt:text("last_success_at"), nextCheckAt:text("next_check_at").notNull().default("1970-01-01T00:00:00.000Z"),
   leaseToken:text("lease_token"), leaseUntil:text("lease_until"), status:text("status").notNull().default("pending"), failures:integer("failures").notNull().default(0), candidateCount:integer("candidate_count").notNull().default(0), lastError:text("last_error"),
+  collectorVersion:integer("collector_version").notNull().default(0), scanUrl:text("scan_url"),
 },t=>[index("idx_event_sources_due").on(t.enabled,t.nextCheckAt)]);
 export const events = sqliteTable("events", {
   id:text("id").primaryKey(), sourceId:text("source_id").notNull().references(()=>eventSources.id), churchId:integer("church_id").references(()=>churches.id),
