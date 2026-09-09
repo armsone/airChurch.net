@@ -119,9 +119,13 @@ function paletteStyle(palette: LogoPalette): React.CSSProperties {
   } as React.CSSProperties;
 }
 
-function SeasonLabel({ season, inActions = false }: { season: LiturgicalSeason; inActions?: boolean }) {
+export function SeasonLabel({ season, inActions = false }: { season: LiturgicalSeason; inActions?: boolean }) {
   if (season.key === "ordinary") return null;
   return <div className={`liturgical-season${inActions ? " season-in-actions" : ""}`} aria-label={season.christmasDays === undefined ? `현재 ${season.name}` : `현재 ${season.name}, 성탄절까지 ${season.christmasDays}일`}><span>{season.name}</span>{season.christmasDays !== undefined && <strong>성탄절까지 D-{season.christmasDays}</strong>}</div>;
+}
+
+export function SeasonActionSlot() {
+  return <SeasonLabel season={useCurrentSeason()} inActions />;
 }
 
 export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
@@ -154,8 +158,8 @@ function useLogoPalette(image: string | null, fallbackImage: string | null) {
   return palette;
 }
 
-export function LogoPaletteSection({ image, fallbackImage = null, className, children }: { image: string | null; fallbackImage?: string | null; className: string; children: ReactNode }) {
+export function LogoPaletteSection({ image, fallbackImage = null, className, children, showSeasonLabel = true }: { image: string | null; fallbackImage?: string | null; className: string; children: ReactNode; showSeasonLabel?: boolean }) {
   const activePalette = useLogoPalette(image, fallbackImage);
   const season = useCurrentSeason();
-  return <section className={`${className} season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}><SeasonLabel season={season}/>{children}</section>;
+  return <section className={`${className} season-${season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined}>{showSeasonLabel && <SeasonLabel season={season}/>} {children}</section>;
 }
