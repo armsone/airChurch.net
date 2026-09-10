@@ -53,11 +53,6 @@ const dailyGuides = [
   { day:"금요일", theme:"쉼과 회복", reference:"마태복음 11:28", question:"한 주의 무게 가운데 내려놓아야 할 것은 무엇인가요?" },
   { day:"토요일", theme:"감사와 준비", reference:"데살로니가전서 5:16-18", question:"이번 주에 발견한 감사 세 가지를 떠올려 보세요." },
 ] as const;
-const bibleMusicTracks:Track[] = [
-  {id:"XAF8NJKBuBE",title:"시편 1편부터 20편까지 한번에 감상하세요",channel:"BibleMusic.co.kr_바이블뮤직",duration:1620},
-  {id:"UwvOtxlVHPM",title:"[오디오바이블] 시편",channel:"BibleMusic.co.kr_바이블뮤직",duration:0},
-  {id:"aE_pL0M14d0",title:"[Holy Verse / CCM랩] CCM랩 메들리",channel:"BibleMusic.co.kr_바이블뮤직",duration:314},
-];
 const discoveryTopics=[
   {name:"위로",copy:"지친 마음에 머무는 말씀",symbol:"쉼"},
   {name:"기도",copy:"염려를 맡기고 다시 시작하기",symbol:"맡김"},
@@ -128,7 +123,7 @@ export default function Home() {
   const [region, setRegion] = useState("전체");
   const [denomination, setDenomination] = useState("전체 교단");
   const [notice, setNotice] = useState("");
-  const [praiseTab,setPraiseTab]=useState<"ccm"|"church">("ccm");
+  const [praiseTab,setPraiseTab]=useState<"ccm"|"church"|"bible-music">("ccm");
   useEffect(()=>{if(new URLSearchParams(window.location.search).get("praise")==="church")setPraiseTab("church");},[]);
   const [activeVideoId,setActiveVideoId]=useState<string|null>(null);
   const [sermonItems,setSermonItems]=useState<Sermon[]>([]);
@@ -772,11 +767,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="content-section bible-music-section" id="bible-music" aria-labelledby="bible-music-title">
-        <div className="section-heading"><div><span className="section-kicker">말씀을 들으며</span><h2 id="bible-music-title">바이블뮤직</h2></div><a href="https://www.youtube.com/@BibleMusic.co.kr_" target="_blank" rel="noopener noreferrer">채널 전체 보기 ↗</a></div>
-        <CcmPlayer visible interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("bible");}} curated={{items:bibleMusicTracks,title:"바이블뮤직 듣기",intro:"시편을 듣고, 말씀을 노래로 기억하세요.",sourceUrl:"https://www.youtube.com/@BibleMusic.co.kr_",sourceLabel:"BibleMusic.co.kr_바이블뮤직"}} />
-      </section>
-
       <section className="content-section shorts-section" id="shorts">
         <div className="section-heading"><div><span className="section-kicker">짧지만 진한 은혜</span><h2>교회 쇼츠</h2></div><div className="news-home-actions"><button className="shorts-refresh-button unified-other-button" type="button" onClick={()=>void loadDifferentShorts()} disabled={shortLoading}>{shortLoading ? "불러오는 중…" : "다른 쇼츠 보기"}</button><a className="unified-other-button" href="/shorts">전체 쇼츠 보기 →</a></div></div>
         <div className="shorts-grid shorts-home-grid">
@@ -810,8 +800,9 @@ export default function Home() {
 
       <section className="content-section praise-section" id="praises">
         <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다시 불러오기"}</button></div>
-        <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button></div>
+        <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button><button type="button" aria-pressed={praiseTab==="bible-music"} onClick={()=>setPraiseTab("bible-music")}>바이블뮤직</button></div>
         <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
+        <CcmPlayer visible={praiseTab==="bible-music"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} curated={{title:"바이블뮤직 듣기",intro:"시편을 듣고, 말씀을 노래로 기억하세요.",sourceUrl:"https://www.youtube.com/@BibleMusic.co.kr_",sourceLabel:"BibleMusic.co.kr_바이블뮤직",endpoint:"/api/bible-music"}} />
         <div hidden={praiseTab!=="church"}>
         <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,total:praiseTotal,query:praiseSearch,onQuery:setPraiseSearch,hasMore:praiseCursor!==null,moreLoading:praiseMoreLoading,onMore:loadMorePraises,error:praiseError,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
         <form className="praise-youtube-search" style={{marginTop:24,marginBottom:0}} role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
