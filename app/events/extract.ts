@@ -105,6 +105,16 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   // Ignore related articles/navigation below the actual article.
   const end=articleRows.findIndex((x,i)=>i>1&&!(source.id==="ksh"&&x==="첨부파일")&&(/^(관련 글들|이전글|다음글|첨부파일|목록보기|댓글목록)$/.test(x)||(source.id==="kocam"&&/^관련글 보기/.test(x))||(source.id==="ksh"&&/^(이전글|다음글)\s*[▲▼]/.test(x))));
   const body=end>=0?articleRows.slice(0,end):articleRows;
+  // This music publisher puts the event date and venue in the title itself.
+  // A two-digit year is usable only when that same title explicitly names it.
+  if(source.id==="vitnara"){
+    const schedule=title.match(/\([^()]*?(20\d{2}|\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\.?\s*([월화수목금토일])\s*,\s*([^()]+)\)$/);
+    if(schedule){
+      const years=[...new Set(title.match(/20\d{2}/g)||[])];
+      const year=schedule[1].length===4?schedule[1]:years.length===1&&years[0].endsWith(schedule[1])?years[0]:null;
+      if(year)body.unshift(`일시: ${year}년 ${schedule[2]}월 ${schedule[3]}일 (${schedule[4]})`,`장소: ${schedule[5].trim()}`);
+    }
+  }
   const evidence=body.join("\n").slice(0,2500);
   const fail=(reason:string)=>({event:null,title,evidence,reason});
   if(source.christianOnly&&!/찬양|워십|그리스도|기독교|예배|가스펠/.test(body.slice(0,8).join(" ")))return fail("outside_christian_scope");

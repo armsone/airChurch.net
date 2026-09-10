@@ -271,6 +271,10 @@
     "source":{"id":"hope","name":"호프선교회","homepage":"https://hope.or.kr/","url":"https://hope.or.kr/brunch/notice/","detailPattern":"/brunch/notice/\\?(?=[^#]*vid=\\d+)"}
   },{
     "type":"event",
+    "identityEvidence":"https://www.vitnara.com/habanas/about/about1.html",
+    "source":{"id":"vitnara","name":"빛나라 교회음악 연주회·행사","homepage":"https://www.vitnara.com/","url":"https://www.vitnara.com/board/free/list.html?board_no=3001","detailPattern":"/article/[^/]+/3001/\\d+/"}
+  },{
+    "type":"event",
     "identityEvidence":"http://weckr.org/",
     "source":{"id":"weckr","name":"한국WEC국제선교회","homepage":"http://weckr.org/","url":"http://weckr.org/?page_id=3432","detailPattern":"/\\?(?=[^#]*page_id=3432)(?=[^#]*uid=\\d+)(?=[^#]*mod=document)"}
   },{
