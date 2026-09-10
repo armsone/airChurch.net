@@ -69,6 +69,10 @@ export async function discover(source:SourceConfig,html:string,base=source.url){
     const url=new URL(`/kacs_new/community/main.php?activePage=view&no=${match[1]}`,base).href;
     if(isDetail(source,url))found.push({url,title:plain(match[2])});
   }
+  if(source.id==="jdm")for(const match of html.matchAll(/<a\b[^>]*href="javascript:go_view\('(\d{1,12})','FA_M'\)"[^>]*>([\s\S]*?)<\/a>/gi)){
+    const url=new URL(`/story/board_view.asp?idx=${match[1]}&BodType_CK=FA_M`,base).href;
+    if(isDetail(source,url))found.push({url,title:plain(match[2])});
+  }
   // The official page's locations(id) links are read as data, never executed.
   if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
   // The public notice list exposes modal IDs as data. Keep the human-facing

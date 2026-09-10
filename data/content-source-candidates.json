@@ -263,6 +263,30 @@
   }
   ,{
     "type":"event",
+    "identityEvidence":"https://wemission.com/campguide-teenager/",
+    "source":{"id":"wemission","name":"위미션","homepage":"https://wemission.com/","url":"https://wemission.com/notice/","detailPattern":"/notice/\\?(?=[^#]*vid=\\d+)"}
+  },{
+    "type":"event",
+    "identityEvidence":"https://hope.or.kr/introduce/hope-intro/",
+    "source":{"id":"hope","name":"호프선교회","homepage":"https://hope.or.kr/","url":"https://hope.or.kr/brunch/notice/","detailPattern":"/brunch/notice/\\?(?=[^#]*vid=\\d+)"}
+  },{
+    "type":"event",
+    "identityEvidence":"http://weckr.org/",
+    "source":{"id":"weckr","name":"한국WEC국제선교회","homepage":"http://weckr.org/","url":"http://weckr.org/?page_id=3432","detailPattern":"/\\?(?=[^#]*page_id=3432)(?=[^#]*uid=\\d+)(?=[^#]*mod=document)"}
+  },{
+    "type":"event",
+    "identityEvidence":"http://www.gbt.or.kr/",
+    "source":{"id":"gbt","name":"GBT 성경번역선교회","homepage":"http://www.gbt.or.kr/","url":"http://www.gbt.or.kr/app/bbs/board.php?bo_table=news1","detailPattern":"/app/bbs/board\\.php\\?(?=[^#]*bo_table=news1)(?=[^#]*wr_id=\\d+)"}
+  },{
+    "type":"event",
+    "identityEvidence":"https://www.jdm.or.kr/company/page2.asp?p_t=2",
+    "source":{"id":"jdm","name":"예수제자운동 JDM","homepage":"https://www.jdm.or.kr/","url":"https://www.jdm.or.kr/story/story5.asp?p_t=5","detailPattern":"/story/board_view\\.asp\\?(?=[^#]*idx=\\d+)(?=[^#]*BodType_CK=FA_M)"}
+  },{
+    "type":"event",
+    "identityEvidence":"http://missionkorea.org/about/",
+    "source":{"id":"missionkorea","name":"선교한국","homepage":"http://missionkorea.org/","url":"http://missionkorea.org/portfolio_category/회원단체-소식/","detailPattern":"/portfolio-items/[^/?]+/$"}
+  },{
+    "type":"event",
     "identityEvidence":"http://kacs.or.kr/kacs_new/kacs/overview.php",
     "source":{"id":"kacs","name":"한국기독교학회","homepage":"http://kacs.or.kr/","url":"http://kacs.or.kr/kacs_new/community/main.php","detailPattern":"/kacs_new/community/main\\.php\\?(?=[^#]*activePage=view)(?=[^#]*no=\\d+)"}
   },{

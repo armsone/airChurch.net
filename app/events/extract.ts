@@ -1,8 +1,8 @@
 import { eventRegions } from "./types";
 import type { SourceConfig } from "./sources";
 
-export const eventWords = /집회|세미나|워크숍|컨퍼런스|수련회|캠프|훈련|교육|학교|대학|강좌|강연|클래스|배움터|찬양|공연|뮤지컬|음악회|콘서트|전시|봉사|선교대회|포럼|대회|영화제|예배|기도회|수양회|공청회|토론회/;
-export function eventPriority(title:string){return (/채용|입찰|장학생|등록금|휴무|공사|학사|연구윤리/.test(title)?-10:0)+(/세미나|공연|음악회|콘서트|수련회|특강|컨퍼런스|사역자|콜로키움/.test(title)?3:eventWords.test(title)?1:0);}
+export const eventWords = /집회|세미나|워크숍|컨퍼런스|수련회|캠프|훈련|교육|학교|대학|강좌|강연|특강|북토크|북페어|사역자스쿨|클래스|배움터|찬양|공연|뮤지컬|음악회|콘서트|전시|봉사|선교대회|포럼|대회|영화제|예배|기도회|수양회|공청회|토론회/;
+export function eventPriority(title:string){return (/채용|입찰|장학생|등록금|휴무|공사|학사|연구윤리/.test(title)?-10:0)+(/세미나|공연|음악회|콘서트|수련회|특강|컨퍼런스|사역자|콜로키움|개강예식/.test(title)?3:eventWords.test(title)?1:0);}
 export function decode(value:string) { return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&#(x[0-9a-f]+|\d+);/gi,(_,n)=>{const v=n[0].toLowerCase()==="x"?parseInt(n.slice(1),16):Number(n);return v>0&&v<=0x10ffff?String.fromCodePoint(v):"";}).replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
 export function plain(value:string) { return decode(value.replace(/<[^>]*>/g," ")).replace(/\s+/g," ").trim(); }
 export function lines(html:string) { return decode(html.replace(/<!--[\s\S]*?-->/g,"").replace(/<(head|script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi,"").replace(/<\/(?:p|div|li|tr|h[1-6]|dt|dd)>|<br\s*\/?\s*>/gi,"\n").replace(/<[^>]*>/g," ")).split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean); }
@@ -114,6 +114,12 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const datedIndex=body.findIndex(x=>datePattern.test(x)&&/20\d{2}\s*[년./-]/.test(x));
   const di=datedIndex>=0?datedIndex:body.findIndex(x=>datePattern.test(x));
   let when=field(di>=0?body.slice(di):body,datePattern);
+  // WEC states the current meeting date in one sentence, without an 일시 label.
+  // Match only that sentence; the separate next-month reminder has no venue.
+  if(source.id==="weckr"&&!when){
+    const meeting=body.map(row=>row.match(/^(20\d{2})년\s*(\d{1,2})월\s*정기기도회가\s*(\d{1,2})월\s*(\d{1,2})일\s*([월화수목금토일])요일\s*(오전|오후|저녁)\s*(\d{1,2})시에\s*있습니다[.]?$/)).find(match=>match&&match[2]===match[3]);
+    if(meeting)when=`${meeting[1]}년 ${meeting[3]}월 ${meeting[4]}일 (${meeting[5]}) ${meeting[6]} ${meeting[7]}시`;
+  }
   if(di>=0&&body[di+2]&&/^\s*[-~～–]\s*(?:20\d{2}\s*[년.\-/]\s*\d|\d{1,2}\s*[월./]\s*\d)/.test(body[di+2]))when+=` ${body[di+2]}`;
   // Short month/day labels may use a year explicitly present in the event title, never the publication date.
   if(!/20\d{2}/.test(when)){const years=[...new Set(title.match(/20\d{2}/g)||[])];if(years.length===1){const shortYear=new RegExp(`^${years[0].slice(2)}(?=\\s*[./-]\\s*\\d{1,2}\\s*[./-]\\s*\\d{1,2})`);if(shortYear.test(when))when=when.replace(shortYear,years[0]);else if(/^\d{1,2}\s*[월./]\s*\d{1,2}/.test(when))when=`${years[0]}년 ${when}`;}}
@@ -126,7 +132,10 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
     const tail=when.replace(/20\d{2}\s*[년.\-/]\s*\d{1,2}\s*[월.\-/]\s*\d{1,2}\s*일?/,"");
     const range=tail.match(/[~～–-]\s*(?:(\d{1,2})\s*[월./]\s*)?(\d{1,2})\s*일?(?=\s*(?:[.(（]|$))/);
     if(range)endDate=`${startDate.slice(0,4)}-${(range[1]||startDate.slice(5,7)).padStart(2,"0")}-${range[2].padStart(2,"0")}`;
-    else if(/[~～–-]/.test(tail)&&!/(?:시|:\d{2})\s*[~～–-]\s*(?:오전|오후|저녁|밤|낮)?\s*\d{1,2}\s*(?:시|:)/.test(tail))return fail("ambiguous_date_range");
+    else if(/[~～–-]/.test(tail)&&!/(?:시|:\d{2})\s*[~～–-]\s*(?:오전|오후|저녁|밤|낮)?\s*\d{1,2}\s*(?:시|:)/.test(tail)){
+      const hours=tail.match(/(?:^|\s)([01]?\d|2[0-3])\s*[-~]\s*([01]?\d|2[0-3])\s*시/);
+      if(!hours||Number(hours[1])>=Number(hours[2]))return fail("ambiguous_date_range");
+    }
   }
   const weekly=when.match(/매주\s*[월화수목금토일]요일\s*(\d{1,2})주/);
   if(weekly&&ds.length===1&&Number(weekly[1])>=1&&Number(weekly[1])<=52)endDate=new Date(Date.parse(startDate)+(Number(weekly[1])-1)*7*86400000).toISOString().slice(0,10);
@@ -138,7 +147,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const time=when.match(/(오전|오후|저녁|밤|낮)\s*(\d{1,2})\s*(?:시|:)(?:\s*(\d{1,2})\s*분?)?/);
   let startTime:string|null=null;
   if(time){let h=Number(time[2]),m=Number(time[3]||0);if(h>=1&&h<=12&&m<60){h=h%12+(time[1]==="오전"?0:12);startTime=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;}}
-  else{const clock=when.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)/);if(clock)startTime=`${clock[1].padStart(2,"0")}:${clock[2]}`;}
+  else{const clock=when.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)/);if(clock)startTime=`${clock[1].padStart(2,"0")}:${clock[2]}`;else{const hours=when.match(/(?:^|\s)([01]?\d|2[0-3])\s*[-~]\s*([01]?\d|2[0-3])\s*시/);if(hours&&Number(hours[1])>=13&&Number(hours[1])<Number(hours[2]))startTime=`${hours[1].padStart(2,"0")}:00`;}}
   if(source.id==="duranno-college"&&!startTime){const intro=body.findIndex(x=>x==="세미나 소개"),clock=body.slice(Math.max(0,di),intro<0?di+15:intro).find(x=>/^([01]?\d|2[0-3]):[0-5]\d\s*[-~]/.test(x));if(clock)startTime=clock.match(/^\d{1,2}:\d{2}/)![0].padStart(5,"0");}
   if(source.id==="melon"&&!startTime){const clock=field(body,/^공연시간\s*[:：]?\s*/).match(/(오전|오후)\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);if(clock&&Number(clock[2])<=12&&Number(clock[2])>0&&Number(clock[3]||0)<60)startTime=`${String(Number(clock[2])%12+(clock[1]==="오후"?12:0)).padStart(2,"0")}:${String(clock[3]||0).padStart(2,"0")}`;}
   const audienceText=field(body,/^(?:[\d.•○●\s-]*)?대\s*상\s*[:：]?\s*/)||title;
