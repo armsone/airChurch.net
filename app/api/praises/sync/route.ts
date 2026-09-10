@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { database, ensureMediaTables, internalTaskRequestAllowed } from "../../_shared";
 import { isPraiseTitle } from "../../sermons/_selection";
 
