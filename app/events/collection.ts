@@ -5,7 +5,7 @@ import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, 
 import { koreaDate } from "./types";
 
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
-const COLLECTOR_VERSION=5;
+const COLLECTOR_VERSION=6;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -61,6 +61,14 @@ async function discover(source:SourceConfig,html:string,base=source.url){
   const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title))&&(!source.christianOnly||/찬양|워십|그리스도|기독교|예배|가스펠/.test(x.title)));
   // The official page's locations(id) links are read as data, never executed.
   if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
+  // The public notice list exposes modal IDs as data. Keep the human-facing
+  // permalink as provenance; do not execute the site's JavaScript.
+  if(source.id==="sarang")for(const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
+    if(!/\bclass=["'][^"']*\bcls-notice-view\b/.test(match[1]))continue;
+    const id=match[1].match(/\bdata-idx=["'](\d{1,12})["']/)?.[1];
+    const title=plain(match[2].match(/<p\b[^>]*class=["'][^"']*\btable-notice-title\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)?.[1]||"");
+    if(id&&title)found.push({url:new URL(`/info/notice.asp?no=${id}`,base).href,title});
+  }
   return [...new Map(found.map(item=>[item.url,item])).values()];
 }
 async function enqueue(source:SourceConfig,items:Array<{url:string;title:string}>,now:string){
@@ -113,7 +121,13 @@ async function processSource(source:SourceConfig){
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
       if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
-      let doc;try{doc=await boundedFetch(candidate.url,source,pace,articleRobots);if(doc.status!==200)throw Error(`detail_http_${doc.status}`);}catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=?,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
+      let doc;try{
+        // This is the same public fragment loaded by the notice viewer. Both
+        // the permalink above and this fetch must pass the source's robots rules.
+        const requestUrl=new URL(candidate.url);
+        if(source.id==="sarang")requestUrl.pathname="/info/notice_view.asp";
+        doc=await boundedFetch(requestUrl.href,source,pace,articleRobots);if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
+      }catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=?,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
       if(source.kind==="rss"){
         for(const official of officialEventSources){const references=links(doc.text,candidate.url).filter(x=>isDetail(official,x.url));if(references.length)await enqueue(official,references,now);}
         await db.prepare("UPDATE event_candidates SET status='discovery_only',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;
@@ -151,12 +165,12 @@ export async function syncEvents(){
   const db=database(),now=new Date().toISOString();
   const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
   await db.batch(seeds);
-  // Version 5 adds listing diagnostics: inspect only previously empty listings
-  // once. Preserve version 4's failed-request upgrade for older deployments.
+  // Version 6 reconnects Sarang's public modal board: retry only its empty list.
+  // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN status='empty' OR (collector_version<4 AND status='failed') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR id='sarang')) OR (collector_version<4 AND status='failed') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});

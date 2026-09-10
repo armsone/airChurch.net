@@ -27,7 +27,7 @@ export const officialEventSources:SourceConfig[] = [
   {id:"cemk",name:"기독교윤리실천운동",homepage:"https://cemk.org/",url:"https://cemk.org/",kind:"official",detailPattern:"/\\d+/",listingUrls:["https://cemk.org/feed/","https://cemk.org/feed/?paged=2","https://cemk.org/feed/?paged=3"]},
   {id:"kwma",name:"한국세계선교협의회",homepage:"https://kwma.org/",url:"https://kwma.org/gongji/",kind:"official",detailPattern:"[?&]vid=\\d+"},
   {id:"eldprok",name:"기장 전국장로회연합회",homepage:"https://eldprok.org/",url:"https://eldprok.org/Board/Index/41",kind:"official",detailPattern:"/Board/Detail/41/\\d+"},
-  {id:"sarang",name:"사랑의교회",homepage:"https://www.sarang.org/",url:"https://www.sarang.org/info/notice.asp",kind:"official",detailPattern:"/info/notice.*(?:[?&](?:id|idx|seq|num)=)",churchName:"사랑의교회",organizer:"사랑의교회"},
+  {id:"sarang",name:"사랑의교회",homepage:"https://www.sarang.org/",url:"https://www.sarang.org/info/notice.asp",kind:"official",detailPattern:"/info/notice\\.asp\\?no=\\d+(?:&|$)",listingUrls:["https://www.sarang.org/info/notice_list.asp?c=&no=0&page=1&searchString="],churchName:"사랑의교회",organizer:"사랑의교회"},
   {id:"ucck",name:"한국교회총연합",homepage:"https://www.ucck.org/Main/Index",url:"https://www.ucck.org/InfoMap/Notice",kind:"official",detailPattern:"/InfoMap/(?:Detail|Notice)[/?].+"},
   {id:"emik",name:"한국기독교장로회 총회교육국",homepage:"https://www.emik.org/",url:"https://www.emik.org/g5/bbs/board.php?bo_table=s6_1",kind:"official",detailPattern:"[?&]wr_id=\\d+"},
   {id:"anointing",name:"어노인팅",homepage:"https://anointing.kr/",url:"https://anointing.kr/community.php?cate=news",kind:"official",detailPattern:"/communityview\\.php\\?[^#]*idx=\\d+",organizer:"어노인팅"},
