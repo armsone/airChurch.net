@@ -3,6 +3,8 @@ import { isPraiseTitle } from "../../sermons/_selection";
 
 type Church = { id: number; name: string; youtubeChannelId: string };
 type Praise = { churchId: number; youtubeId: string; title: string; thumbnailUrl: string; publishedAt: string };
+type YouTubeChannelResponse = { items?: Array<{ contentDetails?: { relatedPlaylists?: { uploads?: string } } }> };
+type YouTubePlaylistResponse = { items?: Array<{ contentDetails?: { videoId?: string; videoPublishedAt?: string }; snippet?: { title?: string; publishedAt?: string; thumbnails?: { high?: { url?: string }; medium?: { url?: string }; default?: { url?: string } } } }> };
 
 function decodeXml(value: string) {
   return value.replaceAll("&amp;", "&").replaceAll("&quot;", '"').replaceAll("&#39;", "'").replaceAll("&lt;", "<").replaceAll("&gt;", ">");
@@ -19,6 +21,25 @@ function parseFeed(xml: string, churchId: number): Praise[] {
     items.push({ churchId, youtubeId, title, publishedAt, thumbnailUrl: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` });
   }
   return items;
+}
+
+async function collectWithYouTubeApi(church: Church, key: string): Promise<Praise[] | null> {
+  const channelResponse = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${encodeURIComponent(church.youtubeChannelId)}&key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+  if (!channelResponse?.ok) return null;
+  const channel = await channelResponse.json().catch(() => null) as YouTubeChannelResponse | null;
+  const uploads = channel?.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
+  if (!uploads) return null;
+  const playlistResponse = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${encodeURIComponent(uploads)}&maxResults=50&key=${encodeURIComponent(key)}`, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+  if (!playlistResponse?.ok) return null;
+  const playlist = await playlistResponse.json().catch(() => null) as YouTubePlaylistResponse | null;
+  return (playlist?.items || []).flatMap((item) => {
+    const youtubeId = item.contentDetails?.videoId;
+    const title = item.snippet?.title?.trim() || "";
+    const publishedAt = item.contentDetails?.videoPublishedAt || item.snippet?.publishedAt;
+    if (!youtubeId || !publishedAt || !isPraiseTitle(title)) return [];
+    const thumbnailUrl = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || item.snippet?.thumbnails?.default?.url || `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`;
+    return [{ churchId: church.id, youtubeId, title, thumbnailUrl, publishedAt }];
+  });
 }
 
 async function mapWithConcurrency<T,R>(items:T[],limit:number,task:(item:T)=>Promise<R>):Promise<R[]> {
@@ -45,7 +66,12 @@ export async function POST(request?:Request) {
   await db.prepare("INSERT INTO sync_state (key,last_synced_at) VALUES ('youtube-praise-last-attempt',CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at").run();
   try {
   const churches = await db.prepare("SELECT id,name,youtube_channel_id AS youtubeChannelId FROM churches WHERE review_status='approved' AND youtube_channel_id IS NOT NULL ORDER BY priority_weight DESC,name LIMIT 60").all<Church>();
+  const key = (env as unknown as { YOUTUBE_API_KEY?: string }).YOUTUBE_API_KEY;
   const feeds = await mapWithConcurrency(churches.results,6,async (church):Promise<Praise[]|null> => {
+    if (key) {
+      const praises = await collectWithYouTubeApi(church, key);
+      if (praises !== null) return praises;
+    }
     const response = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(church.youtubeChannelId)}`,{signal:AbortSignal.timeout(10_000)}).catch(()=>null);
     if (!response?.ok) return null;
     const xml=await response.text().catch(()=>null);
