@@ -31,7 +31,7 @@ await Promise.all(Array.from({length:3},async()=>{while(at<sources.length){
     const delay=api.robotsDelay(rules.text);if(delay>10000)throw Error('crawl_delay_over_limit');
     const page=await api.boundedFetch(source.homepage,config,()=>new Promise(resolve=>setTimeout(resolve,delay)),rules.text);
     if(page.status!==200)throw Error('http_'+page.status);
-    row.leads=api.links(page.text,source.homepage).filter(x=>isPublic(x.url)&&relevant.test(x.title)&&!known.has(api.host(x.url))&&!excluded.test(api.host(x.url))).map(x=>({name:x.title.slice(0,180),url:x.url,discoveredFrom:source.homepage,reviewStatus:'unverified'}));
+    row.leads=api.links(page.text,page.finalUrl).filter(x=>isPublic(x.url)&&relevant.test(x.title)&&!known.has(api.host(x.url))&&!excluded.test(api.host(x.url))).map(x=>({name:x.title.slice(0,180),url:x.url,discoveredFrom:source.homepage,reviewStatus:'unverified'}));
     row.leads=[...new Map(row.leads.map(x=>[api.host(x.url),x])).values()].slice(0,40);
     row.status='read';
   }catch(error){row.status='unavailable';row.reason=String(error.message).slice(0,180);}

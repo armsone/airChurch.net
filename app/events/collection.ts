@@ -38,15 +38,15 @@ async function processSource(source:SourceConfig){
     let previous=Date.now();const pace=async()=>{await new Promise(resolve=>setTimeout(resolve,Math.max(0,delay-(Date.now()-previous))));previous=Date.now();};
     const page=await boundedFetch(source.url,source,pace,robots.text);if(page.status!==200)throw Error(`source_http_${page.status}`);
     if(source.kind==="rss"&&!source.detailPattern&&!/<(?:rss|feed|rdf:RDF)\b/i.test(page.text))throw Error("rss_document_required");
-    const found=await discover(source,page.text);
+    const found=await discover(source,page.text,page.finalUrl);
     // Keep bounded public-response diagnostics when a listing yields no links.
     // This distinguishes a changed board from an empty or substituted response.
     const listingDiagnostics=(html:string)=>`${html.length}c/${links(html,source.url).length}a/${plain(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"").slice(0,35)}`;
     const listingChecks=[listingDiagnostics(page.text)];
-    let nextScan=nextListing(source,page.text,source.url);
+    let nextScan=nextListing(source,page.text,page.finalUrl);
     const state=await db.prepare("SELECT scan_url AS scanUrl FROM event_sources WHERE id=?").bind(source.id).first<{scanUrl:string|null}>();
     const extraPages=[...(source.listingUrls||[]),...(state?.scanUrl?[state.scanUrl]:[])];
-    for(const url of [...new Set(extraPages)].slice(0,3)){try{if(Date.now()-started>25000)break;const extra=await boundedFetch(url,source,pace,robots.text);listingChecks.push(extra.status===200?listingDiagnostics(extra.text):`http_${extra.status}`);if(extra.status!==200)continue;found.push(...await discover(source,extra.text,url));if(url===state?.scanUrl)nextScan=nextListing(source,extra.text,url);}catch(error){listingChecks.push(String(error).slice(0,45));/* First-page discovery still proceeds when an older page is unavailable. */}}
+    for(const url of [...new Set(extraPages)].slice(0,3)){try{if(Date.now()-started>25000)break;const extra=await boundedFetch(url,source,pace,robots.text);listingChecks.push(extra.status===200?listingDiagnostics(extra.text):`http_${extra.status}`);if(extra.status!==200)continue;found.push(...await discover(source,extra.text,extra.finalUrl));if(url===state?.scanUrl)nextScan=nextListing(source,extra.text,extra.finalUrl);}catch(error){listingChecks.push(String(error).slice(0,45));/* First-page discovery still proceeds when an older page is unavailable. */}}
     await enqueue(source,found,now);
     // Oldest checked candidates first: subsequent batches cover the queue, not just the latest few posts.
     const queue=await db.prepare("SELECT id,url,title,event_id AS eventId,checked_at AS checkedAt FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END) AND (last_seen_at>? OR event_id IS NOT NULL) ORDER BY COALESCE(checked_at,''),first_seen_at DESC LIMIT 500").bind(source.id,after(-168),after(-4),after(-24*30)).all<{id:string;url:string;title:string;eventId:string|null;checkedAt:string|null}>();

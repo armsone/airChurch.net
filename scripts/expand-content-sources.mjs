@@ -28,14 +28,14 @@ function assertPublic(raw){const u=new URL(raw);if(!/^https?:$/.test(u.protocol)
 function inferPattern(url){const u=new URL(url);for(const key of ['wr_id','idx','idxno','vid','uid','seq','no','bbs_num'])if(/^\d+$/.test(u.searchParams.get(key)||''))return u.pathname.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\?(?=[^#]*'+key+'=\\d+)';if(/\/(?:Board\/Detail|seminar\/post|bbs\/bbsView)\//i.test(u.pathname))return u.pathname.replace(/\d+$/,'\\d+')+'(?:[/?#]|$)';return null;}
 async function inspect(job){
   const source={...job.source,kind:job.type==='news'?'rss':'official'};assertPublic(source.url);assertPublic(source.homepage);
-  const details=[],requests=[];let delay=1000;
+  const details=[],requests=[],resolved=new Map();let delay=1000;
   const pace=async()=>{const domain=api.host(source.homepage);await wait(Math.max(0,delay-(Date.now()-(lastRequests.get(domain)||0))));lastRequests.set(domain,Date.now());};
   async function get(url){
     assertPublic(url);const origin=new URL(url).origin;let rules=rulesCache.get(origin);
     if(!rules){const r=await api.boundedFetch(new URL('/robots.txt',origin).href,source,pace);if(![200,404].includes(r.status))throw Error('robots_http_'+r.status);rules={text:r.text,status:r.status};rulesCache.set(origin,rules);}
     delay=Math.max(delay,api.robotsDelay(rules.text));if(delay>60000)throw Error('crawl_delay_over_batch_limit');
     if(!api.robotsAllowed(rules.text,url))throw Error('robots_disallowed');
-    const r=await api.boundedFetch(url,source,pace,rules.text);requests.push({url,status:r.status,bytes:r.text.length});
+    const r=await api.boundedFetch(url,source,pace,rules.text);resolved.set(url,r.finalUrl);requests.push({url,status:r.status,bytes:r.text.length});
     if(r.status!==200)throw Error('http_'+r.status);
     const title=api.plain(r.text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'');
     if(/^(?:access denied|forbidden|just a moment|보안 확인)/i.test(title)||(r.text.length<10000&&/document\.cookie|captcha.*(?:verify|challenge)|접근이?\s*(?:제한|차단)/i.test(r.text)))throw Error('access_challenge');
@@ -49,11 +49,11 @@ async function inspect(job){
       if(!job.existing){let home=await get(source.homepage);if(job.identityEvidence&&api.host(job.identityEvidence)===api.host(source.homepage)&&job.identityEvidence!==source.homepage)home+='\n'+await get(job.identityEvidence);const channelTitle=api.plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'');if(!home.includes(source.url)&&!home.includes(new URL(source.url).pathname)&&!(channelTitle.includes(source.name)&&api.host(source.url)===api.host(source.homepage)))throw Error('official_feed_link_unconfirmed');}
       return {status:job.existing?'healthy':delay>10000?'adapter_review':job.identityEvidence?'qualified':'identity_review',articleCount:items.length,latest,config:source,requests,delay};
     }
-    let found=source.detailPattern?await api.discover(source,html):api.links(html,source.url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title));
+    let found=source.detailPattern?await api.discover(source,html,resolved.get(source.url)):api.links(html,resolved.get(source.url)||source.url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title));
     if(args.has('--leads-only')&&!source.detailPattern){
-      source.listingUrls=api.links(html,source.url).filter(x=>api.host(x.url)===api.host(source.url)&&/^(?:공지사항|공지|소식|행사|행사안내|교육안내|세미나|주요행사|새소식|알림마당)$/.test(x.title)&&x.url!==source.url).slice(0,2).map(x=>x.url);
+      source.listingUrls=api.links(html,resolved.get(source.url)||source.url).filter(x=>api.host(x.url)===api.host(source.url)&&/^(?:공지사항|공지|소식|행사|행사안내|교육안내|세미나|주요행사|새소식|알림마당)$/.test(x.title)&&x.url!==source.url).slice(0,2).map(x=>x.url);
     }
-    for(const url of (source.listingUrls||[]).slice(0,2)){try{const doc=await get(url);found.push(...(source.detailPattern?await api.discover(source,doc,url):api.links(doc,url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title))));}catch(error){details.push({url,reason:String(error.message)});}}
+    for(const url of (source.listingUrls||[]).slice(0,2)){try{const doc=await get(url),base=resolved.get(url)||url;found.push(...(source.detailPattern?await api.discover(source,doc,base):api.links(doc,base).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title))));}catch(error){details.push({url,reason:String(error.message)});}}
     const score=item=>api.eventPriority(item.title)+(/20\d{2}/.test(item.title)?2:0);
     found=[...new Map(found.map(x=>[x.url,x])).values()].sort((a,b)=>score(b)-score(a));
     if(!found.length)throw Error('listing_no_matches');let verified=null;

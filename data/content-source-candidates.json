@@ -263,6 +263,14 @@
   }
   ,{
     "type":"event",
+    "identityEvidence":"https://housechurchministries.org/html/info/info01.htm",
+    "source":{"id":"hcm","name":"가정교회사역원 국내 세미나","homepage":"https://housechurchministries.org/","url":"https://housechurchministries.org/html/seminar/seminar02_1.htm","listingUrls":["https://housechurchministries.org/html/seminar/seminar02.htm","https://housechurchministries.org/html/seminar/seminar03.htm"],"detailPattern":"/html/seminar/seminar0(?:2(?:_1)?|3)\\.htm\\?(?=[^#]*gfile=view)(?=[^#]*id=\\d+)","eventOnly":true,"charset":"euc-kr"}
+  },{
+    "type":"event",
+    "identityEvidence":"https://www.kicrts.org/",
+    "source":{"id":"kicrts","name":"한국칼빈-개혁신학연구소","homepage":"https://www.kicrts.org/","url":"https://www.kicrts.org/94","listingUrls":["https://www.kicrts.org/135"],"detailPattern":"^https://www\\.kicrts\\.org/\\d+/?$","eventOnly":true}
+  },{
+    "type":"event",
     "identityEvidence":"https://kmcm.or.kr/소개/",
     "source":{"id":"kmcm","name":"한국감리교선교사상담센터","homepage":"https://kmcm.or.kr/","url":"https://kmcm.or.kr/","detailPattern":"^https://kmcm\\.or\\.kr/20\\d{2}[^/?]*/$"}
   },{

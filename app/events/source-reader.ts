@@ -7,22 +7,22 @@ export function assertSourceDocument(text:string){
   const title=plain(text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
   if(/^(?:access denied|forbidden|just a moment|보안 확인)/i.test(title)||(text.length<10000&&/document\.cookie|captcha.*(?:verify|challenge)|접근이?\s*(?:제한|차단)/i.test(text)))throw Error("access_challenge");
 }
-export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<void>,robots?:string):Promise<{text:string;status:number}> {
+export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<void>,robots?:string):Promise<{text:string;status:number;finalUrl:string}> {
   for(let redirect=0;redirect<4;redirect++){
     const u=new URL(url);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port||!(host(url)===host(source.url)||(source.kind==="rss"&&host(url)===host(source.homepage))))throw Error("source_boundary");
     if(robots!==undefined&&!robotsAllowed(robots,url))throw Error("robots_disallowed");
     await pace?.();
     const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"*/*"}});
     if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
-    if(!r.ok){void r.body?.cancel();return {text:"",status:r.status};}
-    if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status};
+    if(!r.ok){void r.body?.cancel();return {text:"",status:r.status,finalUrl:url};}
+    if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status,finalUrl:url};
     if(Number(r.headers.get("content-length")||0)>1500000){void r.body?.cancel();throw Error("response_too_large");}
-    const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status};const chunks:Uint8Array[]=[];let size=0;
+    const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status,finalUrl:url};const chunks:Uint8Array[]=[];let size=0;
     while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error("response_too_large");}chunks.push(value);}
     const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
     const charset=r.headers.get("content-type")?.match(/charset=([^;,\s]+)/i)?.[1]?.replace(/["']/g,"")||source.charset||"utf-8";
     const text=new TextDecoder(charset).decode(bytes);assertSourceDocument(text);
-    return {text,status:r.status};
+    return {text,status:r.status,finalUrl:url};
   }throw Error("too_many_redirects");
 }
 function robotsGroups(text:string){
