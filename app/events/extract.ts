@@ -135,7 +135,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   if(source.id==="worldteach"){
     const when=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_lecture_date["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"");
     const productHeading=plain(html.match(/<div\b[^>]*class=["'][^"']*mc-product-title-box[^"']*["'][^>]*>([\s\S]*?)<div\b[^>]*class=["']mc-product-info-box["']/i)?.[1]||"");
-    const place=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_lecture_place["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"")||(productHeading.includes("[ZOOM 화상강의]")?"온라인 ZOOM 화상강의":"");
+    const place=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_lecture_place["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"")||(/(?:^|\s|\[)ZOOM\s+(?:화상강의|온라인\s*강의)(?:\]|\s|$)/.test(productHeading)?"온라인 ZOOM 화상강의":"");
     const memo=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_product_memo["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"");
     if(when){body.splice(0,body.length,title,`일시: ${when}`,...(place?[`장소: ${place}`]:[]),memo);}
   }
