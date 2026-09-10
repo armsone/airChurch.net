@@ -1,4 +1,10 @@
 [
+  {"type":"event","identityEvidence":"https://worldteach.co.kr/","source":{"id":"worldteach","name":"디모데성경연구원 월드티치","homepage":"https://worldteach.co.kr/","url":"https://worldteach.co.kr/세미나/세미나-신청/","detailPattern":"[?&]board_name=commerce_product(?=[^#]*[&]vid=\\d+)","eventOnly":true}},
+  {"type":"event","identityEvidence":"https://www.fmnc.net/","source":{"id":"fmnc","name":"FMnC 선교회","homepage":"https://www.fmnc.net/","url":"https://www.fmnc.net/","detailPattern":"/notice/view/\\d+/\\d+/"}},
+  {"type":"event","identityEvidence":"https://gmtc.co.kr/","source":{"id":"gmtc","name":"한국선교훈련원 GMTC","homepage":"https://gmtc.co.kr/","url":"https://gmtc.co.kr/공지사항/","detailPattern":"[?&]vid=\\d+"}},
+  {"type":"event","identityEvidence":"https://www.gmf.or.kr/","source":{"id":"gmf","name":"한국해외선교회 GMF","homepage":"https://www.gmf.or.kr/","url":"https://www.gmf.or.kr/category/소식","detailPattern":"^https://www\\.gmf\\.or\\.kr/\\d+$"}},
+  {"type":"event","identityEvidence":"https://www.ksceit.or.kr/","source":{"id":"ksceit","name":"한국기독교교육정보학회","homepage":"https://www.ksceit.or.kr/","url":"https://www.ksceit.or.kr/bbs/board.php?bo_table=5_5","detailPattern":"/bbs/board\\.php\\?(?=[^#]*bo_table=5_5)(?=[^#]*wr_id=\\d+)"}},
+  {"type":"event","identityEvidence":"https://koreapeacemaker.com/Page/Index/20","source":{"id":"peacemaker","name":"한국피스메이커","homepage":"https://koreapeacemaker.com/","url":"https://koreapeacemaker.com/Board/Index/26","detailPattern":"/Board/Detail/26/\\d+"}},
   {
     "type": "news",
     "identityEvidence": "https://www.reformed.or.kr/rssIndex.html",

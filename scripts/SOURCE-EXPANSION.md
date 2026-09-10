@@ -2,6 +2,8 @@
 
 `node scripts/expand-content-sources.mjs --apply`
 
+새 후보가 부족하면 `node scripts/discover-event-sources.mjs`로 등록된 공식 홈페이지의 관련 기관 링크를 먼저 수집한다. 기본 최대60개 홈페이지, 동시3개, 동일 홈페이지4시간 재사용이며 결과는 `outputs/source-expansion/discovered-links.json`에 저장된다. 연결된 기관이라는 이유만으로 등록하지 않는다. 이어 `node scripts/expand-content-sources.mjs --leads-only`로 공개 본문과 공지 경로를 확인하고, 실제 운영 주체와 날짜·장소가 확인된 기관만 후보 입력에 추가한다.
+
 기존 공식 행사 출처, 뉴스 RSS, 보류 후보 및 `data/content-source-candidates.json`의 조사된 후보를 한 번에 처리한다. 다른 기관은 최대 6곳 동시 처리하고 같은 기관은 순차 처리한다. robots, 요청 간격, 응답 크기 및 시간 제한을 지킨다. 인증·유료 API·접근 제한 우회는 사용하지 않는다.
 
 - `--candidates-only`: 기존 운영 출처의 재검사 없이 신규 후보만 처리.

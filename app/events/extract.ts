@@ -132,6 +132,13 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   // Ignore related articles/navigation below the actual article.
   const end=articleRows.findIndex((x,i)=>i>1&&!(source.id==="ksh"&&x==="첨부파일")&&(/^(관련 글들|이전글|다음글|첨부파일|목록보기|댓글목록)$/.test(x)||(source.id==="kocam"&&/^관련글 보기/.test(x))||(source.id==="ksh"&&/^(이전글|다음글)\s*[▲▼]/.test(x))));
   const body=end>=0?articleRows.slice(0,end):articleRows;
+  if(source.id==="worldteach"){
+    const when=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_lecture_date["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"");
+    const productHeading=plain(html.match(/<div\b[^>]*class=["'][^"']*mc-product-title-box[^"']*["'][^>]*>([\s\S]*?)<div\b[^>]*class=["']mc-product-info-box["']/i)?.[1]||"");
+    const place=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_lecture_place["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"")||(productHeading.includes("[ZOOM 화상강의]")?"온라인 ZOOM 화상강의":"");
+    const memo=plain(html.match(/<tr\b[^>]*id=["']mb_commerce_product_tr_product_memo["'][^>]*>([\s\S]*?)<\/tr>/i)?.[1]||"");
+    if(when){body.splice(0,body.length,title,`일시: ${when}`,...(place?[`장소: ${place}`]:[]),memo);}
+  }
   if(source.id==="kicrts"){
     for(let i=0;i<body.length;i++)if(/^일시\s*[|｜]/.test(body[i]))body[i]=body[i].replace(/(오전|오후)\s*([1-9]|1[0-2])\s*[-~]\s*([1-9]|1[0-2])\s*시/,"$1 $2시 ~ $3시");
     const places=body.filter(row=>/^장소\s*[|｜]/.test(row)).map(row=>row.replace(/^장소\s*[|｜]\s*/,""));
