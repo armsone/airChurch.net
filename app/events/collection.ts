@@ -5,7 +5,7 @@ import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, 
 import { koreaDate } from "./types";
 
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
-const COLLECTOR_VERSION=4;
+const COLLECTOR_VERSION=5;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -82,10 +82,14 @@ async function processSource(source:SourceConfig){
     const page=await boundedFetch(source.url,source,pace,robots.text);if(page.status!==200)throw Error(`source_http_${page.status}`);
     if(source.kind==="rss"&&!source.detailPattern&&!/<(?:rss|feed|rdf:RDF)\b/i.test(page.text))throw Error("rss_document_required");
     const found=await discover(source,page.text);
+    // Keep bounded public-response diagnostics when a listing yields no links.
+    // This distinguishes a changed board from an empty or substituted response.
+    const listingDiagnostics=(html:string)=>`${html.length}c/${links(html,source.url).length}a/${plain(html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"").slice(0,35)}`;
+    const listingChecks=[listingDiagnostics(page.text)];
     let nextScan=nextListing(source,page.text,source.url);
     const state=await db.prepare("SELECT scan_url AS scanUrl FROM event_sources WHERE id=?").bind(source.id).first<{scanUrl:string|null}>();
     const extraPages=[...(source.listingUrls||[]),...(state?.scanUrl?[state.scanUrl]:[])];
-    for(const url of [...new Set(extraPages)].slice(0,3)){try{if(Date.now()-started>25000)break;const extra=await boundedFetch(url,source,pace,robots.text);if(extra.status!==200)continue;found.push(...await discover(source,extra.text,url));if(url===state?.scanUrl)nextScan=nextListing(source,extra.text,url);}catch{/* First-page discovery still proceeds when an older page is unavailable. */}}
+    for(const url of [...new Set(extraPages)].slice(0,3)){try{if(Date.now()-started>25000)break;const extra=await boundedFetch(url,source,pace,robots.text);listingChecks.push(extra.status===200?listingDiagnostics(extra.text):`http_${extra.status}`);if(extra.status!==200)continue;found.push(...await discover(source,extra.text,url));if(url===state?.scanUrl)nextScan=nextListing(source,extra.text,url);}catch(error){listingChecks.push(String(error).slice(0,45));/* First-page discovery still proceeds when an older page is unavailable. */}}
     await enqueue(source,found,now);
     // Oldest checked candidates first: subsequent batches cover the queue, not just the latest few posts.
     const queue=await db.prepare("SELECT id,url,title,event_id AS eventId,checked_at AS checkedAt FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END) AND (last_seen_at>? OR event_id IS NOT NULL) ORDER BY COALESCE(checked_at,''),first_seen_at DESC LIMIT 500").bind(source.id,after(-168),after(-4),after(-24*30)).all<{id:string;url:string;title:string;eventId:string|null;checkedAt:string|null}>();
@@ -140,18 +144,19 @@ async function processSource(source:SourceConfig){
       ]);
     }
     const remaining=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END)").bind(source.id,after(-168),after(-4)).first<{n:number}>();
-    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"empty",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":null,nextScan,source.id,token).run();
+    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"empty",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":!found.length&&source.kind==="official"?`listing_no_matches:${listingChecks.join(";")}`.slice(0,180):null,nextScan,source.id,token).run();
   }catch(error){const state=await db.prepare("SELECT failures FROM event_sources WHERE id=?").bind(source.id).first<{failures:number}>();await db.prepare("UPDATE event_sources SET status=?,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=failures+1,last_error=? WHERE id=? AND lease_token=?").bind(String(error).includes("robots_disallowed")?"blocked":"failed",after(Math.min(24,2**Math.min(5,(state?.failures||0)+1))),String(error).slice(0,180),source.id,token).run();}
 }
 export async function syncEvents(){
   const db=database(),now=new Date().toISOString();
   const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
   await db.batch(seeds);
-  // Version 4 only changes content negotiation. Retry failed requests once,
-  // without resetting healthy sources, denied paths, or rejected event facts.
+  // Version 5 adds listing diagnostics: inspect only previously empty listings
+  // once. Preserve version 4's failed-request upgrade for older deployments.
+  // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
-    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(COLLECTOR_VERSION,now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN status IN ('failed','empty') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN status='empty' OR (collector_version<4 AND status='failed') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});
