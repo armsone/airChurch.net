@@ -1,0 +1,102 @@
+{
+  "events": [
+    {
+      "id": "krim",
+      "name": "한국선교연구원",
+      "homepage": "https://krim.org/",
+      "url": "https://krim.org/",
+      "detailPattern": "/[^/?]*seminar[^/?]*/",
+      "kind": "official"
+    },
+    {
+      "id": "uofnjeju",
+      "name": "제주열방대학",
+      "homepage": "https://uofnjeju.org/",
+      "url": "https://uofnjeju.org/schedule/",
+      "detailPattern": "/(?:bcc2026|mp)/?$",
+      "eventOnly": true,
+      "kind": "official"
+    },
+    {
+      "id": "nics",
+      "name": "기독연구원 느헤미야",
+      "homepage": "http://www.nics.or.kr/",
+      "url": "http://www.nics.or.kr/seminar",
+      "detailPattern": "/seminar/post/\\d+",
+      "kind": "official"
+    },
+    {
+      "id": "worldview",
+      "name": "기독교세계관학술동역회",
+      "homepage": "https://www.worldview.or.kr/",
+      "url": "https://www.worldview.or.kr/xe/community",
+      "detailPattern": "/xe/community/\\d+",
+      "kind": "official"
+    },
+    {
+      "id": "sjs",
+      "name": "서울장신대학교",
+      "homepage": "https://www.sjs.ac.kr/",
+      "url": "https://www.sjs.ac.kr/ht_ml/w_03ed/3010.php",
+      "detailPattern": "/ht_ml/w_03ed/3010\\.php\\?(?=[^#]*bbs_idx=\\d+)",
+      "charset": "euc-kr",
+      "kind": "official"
+    },
+    {
+      "id": "acts",
+      "name": "아신대학교",
+      "homepage": "https://www.acts.ac.kr/",
+      "url": "https://www.acts.ac.kr/modules/board/bd_list.asp?id=board_notice&left=unilife4_1",
+      "detailPattern": "/modules/board/bd_view\\.asp\\?(?=[^#]*id=board_notice)(?=[^#]*no=\\d+)",
+      "charset": "euc-kr",
+      "kind": "official"
+    }
+  ],
+  "news": [
+    {
+      "name": "개혁타임즈",
+      "homepage": "https://www.reformed.or.kr/",
+      "url": "https://www.reformed.or.kr/rss/allArticle.xml",
+      "allowedHost": "www.reformed.or.kr",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    },
+    {
+      "name": "울산의 빛",
+      "homepage": "https://thelightofulsan.tistory.com/",
+      "url": "https://thelightofulsan.tistory.com/rss",
+      "allowedHost": "thelightofulsan.tistory.com",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    },
+    {
+      "name": "합동헤럴드",
+      "homepage": "http://www.hdherald.com/",
+      "url": "http://www.hdherald.com/rss/allArticle.xml",
+      "allowedHost": "www.hdherald.com",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    },
+    {
+      "name": "기독교저널",
+      "homepage": "https://www.kdknews.com/",
+      "url": "https://cdn.kdknews.com/rss/gns_allArticle.xml",
+      "allowedHost": "www.kdknews.com",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    },
+    {
+      "name": "교회연합신문",
+      "homepage": "http://www.ecumenicalpress.co.kr/",
+      "url": "http://www.ecumenicalpress.co.kr/rss.php",
+      "allowedHost": "www.ecumenicalpress.co.kr",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    }
+  ]
+}

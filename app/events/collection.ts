@@ -1,76 +1,16 @@
+import { boundedFetch, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
 import { database } from "../api/_shared";
-import { sources as newsSources, readFeedText } from "../api/church-news/route";
+import { sources as newsSources } from "../news/feed";
 import { officialEventSources, additionalDiscoverySources, type SourceConfig } from "./sources";
 import { eventWords, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
-const COLLECTOR_VERSION=6;
+const COLLECTOR_VERSION=7;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
 function after(hours:number){return new Date(Date.now()+hours*3600000).toISOString();}
-async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<void>,robots?:string):Promise<{text:string;status:number}> {
-  for(let redirect=0;redirect<4;redirect++){
-    const u=new URL(url);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port||!(host(url)===host(source.url)||(source.kind==="rss"&&host(url)===host(source.homepage))))throw Error("source_boundary");
-    if(robots!==undefined&&!robotsAllowed(robots,url))throw Error("robots_disallowed");
-    await pace?.();
-    const r=await fetch(url,{redirect:"manual",signal:AbortSignal.timeout(7000),headers:{"user-agent":AGENT,accept:"*/*"}});
-    if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
-    if(!r.ok){void r.body?.cancel();return {text:"",status:r.status};}
-    if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status};
-    if(Number(r.headers.get("content-length")||0)>1500000){void r.body?.cancel();throw Error("response_too_large");}
-    const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status};const chunks:Uint8Array[]=[];let size=0;
-    while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error("response_too_large");}chunks.push(value);}
-    const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
-    const charset=r.headers.get("content-type")?.match(/charset=([^;\s]+)/i)?.[1]?.replace(/["']/g,"")||source.charset||"utf-8";
-    return {text:new TextDecoder(charset).decode(bytes),status:r.status};
-  }throw Error("too_many_redirects");
-}
-function robotsGroups(text:string){
-  const groups:Array<{agents:string[];rules:Array<{allow:boolean;path:string}>;delay:number}>=[];let group:typeof groups[number]={agents:[],rules:[],delay:0},hasDirectives=false;
-  for(const raw of text.split(/\r?\n/)){const line=raw.replace(/#.*$/,"").trim(),colon=line.indexOf(":");if(colon<0)continue;const key=line.slice(0,colon).trim().toLowerCase(),value=line.slice(colon+1).trim();
-    if(key==="user-agent"){if(hasDirectives){groups.push(group);group={agents:[],rules:[],delay:0};hasDirectives=false;}if(value)group.agents.push(value.toLowerCase());}
-    else if(group.agents.length){hasDirectives=true;if((key==="allow"||key==="disallow")&&value)group.rules.push({allow:key==="allow",path:value});else if(key==="crawl-delay"&&/^\d+(?:\.\d+)?$/.test(value))group.delay=Math.max(group.delay,Number(value)*1000);}
-  }groups.push(group);
-  const specific=groups.filter(g=>g.agents.some(a=>a!=="*"&&AGENT.toLowerCase().split("/")[0].includes(a)));
-  return specific.length?specific:groups.filter(g=>g.agents.includes("*"));
-}
-function robotsDelay(text:string){return Math.max(1000,...robotsGroups(text).map(g=>g.delay));}
-function robotsAllowed(text:string,url:string){
-  const selected=robotsGroups(text);
-  const u=new URL(url),path=u.pathname+u.search;
-  const matches=selected.flatMap(g=>g.rules).filter(r=>{const end=r.path.endsWith("$"),pattern=(end?r.path.slice(0,-1):r.path).split("*").map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join(".*");return new RegExp(`^${pattern}${end?"$":""}`).test(path);}).sort((a,b)=>b.path.length-a.path.length||Number(b.allow)-Number(a.allow));
-  return matches[0]?.allow??true;
-}
 async function pool<T>(items:T[],limit:number,fn:(x:T)=>Promise<void>){let at=0;await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(at<items.length)await fn(items[at++]);}));}
-
-function isDetail(source:SourceConfig,url:string){
-  try{const u=new URL(url),base=new URL(source.url);return host(url)===host(source.url)&&new RegExp(source.detailPattern,"i").test(url)&&(!base.searchParams.has("bo_table")||u.searchParams.get("bo_table")===base.searchParams.get("bo_table"));}catch{return false;}
-}
-function nextListing(source:SourceConfig,html:string,base:string){
-  const current=new URL(base),root=new URL(source.url),page=Number(current.searchParams.get("page")||current.pathname.match(/\/page\/(\d+)\//)?.[1]||1);
-  if(page>=10)return null;
-  return links(html,base).find(link=>{const u=new URL(link.url),next=Number(u.searchParams.get("page")||u.pathname.match(/\/page\/(\d+)\//)?.[1]||0);return host(link.url)===host(source.url)&&next===page+1&&(u.pathname===root.pathname||u.pathname===`${root.pathname.replace(/\/$/,"")}/page/${next}/`)&&(!root.searchParams.has("bo_table")||u.searchParams.get("bo_table")===root.searchParams.get("bo_table"));})?.url||null;
-}
-async function discover(source:SourceConfig,html:string,base=source.url){
-  if(source.singlePage)return [{url:source.url,title:source.name}];
-  if(/<item\b/i.test(html)){
-    return [...html.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].flatMap(m=>{const title=plain(m[1].match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||""),url=plain(m[1].match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]||"");try{return (source.kind==="rss"?eventWords.test(title)&&host(url)===host(source.homepage):isDetail(source,url))?[{url,title}]:[];}catch{return [];}});
-  }
-  const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title))&&(!source.christianOnly||/찬양|워십|그리스도|기독교|예배|가스펠/.test(x.title)));
-  // The official page's locations(id) links are read as data, never executed.
-  if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
-  // The public notice list exposes modal IDs as data. Keep the human-facing
-  // permalink as provenance; do not execute the site's JavaScript.
-  if(source.id==="sarang")for(const match of html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
-    if(!/\bclass=["'][^"']*\bcls-notice-view\b/.test(match[1]))continue;
-    const id=match[1].match(/\bdata-idx=["'](\d{1,12})["']/)?.[1];
-    const title=plain(match[2].match(/<p\b[^>]*class=["'][^"']*\btable-notice-title\b[^"']*["'][^>]*>([\s\S]*?)<\/p>/i)?.[1]||"");
-    if(id&&title)found.push({url:new URL(`/info/notice.asp?no=${id}`,base).href,title});
-  }
-  return [...new Map(found.map(item=>[item.url,item])).values()];
-}
 async function enqueue(source:SourceConfig,items:Array<{url:string;title:string}>,now:string){
   const db=database();const statements=await Promise.all(items.slice(0,150).map(async item=>db.prepare("INSERT INTO event_candidates(id,source_id,url,title,evidence,content_hash,status,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,'','discovered',?,?) ON CONFLICT(id) DO UPDATE SET last_seen_at=excluded.last_seen_at,title=CASE WHEN length(excluded.title)>2 THEN excluded.title ELSE event_candidates.title END").bind((await digest(`${source.id}|${item.url}`)).slice(0,32),source.id,item.url,item.title.slice(0,180),"",now,now)));
   for(let i=0;i<statements.length;i+=40)await db.batch(statements.slice(i,i+40));
@@ -85,7 +25,7 @@ async function processSource(source:SourceConfig){
     if(!robotsAllowed(robots.text,source.url))throw Error("robots_disallowed");
     // Only rules addressed to our crawler (or *) apply; Bing's delay is not ours.
     let delay=robotsDelay(robots.text);
-    if(!Number.isFinite(delay)||delay>5000)throw Error("crawl_delay_requires_separate_schedule");
+    if(!Number.isFinite(delay)||delay>10000)throw Error("crawl_delay_requires_separate_schedule");
     let previous=Date.now();const pace=async()=>{await new Promise(resolve=>setTimeout(resolve,Math.max(0,delay-(Date.now()-previous))));previous=Date.now();};
     const page=await boundedFetch(source.url,source,pace,robots.text);if(page.status!==200)throw Error(`source_http_${page.status}`);
     if(source.kind==="rss"&&!source.detailPattern&&!/<(?:rss|feed|rdf:RDF)\b/i.test(page.text))throw Error("rss_document_required");
@@ -113,11 +53,12 @@ async function processSource(source:SourceConfig){
       delay=Math.max(delay,robotsDelay(articleRobots));
       if(!Number.isFinite(delay)||delay>5000)throw Error("article_crawl_delay_requires_separate_schedule");
     }
+    const documentCache=new Map<string,{text:string;status:number}>();
     for(const candidate of queue.results){
       // The remote scheduler's gateway closes long-lived requests at roughly 45
       // seconds. Stop this source early; the next 15-minute batch resumes its
       // remaining queue from the saved checkpoint.
-      if(processed>=5||Date.now()-started>22_000)break;
+      if(processed>=(delay>5000?1:5)||Date.now()-started>22_000)break;
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
       if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
@@ -126,14 +67,25 @@ async function processSource(source:SourceConfig){
         // the permalink above and this fetch must pass the source's robots rules.
         const requestUrl=new URL(candidate.url);
         if(source.id==="sarang")requestUrl.pathname="/info/notice_view.asp";
-        doc=await boundedFetch(requestUrl.href,source,pace,articleRobots);if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
+        requestUrl.hash="";
+        doc=documentCache.get(requestUrl.href)||await boundedFetch(requestUrl.href,source,pace,articleRobots);if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
+        documentCache.set(requestUrl.href,doc);
       }catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=?,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
       if(source.kind==="rss"){
         for(const official of officialEventSources){const references=links(doc.text,candidate.url).filter(x=>isDetail(official,x.url));if(references.length)await enqueue(official,references,now);}
         await db.prepare("UPDATE event_candidates SET status='discovery_only',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;
       }
       const entries=extractScheduleEntries(doc.text,source),occurrence=new URL(candidate.url).hash.replace(/^#occurrence=/,"");
-      if(entries.length&&!occurrence){await enqueue(source,entries.map(entry=>({url:`${candidate.url}#occurrence=${entry.key}`,title:entry.title})),now);await db.prepare("UPDATE event_candidates SET status='discovery_only',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
+      if(entries.length&&!occurrence){
+        const children=entries.map(entry=>({url:`${candidate.url}#occurrence=${entry.key}`,title:entry.title}));
+        await enqueue(source,children,now);
+        await db.prepare("UPDATE event_candidates SET status='discovery_only',checked_at=? WHERE id=?").bind(now,candidate.id).run();
+        // Process newly discovered sessions in this bounded batch using the same
+        // document, instead of waiting for another scheduler tick or refetching it.
+        const saved=await db.prepare("SELECT id,url,title,event_id AS eventId,checked_at AS checkedAt FROM event_candidates WHERE source_id=? AND url IN (SELECT value FROM json_each(?))").bind(source.id,JSON.stringify(children.map(item=>item.url))).all<typeof queue.results[number]>();
+        const fresh=saved.results.filter(item=>!queue.results.some(row=>row.url===item.url));
+        queue.results.splice(queue.results.indexOf(candidate)+1,0,...fresh);continue;
+      }
       const extracted=occurrence?(entries.find(entry=>entry.key===occurrence)||{event:null,title:candidate.title,evidence:"",reason:"occurrence_removed_or_changed"}):extractEvent(doc.text,candidate.url,source,candidate.title),value=extracted.event,hash=await digest(JSON.stringify(value??extracted.evidence));
       const notice=noticeStatus(`${extracted.title}\n${extracted.evidence}`);
       if(notice&&candidate.eventId)await db.prepare("UPDATE events SET status=?,updated_at=?,checked_at=? WHERE id=? AND source_url=?").bind(notice,now,now,candidate.eventId,candidate.url).run();
@@ -165,12 +117,12 @@ export async function syncEvents(){
   const db=database(),now=new Date().toISOString();
   const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
   await db.batch(seeds);
-  // Version 6 reconnects Sarang's public modal board: retry only its empty list.
+  // Version 7 retries only the repaired churchr RSS when it previously failed.
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR id='sarang')) OR (collector_version<4 AND status='failed') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR id='news-10')) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});

@@ -1,4 +1,5 @@
 export type SourceConfig = { id:string;name:string;homepage:string;url:string;kind:"official"|"rss";detailPattern:string;churchName?:string;organizer?:string;listingUrls?:string[];charset?:string;eventOnly?:boolean;christianOnly?:boolean;singlePage?:boolean };
+import qualifiedSources from "../../data/qualified-content-sources.json";
 // Official ownership and listing URLs checked 2026-09-09. Dates/venues are never inferred from headquarters.
 export const officialEventSources:SourceConfig[] = [
   {id:"coommi",name:"꿈이있는미래 꿈미",homepage:"https://www.coommi.org/",url:"https://www.coommi.org/Page/Index/34681",kind:"official",detailPattern:"/Page/Index/34681\\?[^#]*idx=\\d+",eventOnly:true},
@@ -41,6 +42,7 @@ export const officialEventSources:SourceConfig[] = [
   {id:"bibleforum",name:"한국성서학연구소",homepage:"https://bibleforum.org/",url:"https://bibleforum.org/seminars",kind:"official",detailPattern:"/seminars/[^/?]+",eventOnly:true},
   {id:"eco-christ",name:"기독교환경교육센터 살림",homepage:"https://eco-christ.tistory.com/",url:"https://eco-christ.tistory.com/",kind:"official",detailPattern:"^https://eco-christ\\.tistory\\.com/\\d+$"},
   {id:"greenchrist",name:"기독교환경운동연대",homepage:"https://greenchrist.org/",url:"https://greenchrist.org/community_1/",kind:"official",detailPattern:"/community_1/\\?(?=[^#]*mod=document)(?=[^#]*uid=\\d+)"},
+  ...qualifiedSources.events as SourceConfig[],
   // Public board and a dated, located training notice verified 2026-09-10.
   {id:"kacsw",name:"한국기독교사회복지실천학회",homepage:"https://kacsw.kr/",url:"https://kacsw.kr/500/",kind:"official",detailPattern:"/500/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)",eventOnly:true},
 ];
@@ -78,4 +80,4 @@ export const eventSourceCandidates=[
   {name:"한국기독교장로회 경북노회",url:"https://www.prokgb.org/",reason:"공식 공지 후보 · 상세 일정 검증 필요"},
   {name:"중앙노회",url:"https://www.jbnh.org/main.php?device=pc",reason:"공식 공지 후보 · 상세 일정 검증 필요"},
   {name:"기독교대한성결교회",url:"https://www.kehc.org/home/notice/view_list/page/0",reason:"목록 확인 · 동적 상세 링크 연결 필요"},
-];
+].filter(candidate=>!qualifiedSources.events.some(source=>new URL(source.homepage).hostname.replace(/^www\./,"")===new URL(candidate.url).hostname.replace(/^www\./,"")));

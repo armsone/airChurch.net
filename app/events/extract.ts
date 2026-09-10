@@ -15,6 +15,24 @@ function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
+  if(source.id==="nics"){
+    const rows=lines(html),title=meta(html,"og:title")||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
+    const index=rows.findIndex(x=>/^일시\s*[｜|:：]/.test(x)),when=rows[index]||"",clock=rows[index+1]||"",method=rows.find(x=>/^방식\s*[｜|:：]/.test(x))||"";
+    const year=when.match(/(20\d{2})년/)?.[1],time=clock.match(/^저녁\s*(\d{1,2})시\s*(\d{1,2})분\s*~/);
+    if(!year||!time||!/콜로키움/.test(title)||!/줌\(zoom\).*온라인\s*강의/i.test(method))return [];
+    const days=[...when.matchAll(/(?:(20\d{2})년\s*)?(\d{1,2})월\s*(\d{1,2})일\(([월화수목금토일])\)/g)];
+    const h=Number(time[1]),m=Number(time[2]);if(days.length<2||days.length>20||h<1||h>11||m>59)return [];
+    const values=days.map(d=>({date:`${d[1]||year}-${d[2].padStart(2,"0")}-${d[3].padStart(2,"0")}`,label:d[0]}));
+    if(values.some(d=>!validDate(d.date)||!weekdayMatches(d.date,d.label))||new Set(values.map(d=>d.date)).size!==values.length)return [];
+    const startTime=`${h+12}:${String(m).padStart(2,"0")}`;
+    return values.map((d,i)=>{const sessionTitle=`${title.replace(/\s*[|>].*$/,"")} · ${i+1}회`;return {key:`${d.date}_${startTime}`,title:sessionTitle,evidence:[when,clock,method].join("\n"),reason:"",event:{title:sessionTitle,startDate:d.date,endDate:d.date,startTime,venue:"온라인 Zoom",region:"온라인",attendance:"온라인",organizer:source.name,audience:"대상 확인 필요",category:"세미나·교육",registrationUrl:null,status:noticeStatus(rows.join("\n"))||"published"} satisfies ExtractedEvent};});
+  }
+  if(source.id==="uofnjeju"){
+    const rows=lines(html),line=rows.find(x=>/^-\s*국내\(열방대학\)\s*[:：]/.test(x)),ds=dates(line||"");
+    if(!line||ds.length!==2||ds.some(d=>!validDate(d))||ds[1]<ds[0]||Date.parse(ds[1])-Date.parse(ds[0])>366*86400000)return [];
+    const title=(meta(html,"og:title")||"성경연구과정").replace(/\s*[-|]\s*제주열방대학.*$/,"")+" · 국내 과정";
+    return [{key:`domestic_${ds[0]}`,title,evidence:line,reason:"",event:{title,startDate:ds[0],endDate:ds[1],startTime:null,venue:"제주열방대학",region:"제주",attendance:"현장",organizer:source.name,audience:"대상 확인 필요",category:"세미나·교육",registrationUrl:null,status:noticeStatus(rows.join("\n"))||"published"} satisfies ExtractedEvent}];
+  }
   if(source.id==="interserve"){
     const title=meta(html,"og:title")||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
     if(!/i-LAMS/i.test(title))return [];
@@ -61,7 +79,8 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const currentHeading=headings.find(x=>knownTitle.length>2&&x.includes(knownTitle));
   const og=meta(html,"og:title");
   const boardTitle=plain(html.match(/<h[1-4][^>]*id=["']bo_v_title["'][^>]*>([\s\S]*?)<\/h[1-4]>/i)?.[1]||"");
-  const rawTitle=boardTitle||(source.id==="coommi"?headings.find(x=>/20\d{2}/.test(x)):null)||(source.eventOnly&&og?og:currentHeading)||(og&&eventWords.test(og)?og:knownTitle)||og||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
+  const specificOg=og.replace(/\s/g,"")!==source.name.replace(/\s/g,"")?og:"";
+  const rawTitle=boardTitle||(source.id==="coommi"?headings.find(x=>/20\d{2}/.test(x)):null)||(source.eventOnly&&specificOg?specificOg:currentHeading)||(specificOg&&eventWords.test(specificOg)?specificOg:knownTitle)||specificOg||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
   const title=(source.id==="coommi"?rawTitle.replace(/^접수(?:중|마감|예정)\s*\[/,"").replace(/\s*신청\s*[:：].*\]$/,""):rawTitle).replace(new RegExp(`^${source.name}\\s*[|:>-]\\s*`),"").replace(/\s*[|>].*$/,"").trim().slice(0,180);
   const titleIndex=rows.findIndex(x=>title.length>2&&x.includes(title));
   const structuredIndex=source.id==="jiguchon"?rows.findIndex(x=>x==="일정안내"):-1;
@@ -113,5 +132,6 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   // External application buttons are followed by the user, never fetched by the collector.
   const registrationUrl=links(html,url).find(x=>/^(신청하기|신청가기|신청페이지가기|참가신청|등록하기)$/.test(x.title))?.url||null;
   const status=noticeStatus(`${title}\n${evidence}`)||"published";
-  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:regionOf(venue),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
+  const explicitAddress=venue.match(/주소\s*[:：]\s*([^)]*)/)?.[1]||venue;
+  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
 }
