@@ -16,6 +16,32 @@ function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
+  if(source.id==="paidion"){
+    const rows=lines(html),title=rows.find(row=>/^\[선착순\]\s*\[온라인 강의\].*세미나/.test(row));
+    const end=rows.indexOf("지난 세미나 후기"),body=end<0?rows:rows.slice(0,end);
+    if(!title||!body.some(row=>/온라인 실시간 줌\(ZOOM\)/.test(row)))return [];
+    const when=body.find(row=>/^20\d{2}년.*매주.*\d+주/.test(row))||"";
+    const m=when.match(/^(20\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일\s*[-~]\s*(\d{1,2})월\s*(\d{1,2})일\s*\(매주\s*([월화수목금토일])요일,\s*(\d+)주\)$/);
+    const clock=body.map(row=>row.match(/^(AM|PM)\s*(\d{1,2}):([0-5]\d)\s*[-~]\s*(\d{1,2}):([0-5]\d)$/i)).find(Boolean);
+    if(!m||!clock)return [];
+    const first=`${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`,last=`${m[1]}-${m[4].padStart(2,"0")}-${m[5].padStart(2,"0")}`,count=Number(m[7]);
+    if(!validDate(first)||!validDate(last)||first>last||count<1||count>52||!weekdayMatches(first,`(${m[6]})`)||!weekdayMatches(last,`(${m[6]})`))return [];
+    const hour=Number(clock[2]),endHour=Number(clock[4]);if(hour<1||hour>12||endHour<1||endHour>12||hour*60+Number(clock[3])>=endHour*60+Number(clock[5]))return [];
+    const pauseRows=body.filter(row=>/휴강/.test(row)),excluded=new Set<string>();
+    for(const row of pauseRows){
+      if(!/^\(\s*\d{1,2}월\s*\d{1,2}일(?:\s*,\s*\d{1,2}월\s*\d{1,2}일)*\s*휴강\s*\)$/.test(row))return [];
+      for(const pause of row.matchAll(/(\d{1,2})월\s*(\d{1,2})일/g)){
+        const date=`${m[1]}-${pause[1].padStart(2,"0")}-${pause[2].padStart(2,"0")}`;
+        if(!validDate(date)||date<first||date>last||!weekdayMatches(date,`(${m[6]})`))return [];
+        excluded.add(date);
+      }
+    }
+    const dates:string[]=[];
+    for(let day=Date.parse(first);day<=Date.parse(last)&&dates.length<=52;day+=7*86400000){const date=new Date(day).toISOString().slice(0,10);if(!excluded.has(date))dates.push(date);}
+    if(dates.length!==count)return [];
+    const startTime=`${String(hour%12+(clock[1].toUpperCase()==="PM"?12:0)).padStart(2,"0")}:${clock[3]}`;
+    return dates.map((date,i)=>{const sessionTitle=`${title} · ${i+1}회`;return {key:`${date}_${startTime}`,title:sessionTitle,evidence:`${title}\n${when}\n${pauseRows.join("\n")}\n${clock[0]}\n온라인 실시간 줌(ZOOM)`,reason:"",event:{title:sessionTitle,startDate:date,endDate:date,startTime,venue:"온라인 실시간 줌(ZOOM)",region:"온라인",attendance:"온라인",organizer:"파이디온선교회",audience:"대상 확인 필요",category:"세미나·교육",registrationUrl:null,status:noticeStatus(body.join("\n"))||"published"} satisfies ExtractedEvent};});
+  }
   if(source.id==="bpu"){
     const rows=lines(html),heading=rows.find(x=>/^\[사역자스쿨\]\s*20\d{2}학년도\s*\d학기\s*프로그램\s*안내$/.test(x));
     if(!heading)return [];

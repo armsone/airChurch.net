@@ -263,6 +263,10 @@
   }
   ,{
     "type":"event",
+    "identityEvidence":"https://kmcm.or.kr/소개/",
+    "source":{"id":"kmcm","name":"한국감리교선교사상담센터","homepage":"https://kmcm.or.kr/","url":"https://kmcm.or.kr/","detailPattern":"^https://kmcm\\.or\\.kr/20\\d{2}[^/?]*/$"}
+  },{
+    "type":"event",
     "identityEvidence":"https://wemission.com/campguide-teenager/",
     "source":{"id":"wemission","name":"위미션","homepage":"https://wemission.com/","url":"https://wemission.com/notice/","detailPattern":"/notice/\\?(?=[^#]*vid=\\d+)"}
   },{

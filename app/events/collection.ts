@@ -1,11 +1,11 @@
-import { boundedFetch, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
+import { boundedFetch as fetchSource, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
 import { database } from "../api/_shared";
 import { sources as newsSources } from "../news/feed";
 import { officialEventSources, additionalDiscoverySources, type SourceConfig } from "./sources";
 import { eventWords, eventPriority, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const COLLECTOR_VERSION=11;
+const COLLECTOR_VERSION=12;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -19,6 +19,15 @@ async function processSource(source:SourceConfig){
   const db=database(),now=new Date().toISOString(),token=crypto.randomUUID(),started=Date.now();
   const claim=await db.prepare("UPDATE event_sources SET lease_token=?,lease_until=?,status='running',last_checked_at=? WHERE id=? AND enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?)").bind(token,after(0.25),now,source.id,now,now).run();
   if(Number(claim.meta.changes)!==1)return;
+  // One retry per source, not per URL. Keep the same crawler, permissions and
+  // 22-second batch budget; denied responses and parser failures are not retried.
+  let retries=1;
+  const boundedFetch=async(...args:Parameters<typeof fetchSource>):ReturnType<typeof fetchSource>=>{
+    try{return await fetchSource(...args);}catch(error){
+      if(!retries||Date.now()-started>=14_000||!(error instanceof Error)||!(error.name==="TimeoutError"||(error instanceof TypeError&&error.message==="fetch failed")))throw error;
+      retries--;await new Promise(resolve=>setTimeout(resolve,1000));return fetchSource(...args);
+    }
+  };
   try{
     const robots=await boundedFetch(new URL("/robots.txt",source.url).href,source);
     if(robots.status!==404&&robots.status!==200)throw Error("robots_unavailable");
@@ -125,9 +134,10 @@ export async function syncEvents(){
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='paidion' AND reason='explicit_event_date_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<12 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='uofnjeju' AND reason='outside_event_board' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<8 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});

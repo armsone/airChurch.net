@@ -165,6 +165,14 @@
       "url": "https://www.vitnara.com/board/free/list.html?board_no=3001",
       "detailPattern": "/article/[^/]+/3001/\\d+/",
       "kind": "official"
+    },
+    {
+      "id": "kmcm",
+      "name": "한국감리교선교사상담센터",
+      "homepage": "https://kmcm.or.kr/",
+      "url": "https://kmcm.or.kr/",
+      "detailPattern": "^https://kmcm\\.or\\.kr/20\\d{2}[^/?]*/$",
+      "kind": "official"
     }
   ],
   "news": [

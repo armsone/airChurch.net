@@ -9,13 +9,14 @@ const args=new Set(process.argv.slice(2)),output=path.join(root,'outputs/source-
 await mkdir(output,{recursive:true});
 const compiled=await build({stdin:{contents:`export * from './app/events/source-reader'; export * from './app/events/extract'; export {officialEventSources,eventSourceCandidates} from './app/events/sources'; export {sources as newsSources,parseFeed} from './app/news/feed';`,resolveDir:root,loader:'ts'},bundle:true,write:false,platform:'node',format:'esm',logLevel:'silent'});
 const api=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
-const seeds=JSON.parse(await readFile(path.join(root,'data/content-source-candidates.json'),'utf8'));
-for(const candidate of api.eventSourceCandidates)if(!seeds.some(s=>api.host(s.source.homepage)===api.host(candidate.url)))seeds.push({type:'event',source:{id:'candidate-'+createHash('sha256').update(candidate.url).digest('hex').slice(0,12),name:candidate.name,homepage:new URL(candidate.url).origin+'/',url:candidate.url,detailPattern:''}});
+const seeds=args.has('--leads-only')?(JSON.parse(await readFile(path.join(output,'discovered-links.json'),'utf8')).leads||[]).map(lead=>({type:'event',source:{id:'lead-'+createHash('sha256').update(api.host(lead.url)).digest('hex').slice(0,12),name:lead.name,homepage:new URL(lead.url).origin+'/',url:lead.url,detailPattern:''}})):JSON.parse(await readFile(path.join(root,'data/content-source-candidates.json'),'utf8'));
+if(!args.has('--leads-only'))for(const candidate of api.eventSourceCandidates)if(!seeds.some(s=>api.host(s.source.homepage)===api.host(candidate.url)))seeds.push({type:'event',source:{id:'candidate-'+createHash('sha256').update(candidate.url).digest('hex').slice(0,12),name:candidate.name,homepage:new URL(candidate.url).origin+'/',url:candidate.url,detailPattern:''}});
 const generatedPath=path.join(root,'data/qualified-content-sources.json');
 const generated=JSON.parse(await readFile(generatedPath,'utf8'));
 const registered=new Set([...api.officialEventSources,...api.newsSources].map(s=>api.host(s.homepage)));
 const only=process.argv.find(x=>x.startsWith('--only='))?.slice(7).split(',');
-const jobs=[...(!args.has('--candidates-only')?api.officialEventSources.map(source=>({type:'event',source,existing:true})):[]),...(!args.has('--candidates-only')?api.newsSources.map(source=>({type:'news',source,existing:true})):[]),...seeds.filter(s=>!registered.has(api.host(s.source.homepage)))].filter(job=>!only||only.includes(job.source.id)||only.includes(job.source.name));
+const includeExisting=!args.has('--candidates-only')&&!args.has('--leads-only');
+const jobs=[...(includeExisting?api.officialEventSources.map(source=>({type:'event',source,existing:true})):[]),...(includeExisting?api.newsSources.map(source=>({type:'news',source,existing:true})):[]),...seeds.filter(s=>!registered.has(api.host(s.source.homepage)))].filter(job=>!only||only.includes(job.source.id)||only.includes(job.source.name));
 const report={startedAt:new Date().toISOString(),finishedAt:null,concurrency:6,apply:args.has('--apply'),total:jobs.length,results:[]};
 let previous={results:[]};try{previous=JSON.parse(await readFile(path.join(output,'checkpoint.json'),'utf8'));}catch{try{previous=JSON.parse(await readFile(path.join(output,'report.json'),'utf8'));}catch{}}
 const policyHash=createHash('sha256').update((await Promise.all(['scripts/expand-content-sources.mjs','app/events/source-reader.ts','app/events/extract.ts','app/news/feed.ts'].map(p=>readFile(path.join(root,p),'utf8')))).join('\n')).digest('hex');
@@ -49,8 +50,11 @@ async function inspect(job){
       return {status:job.existing?'healthy':delay>10000?'adapter_review':job.identityEvidence?'qualified':'identity_review',articleCount:items.length,latest,config:source,requests,delay};
     }
     let found=source.detailPattern?await api.discover(source,html):api.links(html,source.url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title));
-    for(const url of (source.listingUrls||[]).slice(0,2)){try{found.push(...await api.discover(source,await get(url),url));}catch(error){details.push({url,reason:String(error.message)});}}
-    const score=item=>api.eventPriority(item.title);
+    if(args.has('--leads-only')&&!source.detailPattern){
+      source.listingUrls=api.links(html,source.url).filter(x=>api.host(x.url)===api.host(source.url)&&/^(?:공지사항|공지|소식|행사|행사안내|교육안내|세미나|주요행사|새소식|알림마당)$/.test(x.title)&&x.url!==source.url).slice(0,2).map(x=>x.url);
+    }
+    for(const url of (source.listingUrls||[]).slice(0,2)){try{const doc=await get(url);found.push(...(source.detailPattern?await api.discover(source,doc,url):api.links(doc,url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title))));}catch(error){details.push({url,reason:String(error.message)});}}
+    const score=item=>api.eventPriority(item.title)+(/20\d{2}/.test(item.title)?2:0);
     found=[...new Map(found.map(x=>[x.url,x])).values()].sort((a,b)=>score(b)-score(a));
     if(!found.length)throw Error('listing_no_matches');let verified=null;
     for(const item of found.slice(0,job.existing?2:5)){
