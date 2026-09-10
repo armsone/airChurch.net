@@ -49,6 +49,11 @@ async function inspect(job){
       if(!job.existing){let home=await get(source.homepage);if(job.identityEvidence&&api.host(job.identityEvidence)===api.host(source.homepage)&&job.identityEvidence!==source.homepage)home+='\n'+await get(job.identityEvidence);const channelTitle=api.plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||'');if(!home.includes(source.url)&&!home.includes(new URL(source.url).pathname)&&!(channelTitle.includes(source.name)&&api.host(source.url)===api.host(source.homepage)))throw Error('official_feed_link_unconfirmed');}
       return {status:job.existing?'healthy':delay>10000?'adapter_review':job.identityEvidence?'qualified':'identity_review',articleCount:items.length,latest,config:source,requests,delay};
     }
+    if(!job.existing&&job.identityEvidence){
+      if(api.host(job.identityEvidence)!==api.host(source.homepage))throw Error('identity_source_mismatch');
+      const identity=job.identityEvidence===source.url?html:await get(job.identityEvidence);
+      if(api.plain(identity).length<100)throw Error('identity_document_unconfirmed');
+    }
     let found=source.detailPattern?await api.discover(source,html,resolved.get(source.url)):api.links(html,resolved.get(source.url)||source.url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title));
     if(args.has('--leads-only')&&!source.detailPattern){
       source.listingUrls=api.links(html,resolved.get(source.url)||source.url).filter(x=>api.host(x.url)===api.host(source.url)&&/^(?:공지사항|공지|소식|행사|행사안내|교육안내|세미나|주요행사|새소식|알림마당)$/.test(x.title)&&x.url!==source.url).slice(0,2).map(x=>x.url);

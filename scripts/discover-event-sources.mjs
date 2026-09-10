@@ -12,7 +12,8 @@ const known=new Set([...api.officialEventSources,...api.newsSources].flatMap(x=>
 const file=path.join(output,'discovered-links.json');
 let previous={pages:[]};try{previous=JSON.parse(await readFile(file,'utf8'));}catch{}
 const limit=Math.min(100,Math.max(1,Number(process.argv.find(x=>x.startsWith('--limit='))?.slice(8))||60));
-const sources=[...new Map(api.officialEventSources.map(s=>[api.host(s.homepage),s])).values()].slice(0,limit);
+const publishers=[...api.officialEventSources,...(process.argv.includes('--include-news')?api.newsSources:[])];
+const sources=[...new Map(publishers.map(s=>[api.host(s.homepage),s])).values()].slice(0,limit);
 const report={startedAt:new Date().toISOString(),finishedAt:null,pages:[],leads:[]};
 const isPublic=url=>{try{const u=new URL(url);return /^https?:$/.test(u.protocol)&&!u.username&&!u.password&&!u.port&&u.hostname.includes('.')&&!/^[\d.:\[\]]+$/.test(u.hostname)&&!/(?:^|\.)(localhost|local|internal|test)$/.test(u.hostname);}catch{return false;}};
 const relevant=/선교|신학|기독|성서|성경|연합|협회|연구원|교육원|출판|문화원|아트|공연|세미나|캠프|훈련|센터|운동|청년|청소년|복음|교단|노회/;
@@ -37,7 +38,7 @@ await Promise.all(Array.from({length:3},async()=>{while(at<sources.length){
   }catch(error){row.status='unavailable';row.reason=String(error.message).slice(0,180);}
   report.pages.push(row);console.log(`[${report.pages.length}/${sources.length}] ${row.name}: ${row.status}, ${row.leads.length} leads`);
 }}));
-report.leads=[...new Map(report.pages.flatMap(x=>x.leads).map(x=>[api.host(x.url),x])).values()];
+report.leads=[...new Map(report.pages.flatMap(x=>x.leads).filter(x=>!known.has(api.host(x.url))).map(x=>[api.host(x.url),x])).values()];
 report.finishedAt=new Date().toISOString();
 await writeFile(file+'.tmp',JSON.stringify(report,null,2)+'\n');await rename(file+'.tmp',file);
 console.log(JSON.stringify({pages:report.pages.length,unverifiedLeads:report.leads.length,report:'outputs/source-expansion/discovered-links.json'}));
