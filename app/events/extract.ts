@@ -163,6 +163,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const datedIndex=body.findIndex(x=>datePattern.test(x)&&/20\d{2}\s*[년./-]/.test(x));
   const di=datedIndex>=0?datedIndex:body.findIndex(x=>datePattern.test(x));
   let when=field(di>=0?body.slice(di):body,datePattern);
+  if(source.id==="ctc"&&di>=0&&/^(오전|오후)\s*\d{1,2}:\d{2}\s*[–~-]/.test(body[di+1]||""))when+=` ${body[di+1]}`;
   // WEC states the current meeting date in one sentence, without an 일시 label.
   // Match only that sentence; the separate next-month reminder has no venue.
   if(source.id==="weckr"&&!when){
@@ -203,7 +204,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   else{const clock=when.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)/);if(clock)startTime=`${clock[1].padStart(2,"0")}:${clock[2]}`;else{const hours=when.match(/(?:^|\s)([01]?\d|2[0-3])\s*[-~]\s*([01]?\d|2[0-3])\s*시/);if(hours&&Number(hours[1])>=13&&Number(hours[1])<Number(hours[2]))startTime=`${hours[1].padStart(2,"0")}:00`;}}
   if(source.id==="duranno-college"&&!startTime){const intro=body.findIndex(x=>x==="세미나 소개"),clock=body.slice(Math.max(0,di),intro<0?di+15:intro).find(x=>/^([01]?\d|2[0-3]):[0-5]\d\s*[-~]/.test(x));if(clock)startTime=clock.match(/^\d{1,2}:\d{2}/)![0].padStart(5,"0");}
   if(source.id==="melon"&&!startTime){const clock=field(body,/^공연시간\s*[:：]?\s*/).match(/(오전|오후)\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);if(clock&&Number(clock[2])<=12&&Number(clock[2])>0&&Number(clock[3]||0)<60)startTime=`${String(Number(clock[2])%12+(clock[1]==="오후"?12:0)).padStart(2,"0")}:${String(clock[3]||0).padStart(2,"0")}`;}
-  const audienceText=field(body,/^(?:[\d.•○●\s-]*)?대\s*상\s*[:：]?\s*/)||(source.id==="hcm"?"":title);
+  const audienceText=field(body,/^(?:[\d.•○●\s-]*)?대\s*상\s*[:：]?\s*/)||(["hcm","ctc"].includes(source.id)?"":title);
   const audience=["어린이","청소년","청년","가정","목회자"].find(x=>audienceText.includes(x))||(/목사/.test(audienceText)?"목회자":"대상 확인 필요");
   const category=/북\s*콘서트/.test(title)?"세미나·교육":(source.id==="gwangya"||source.id==="melon")||/찬양|공연|뮤지컬|음악회|콘서트|전시|영화제/.test(title)?"찬양·공연":source.id==="duranno-college"||source.id==="chungeoram"||/세미나|워크숍|컨퍼런스|교육|훈련|학교|포럼|대학|강좌|강연|클래스|배움터/.test(title)?"세미나·교육":/봉사|선교/.test(title)?"봉사·선교":/수련회|캠프|수양회/.test(title)?"수련회":/집회|예배/.test(title)?"집회":"기타 행사";
   const attendance=/온라인|[Zz][Oo][Oo][Mm]|유튜브/.test(venue)?(/현장|병행/.test(venue)?"현장·온라인":"온라인"):"현장";
@@ -211,5 +212,5 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const registrationUrl=links(html,url).find(x=>/^(신청하기|신청가기|신청페이지가기|참가신청|등록하기)$/.test(x.title))?.url||null;
   const status=noticeStatus(`${title}\n${evidence}`)||"published";
   const explicitAddress=venue.match(/주소\s*[:：]\s*([^)]*)/)?.[1]||venue;
-  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
+  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:attendance==="온라인"?"온라인":regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
 }

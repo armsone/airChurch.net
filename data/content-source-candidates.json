@@ -1,4 +1,7 @@
 [
+  {"type":"event","identityEvidence":"https://www.ctcworldview.com/","source":{"id":"ctc","name":"CTC 기독교세계관교육센터","homepage":"https://www.ctcworldview.com/","url":"https://www.ctcworldview.com/education-registration/","detailPattern":"/education-registration/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)"}},
+  {"type":"event","identityEvidence":"https://heavenlytouch.kr/","source":{"id":"htm","name":"헤븐리터치 미니스트리","homepage":"https://heavenlytouch.kr/","url":"https://heavenlytouch.kr/notice/","detailPattern":"/notice/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)"}},
+  {"type":"event","identityEvidence":"https://holywaveplus.com/","source":{"id":"holywave","name":"새물결플러스 아카데미","homepage":"https://holywaveplus.com/","url":"https://holywaveplus.com/50","detailPattern":"/50/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)"}},
   {"type":"event","identityEvidence":"https://worldteach.co.kr/","source":{"id":"worldteach","name":"디모데성경연구원 월드티치","homepage":"https://worldteach.co.kr/","url":"https://worldteach.co.kr/세미나/세미나-신청/","detailPattern":"[?&]board_name=commerce_product(?=[^#]*[&]vid=\\d+)","eventOnly":true}},
   {"type":"event","identityEvidence":"https://www.fmnc.net/","source":{"id":"fmnc","name":"FMnC 선교회","homepage":"https://www.fmnc.net/","url":"https://www.fmnc.net/","detailPattern":"/notice/view/\\d+/\\d+/"}},
   {"type":"event","identityEvidence":"https://gmtc.co.kr/","source":{"id":"gmtc","name":"한국선교훈련원 GMTC","homepage":"https://gmtc.co.kr/","url":"https://gmtc.co.kr/공지사항/","detailPattern":"[?&]vid=\\d+"}},

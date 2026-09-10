@@ -232,6 +232,14 @@
       "detailPattern": "[?&]board_name=commerce_product(?=[^#]*[&]vid=\\d+)",
       "eventOnly": true,
       "kind": "official"
+    },
+    {
+      "id": "ctc",
+      "name": "CTC 기독교세계관교육센터",
+      "homepage": "https://www.ctcworldview.com/",
+      "url": "https://www.ctcworldview.com/education-registration/",
+      "detailPattern": "/education-registration/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)",
+      "kind": "official"
     }
   ],
   "news": [
