@@ -5,7 +5,7 @@ import { officialEventSources, additionalDiscoverySources, type SourceConfig } f
 import { eventWords, eventPriority, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const COLLECTOR_VERSION=10;
+const COLLECTOR_VERSION=11;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -44,7 +44,7 @@ async function processSource(source:SourceConfig){
     const position=new Map(found.map((item,index)=>[item.url,index]));
     const score=(candidate:typeof queue.results[number])=>candidate.eventId?-1000000:(3-eventPriority(candidate.title))*1000+(position.get(candidate.url)??500);
     queue.results.sort((a,b)=>score(a)-score(b)||(a.checkedAt||"").localeCompare(b.checkedAt||""));
-    let failed=0,blocked=0,processed=0;
+    let failed=0,blocked=0,processed=0,fetched=0;
     let articleRobots=robots.text;
     if(source.kind==="rss"&&host(source.homepage)!==host(source.url)){
       const rules=await boundedFetch(new URL("/robots.txt",source.homepage).href,source,pace);
@@ -58,7 +58,11 @@ async function processSource(source:SourceConfig){
       // The remote scheduler's gateway closes long-lived requests at roughly 45
       // seconds. Stop this source early; the next 15-minute batch resumes its
       // remaining queue from the saved checkpoint.
-      if(processed>=(delay>5000?1:5)||Date.now()-started>22_000)break;
+      const canonical=new URL(candidate.url);canonical.hash="";
+      if(source.id==="sarang")canonical.pathname="/info/notice_view.asp";
+      // Sessions from one already-read notice add no upstream requests. Finish
+      // those together while retaining the request and wall-clock budgets.
+      if(processed>=20||Date.now()-started>22_000||(!documentCache.has(canonical.href)&&fetched>=(delay>5000?1:5)))break;
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
       if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
@@ -68,7 +72,7 @@ async function processSource(source:SourceConfig){
         const requestUrl=new URL(candidate.url);
         if(source.id==="sarang")requestUrl.pathname="/info/notice_view.asp";
         requestUrl.hash="";
-        doc=documentCache.get(requestUrl.href)||await boundedFetch(requestUrl.href,source,pace,articleRobots);if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
+        doc=documentCache.get(requestUrl.href);if(!doc){fetched++;doc=await boundedFetch(requestUrl.href,source,pace,articleRobots);}if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
         documentCache.set(requestUrl.href,doc);
       }catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=?,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
       if(source.kind==="rss"){
@@ -123,7 +127,7 @@ export async function syncEvents(){
   await db.batch([
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='uofnjeju' AND reason='outside_event_board' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<8 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});
