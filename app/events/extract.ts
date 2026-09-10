@@ -16,6 +16,18 @@ function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
+  if(source.id==="bpu"){
+    const rows=lines(html),heading=rows.find(x=>/^\[사역자스쿨\]\s*20\d{2}학년도\s*\d학기\s*프로그램\s*안내$/.test(x));
+    if(!heading)return [];
+    const when=rows.find(x=>/일시\s*[:：].*총\s*\d+\s*회/.test(x))||"",venue=field(rows,/^[•\s]*장소\s*[:：]\s*/),year=heading.match(/20\d{2}/)?.[0];
+    const range=when.match(/(20\d{2})\s*년\s*(\d{1,2})\s*월\s*~\s*(\d{1,2})\s*월\s*\(\s*([월화수목금토일])요일\s*,\s*총\s*(\d+)\s*회\s*\)\s*(\d{2}:[0-5]\d)\s*~\s*(\d{2}:[0-5]\d)/);
+    const start=rows.findIndex(x=>x.includes("주차별 커리큘럼")),end=rows.findIndex((x,i)=>i>start&&x.includes("신청 및 문의"));
+    if(!range||range[1]!==year||!venue||start<0||end<=start||Number(range[5])>20||Number(range[6].slice(0,2))>23||range[6]>=range[7])return [];
+    const sessions=rows.slice(start+1,end).flatMap(row=>{const m=row.match(/^[•\s]*(\d+)\s*회차\s*\((\d{1,2})\/(\d{1,2})\)\s*\|\s*(.+)$/);return m?[{row,n:Number(m[1]),month:Number(m[2]),date:`${year}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`,label:m[4]}]:[];});
+    if(sessions.length!==Number(range[5])||sessions.some((s,i)=>s.n!==i+1||s.month<Number(range[2])||s.month>Number(range[3])||!validDate(s.date)||"일월화수목금토"[new Date(`${s.date}T00:00:00Z`).getUTCDay()]!==range[4])||new Set(sessions.map(s=>s.date)).size!==sessions.length)return [];
+    const organizer=field(rows,/^주관\s*[:：]\s*/)||source.name;
+    return sessions.map(s=>{const title=`${heading.replace(/프로그램\s*안내$/,"").trim()} · ${s.n}회 ${s.label}`;return {key:`${s.date}_${range[6]}`,title,evidence:[heading,when,s.row,`장소: ${venue}`,`주관: ${organizer}`].join("\n"),reason:"",event:{title,startDate:s.date,endDate:s.date,startTime:range[6],venue,region:"지역 확인 필요",attendance:"현장",organizer,audience:"목회자",category:"세미나·교육",registrationUrl:null,status:noticeStatus(rows.slice(rows.indexOf(heading),end).join("\n"))||"published"} satisfies ExtractedEvent};});
+  }
   if(source.id==="nics"){
     const rows=lines(html),title=meta(html,"og:title")||plain(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
     const index=rows.findIndex(x=>/^일시\s*[｜|:：]/.test(x)),when=rows[index]||"",clock=rows[index+1]||"",method=rows.find(x=>/^방식\s*[｜|:：]/.test(x))||"";
@@ -75,7 +87,8 @@ export function extractScheduleEntries(html:string,source:SourceConfig){
 }
 export function noticeStatus(text:string){return /행사\s*취소|개최\s*취소|집회\s*취소|\[취소\]|\(취소\)/.test(text)?"cancelled":/(?:행사|공연|개최|집회|일정)(?:가|이|를|을)?\s*연기|\[연기\]|\(연기\)|잠정\s*중단|일정\s*변경(?:\s*안내|되었|합니다)/.test(text)?"checking":null;}
 export function extractEvent(html:string,url:string,source:SourceConfig,knownTitle=""):{event:ExtractedEvent|null;title:string;evidence:string;reason:string} {
-  const rows=lines(html);
+  const article=source.id==="biblekorea"?html.match(/<div\b[^>]*id=["']bo_v_con["'][^>]*>([\s\S]*?)<!--\s*}\s*본문 내용 끝\s*-->/i)?.[1]:null;
+  const rows=lines(article||html);
   const headings=[...html.matchAll(/<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/gi)].map(m=>plain(m[1]));
   const currentHeading=headings.find(x=>knownTitle.length>2&&x.includes(knownTitle));
   const og=meta(html,"og:title");
@@ -85,10 +98,12 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const title=(source.id==="coommi"?rawTitle.replace(/^접수(?:중|마감|예정)\s*\[/,"").replace(/\s*신청\s*[:：].*\]$/,""):rawTitle).replace(new RegExp(`^${source.name}\\s*[|:>-]\\s*`),"").replace(/\s*[|>].*$/,"").trim().slice(0,180);
   const titleIndex=rows.findIndex(x=>title.length>2&&x.includes(title));
   const structuredIndex=source.id==="jiguchon"?rows.findIndex(x=>x==="일정안내"):-1;
-  const articleStart=structuredIndex>=0?structuredIndex:titleIndex;
+  // This publisher hides its title and repeats it only in related links below
+  // the article. Starting there drops the actual date and venue above it.
+  const articleStart=article||source.id==="kocam"?0:structuredIndex>=0?structuredIndex:titleIndex;
   const articleRows=articleStart>=0?rows.slice(articleStart,Math.min(articleStart+150,rows.length)):rows;
   // Ignore related articles/navigation below the actual article.
-  const end=articleRows.findIndex((x,i)=>i>1&&/^(관련 글들|이전글|다음글|첨부파일|목록보기|댓글목록)$/.test(x));
+  const end=articleRows.findIndex((x,i)=>i>1&&!(source.id==="ksh"&&x==="첨부파일")&&(/^(관련 글들|이전글|다음글|첨부파일|목록보기|댓글목록)$/.test(x)||(source.id==="kocam"&&/^관련글 보기/.test(x))||(source.id==="ksh"&&/^(이전글|다음글)\s*[▲▼]/.test(x))));
   const body=end>=0?articleRows.slice(0,end):articleRows;
   const evidence=body.join("\n").slice(0,2500);
   const fail=(reason:string)=>({event:null,title,evidence,reason});

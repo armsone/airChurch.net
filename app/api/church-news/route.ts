@@ -5,7 +5,7 @@ import { boundedFetch, robotsAllowed, robotsDelay } from "../../events/source-re
 import { sources, readFeedText, parseFeed, plainText, tag, type FeedSource, type NewsItem, type FeedState, type NewsPayload, type SnapshotRow } from "../../news/feed";
 export { sources, readFeedText } from "../../news/feed";
 
-const FEED_VERSION=6;
+const FEED_VERSION=7;
 async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedState> {
   const checkedAt=new Date().toISOString();
   try{
@@ -52,6 +52,7 @@ async function loadSource(source:FeedSource,previous?:FeedState):Promise<FeedSta
     return {items,checkedAt,lastSuccessAt:checkedAt,nextCheckAt,failures:0,version:FEED_VERSION,etag:feed.truncated?undefined:response.headers.get("etag")||undefined,modified:feed.truncated?undefined:response.headers.get("last-modified")||undefined};
   }catch(error){
     const failures=(previous?.failures||0)+1;
+    console.warn("church_news_source_failed",source.name,error instanceof Error?error.message.slice(0,100):"feed_unavailable");
     return {...previous,items:previous?.items||[],checkedAt,nextCheckAt:new Date(Date.now()+Math.min(24,2**failures)*3600000).toISOString(),failures,version:FEED_VERSION,lastError:error instanceof Error?error.message.slice(0,100):"feed_unavailable"};
   }
 }
@@ -97,7 +98,9 @@ export async function refreshChurchNewsSnapshot() {
     const due=sources.filter(s=>{const state=states.get(feedKey(s));return !state||state.nextCheckAt<=now||(state.failures>0&&(state.version||0)<FEED_VERSION);}).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
     if(!due.length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
     const loaded=await mapWithConcurrency(due,3,async source=>({source,state:await loadSource(source,states.get(feedKey(source)))}));
-    await db.batch(loaded.map(({source,state})=>db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(feedKey(source),JSON.stringify(state),state.items.length,state.checkedAt)));
+    // Keep bounded health metadata before article bodies for operational reads.
+    // The content and the snapshot's last-good preservation are unchanged.
+    await db.batch(loaded.map(({source,state})=>{const {items,...health}=state;return db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,item_count=excluded.item_count,refreshed_at=excluded.refreshed_at").bind(feedKey(source),JSON.stringify({...health,items}),items.length,state.checkedAt);}));
     for(const {source,state} of loaded)states.set(feedKey(source),state);
     const previous=await readChurchNewsSnapshot();
     const current=sources.flatMap(s=>states.get(feedKey(s))?.items.length?states.get(feedKey(s))!.items:previous?.items.filter(i=>i.source===s.name)||[]);

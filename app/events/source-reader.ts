@@ -3,6 +3,10 @@ import { readFeedText } from "../news/feed";
 import { eventWords, links, plain } from "./extract";
 const AGENT="AirChurchEvents/1.0 (+https://airchurch.net/contact)";
 export const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
+export function assertSourceDocument(text:string){
+  const title=plain(text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||"");
+  if(/^(?:access denied|forbidden|just a moment|보안 확인)/i.test(title)||(text.length<10000&&/document\.cookie|captcha.*(?:verify|challenge)|접근이?\s*(?:제한|차단)/i.test(text)))throw Error("access_challenge");
+}
 export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Promise<void>,robots?:string):Promise<{text:string;status:number}> {
   for(let redirect=0;redirect<4;redirect++){
     const u=new URL(url);if(!/^https?:$/.test(u.protocol)||u.username||u.password||u.port||!(host(url)===host(source.url)||(source.kind==="rss"&&host(url)===host(source.homepage))))throw Error("source_boundary");
@@ -17,7 +21,8 @@ export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Prom
     while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error("response_too_large");}chunks.push(value);}
     const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
     const charset=r.headers.get("content-type")?.match(/charset=([^;,\s]+)/i)?.[1]?.replace(/["']/g,"")||source.charset||"utf-8";
-    return {text:new TextDecoder(charset).decode(bytes),status:r.status};
+    const text=new TextDecoder(charset).decode(bytes);assertSourceDocument(text);
+    return {text,status:r.status};
   }throw Error("too_many_redirects");
 }
 function robotsGroups(text:string){
@@ -46,11 +51,24 @@ export function nextListing(source:SourceConfig,html:string,base:string){
   return links(html,base).find(link=>{const u=new URL(link.url),next=Number(u.searchParams.get("page")||u.pathname.match(/\/page\/(\d+)\//)?.[1]||0);return host(link.url)===host(source.url)&&next===page+1&&(u.pathname===root.pathname||u.pathname===`${root.pathname.replace(/\/$/,"")}/page/${next}/`)&&(!root.searchParams.has("bo_table")||u.searchParams.get("bo_table")===root.searchParams.get("bo_table"));})?.url||null;
 }
 export async function discover(source:SourceConfig,html:string,base=source.url){
+  // Public JSON used by the society's notice list, not a private/auth API.
+  if(source.id==="ntsk"&&new URL(base).pathname==="/board/maininfo/article.json"){
+    const data=JSON.parse(html)?.data;if(!Array.isArray(data))return [];
+    return data.slice(0,20).flatMap(row=>{
+      if(!Number.isSafeInteger(row.articleId)||row.articleId<1||row.secret!==0||row.deleteYn!==0||typeof row.subject!=="string")return [];
+      const url=new URL(`/board/maininfo/article/${row.articleId}`,source.url).href;
+      return isDetail(source,url)?[{url,title:plain(row.subject).slice(0,180)}]:[];
+    });
+  }
   if(source.singlePage)return [{url:source.url,title:source.name}];
   if(/<item\b/i.test(html)){
     return [...html.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)].flatMap(m=>{const title=plain(m[1].match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]||""),url=plain(m[1].match(/<link[^>]*>([\s\S]*?)<\/link>/i)?.[1]||"");try{return (source.kind==="rss"?eventWords.test(title)&&host(url)===host(source.homepage):isDetail(source,url))?[{url,title}]:[];}catch{return [];}});
   }
   const found=links(html,base).filter(x=>isDetail(source,x.url)&&x.url!==source.url&&(x.title.length>2||source.eventOnly)&&(source.kind!=="rss"||eventWords.test(x.title))&&(!source.christianOnly||/찬양|워십|그리스도|기독교|예배|가스펠/.test(x.title)));
+  if(source.id==="kacs")for(const match of html.matchAll(/<a\b[^>]*href=["']javascript:goView\((\d{1,12})\)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+    const url=new URL(`/kacs_new/community/main.php?activePage=view&no=${match[1]}`,base).href;
+    if(isDetail(source,url))found.push({url,title:plain(match[2])});
+  }
   // The official page's locations(id) links are read as data, never executed.
   if(source.id==="duranno-college")for(const match of html.matchAll(/onclick=["']locations\((\d+)\)["']/g))found.push({url:new URL(`/biblecollege/view/seminar_detail.asp?smrnum=${match[1]}`,base).href,title:""});
   // The public notice list exposes modal IDs as data. Keep the human-facing

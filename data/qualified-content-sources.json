@@ -50,6 +50,81 @@
       "detailPattern": "/modules/board/bd_view\\.asp\\?(?=[^#]*id=board_notice)(?=[^#]*no=\\d+)",
       "charset": "euc-kr",
       "kind": "official"
+    },
+    {
+      "id": "bpu",
+      "name": "부산장신대학교",
+      "homepage": "https://www.bpu.ac.kr/",
+      "url": "https://www.bpu.ac.kr/Board/BoardList.aspx?BoardMstNo=1",
+      "detailPattern": "/Board/BoardView\\.aspx\\?(?=[^#]*BoardMstNo=1)(?=[^#]*BoardNo=\\d+)",
+      "kind": "official"
+    },
+    {
+      "id": "kocam",
+      "name": "기독경영연구원",
+      "homepage": "http://www.kocam.org/",
+      "url": "http://www.kocam.org/?cat=26",
+      "detailPattern": "^http://www\\.kocam\\.org/\\?p=\\d+$",
+      "kind": "official"
+    },
+    {
+      "id": "jpic",
+      "name": "한국기독교사회문제연구원",
+      "homepage": "http://jpic.org/",
+      "url": "http://jpic.org/",
+      "detailPattern": "/20\\d{2}-[^/?]+/$",
+      "kind": "official"
+    },
+    {
+      "id": "praxis",
+      "name": "한국실천신학회",
+      "homepage": "https://www.praxis.or.kr/",
+      "url": "https://www.praxis.or.kr/board/list.php?board_name=conference",
+      "detailPattern": "/board/view\\.php\\?(?=[^#]*idx=\\d+)(?=[^#]*board_name=conference)",
+      "kind": "official"
+    },
+    {
+      "id": "biblekorea",
+      "name": "성서한국",
+      "homepage": "http://biblekorea.org/",
+      "url": "http://biblekorea.org/bbs/board.php?bo_table=network",
+      "detailPattern": "/bbs/board\\.php\\?(?=[^#]*wr_id=\\d+)",
+      "kind": "official"
+    },
+    {
+      "id": "ntsk",
+      "name": "한국신약학회",
+      "homepage": "https://ntsk.org/",
+      "url": "https://ntsk.org/board/maininfo",
+      "listingUrls": [
+        "https://ntsk.org/board/maininfo/article.json?start=0&length=20&draw=1"
+      ],
+      "detailPattern": "/board/maininfo/article/\\d+$",
+      "kind": "official"
+    },
+    {
+      "id": "ksst",
+      "name": "한국조직신학회",
+      "homepage": "http://ksst.kr/",
+      "url": "http://ksst.kr/notice",
+      "detailPattern": "/notice/\\d+$",
+      "kind": "official"
+    },
+    {
+      "id": "ksh",
+      "name": "한국설교학회",
+      "homepage": "http://ksh.or.kr/",
+      "url": "http://ksh.or.kr/notice/list.php",
+      "detailPattern": "/notice/view\\.php\\?(?=[^#]*idx=\\d+)",
+      "kind": "official"
+    },
+    {
+      "id": "kacs",
+      "name": "한국기독교학회",
+      "homepage": "http://kacs.or.kr/",
+      "url": "http://kacs.or.kr/kacs_new/community/main.php",
+      "detailPattern": "/kacs_new/community/main\\.php\\?(?=[^#]*activePage=view)(?=[^#]*no=\\d+)",
+      "kind": "official"
     }
   ],
   "news": [
@@ -94,6 +169,15 @@
       "homepage": "http://www.ecumenicalpress.co.kr/",
       "url": "http://www.ecumenicalpress.co.kr/rss.php",
       "allowedHost": "www.ecumenicalpress.co.kr",
+      "tone": "newsnjoy",
+      "markUrl": "",
+      "kind": "rss"
+    },
+    {
+      "name": "크리스천경남",
+      "homepage": "https://www.cgni.kr/",
+      "url": "https://www.cgni.kr/rss/rss.php",
+      "allowedHost": "www.cgni.kr",
       "tone": "newsnjoy",
       "markUrl": "",
       "kind": "rss"
