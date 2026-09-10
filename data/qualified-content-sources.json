@@ -36,8 +36,8 @@
     {
       "id": "sjs",
       "name": "서울장신대학교",
-      "homepage": "https://www.sjs.ac.kr/",
-      "url": "https://www.sjs.ac.kr/ht_ml/w_03ed/3010.php",
+      "homepage": "http://www.sjs.ac.kr/",
+      "url": "http://www.sjs.ac.kr/ht_ml/w_03ed/3010.php",
       "detailPattern": "/ht_ml/w_03ed/3010\\.php\\?(?=[^#]*bbs_idx=\\d+)",
       "charset": "euc-kr",
       "kind": "official"
