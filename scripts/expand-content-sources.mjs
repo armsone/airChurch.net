@@ -50,7 +50,7 @@ async function inspect(job){
     }
     let found=source.detailPattern?await api.discover(source,html):api.links(html,source.url).filter(x=>api.host(x.url)===api.host(source.url)&&api.eventWords.test(x.title));
     for(const url of (source.listingUrls||[]).slice(0,2)){try{found.push(...await api.discover(source,await get(url),url));}catch(error){details.push({url,reason:String(error.message)});}}
-    const score=item=>(/채용|입찰|장학생|등록금|휴무|공사|학사|연구윤리/.test(item.title)?-10:0)+(/세미나|공연|음악회|콘서트|수련회|특강|컨퍼런스|사역자|콜로키움/.test(item.title)?3:api.eventWords.test(item.title)?1:0);
+    const score=item=>api.eventPriority(item.title);
     found=[...new Map(found.map(x=>[x.url,x])).values()].sort((a,b)=>score(b)-score(a));
     if(!found.length)throw Error('listing_no_matches');let verified=null;
     for(const item of found.slice(0,job.existing?2:5)){

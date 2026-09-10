@@ -38,7 +38,7 @@ export function robotsAllowed(text:string,url:string){
 }
 
 export function isDetail(source:SourceConfig,url:string){
-  try{const u=new URL(url),base=new URL(source.url);return host(url)===host(source.url)&&new RegExp(source.detailPattern,"i").test(url)&&(!base.searchParams.has("bo_table")||u.searchParams.get("bo_table")===base.searchParams.get("bo_table"));}catch{return false;}
+  try{const u=new URL(url),base=new URL(source.url);u.hash="";return host(url)===host(source.url)&&new RegExp(source.detailPattern,"i").test(u.href)&&(!base.searchParams.has("bo_table")||u.searchParams.get("bo_table")===base.searchParams.get("bo_table"));}catch{return false;}
 }
 export function nextListing(source:SourceConfig,html:string,base:string){
   const current=new URL(base),root=new URL(source.url),page=Number(current.searchParams.get("page")||current.pathname.match(/\/page\/(\d+)\//)?.[1]||1);

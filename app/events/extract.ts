@@ -2,6 +2,7 @@ import { eventRegions } from "./types";
 import type { SourceConfig } from "./sources";
 
 export const eventWords = /집회|세미나|워크숍|컨퍼런스|수련회|캠프|훈련|교육|학교|대학|강좌|강연|클래스|배움터|찬양|공연|뮤지컬|음악회|콘서트|전시|봉사|선교대회|포럼|대회|영화제|예배|기도회|수양회|공청회|토론회/;
+export function eventPriority(title:string){return (/채용|입찰|장학생|등록금|휴무|공사|학사|연구윤리/.test(title)?-10:0)+(/세미나|공연|음악회|콘서트|수련회|특강|컨퍼런스|사역자|콜로키움/.test(title)?3:eventWords.test(title)?1:0);}
 export function decode(value:string) { return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1").replace(/&#(x[0-9a-f]+|\d+);/gi,(_,n)=>{const v=n[0].toLowerCase()==="x"?parseInt(n.slice(1),16):Number(n);return v>0&&v<=0x10ffff?String.fromCodePoint(v):"";}).replace(/&nbsp;/gi," ").replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;|&apos;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">"); }
 export function plain(value:string) { return decode(value.replace(/<[^>]*>/g," ")).replace(/\s+/g," ").trim(); }
 export function lines(html:string) { return decode(html.replace(/<!--[\s\S]*?-->/g,"").replace(/<(head|script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi,"").replace(/<\/(?:p|div|li|tr|h[1-6]|dt|dd)>|<br\s*\/?\s*>/gi,"\n").replace(/<[^>]*>/g," ")).split(/\n/).map(x=>x.replace(/\s+/g," ").trim()).filter(Boolean); }
