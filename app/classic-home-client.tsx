@@ -53,6 +53,11 @@ const dailyGuides = [
   { day:"금요일", theme:"쉼과 회복", reference:"마태복음 11:28", question:"한 주의 무게 가운데 내려놓아야 할 것은 무엇인가요?" },
   { day:"토요일", theme:"감사와 준비", reference:"데살로니가전서 5:16-18", question:"이번 주에 발견한 감사 세 가지를 떠올려 보세요." },
 ] as const;
+const bibleMusicTracks:Track[] = [
+  {id:"XAF8NJKBuBE",title:"시편 1편부터 20편까지 한번에 감상하세요",channel:"BibleMusic.co.kr_바이블뮤직",duration:1620},
+  {id:"UwvOtxlVHPM",title:"[오디오바이블] 시편",channel:"BibleMusic.co.kr_바이블뮤직",duration:0},
+  {id:"aE_pL0M14d0",title:"[Holy Verse / CCM랩] CCM랩 메들리",channel:"BibleMusic.co.kr_바이블뮤직",duration:314},
+];
 const discoveryTopics=[
   {name:"위로",copy:"지친 마음에 머무는 말씀",symbol:"쉼"},
   {name:"기도",copy:"염려를 맡기고 다시 시작하기",symbol:"맡김"},
@@ -765,6 +770,11 @@ export default function Home() {
           </article>)}
           {!sermonLoading && !filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
         </div>
+      </section>
+
+      <section className="content-section bible-music-section" id="bible-music" aria-labelledby="bible-music-title">
+        <div className="section-heading"><div><span className="section-kicker">말씀을 들으며</span><h2 id="bible-music-title">바이블뮤직</h2></div><a href="https://www.youtube.com/@BibleMusic.co.kr_" target="_blank" rel="noopener noreferrer">채널 전체 보기 ↗</a></div>
+        <CcmPlayer visible interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("bible");}} curated={{items:bibleMusicTracks,title:"바이블뮤직 듣기",intro:"시편을 듣고, 말씀을 노래로 기억하세요.",sourceUrl:"https://www.youtube.com/@BibleMusic.co.kr_",sourceLabel:"BibleMusic.co.kr_바이블뮤직"}} />
       </section>
 
       <section className="content-section shorts-section" id="shorts">

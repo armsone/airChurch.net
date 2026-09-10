@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { loadYouTubeApi, type YouTubePlayer } from "./youtube-api";
 
 export type Track={id:string;title:string;channel:string;duration:number};
+type CuratedCollection={items:Track[];title:string;intro:string;sourceUrl:string;sourceLabel:string};
 const ppabangUrl="https://ppabang.net/?category=ccm";
 const duration=(seconds:number)=>seconds?`${Math.floor(seconds/60)}:${String(Math.floor(seconds%60)).padStart(2,"0")}`:"";
 
-export default function CcmPlayer({visible,interrupted,onPlay,church}:{visible:boolean;interrupted:boolean;onPlay:()=>void;church?:{items:Track[];loading:boolean;total:number;query:string;onQuery:(value:string)=>void;hasMore:boolean;moreLoading:boolean;onMore:()=>Promise<void>;error:string;onRetry:()=>void;isSaved:(id:string)=>boolean;onSave:(track:Track)=>void}}) {
+export default function CcmPlayer({visible,interrupted,onPlay,church,curated}:{visible:boolean;interrupted:boolean;onPlay:()=>void;church?:{items:Track[];loading:boolean;total:number;query:string;onQuery:(value:string)=>void;hasMore:boolean;moreLoading:boolean;onMore:()=>Promise<void>;error:string;onRetry:()=>void;isSaved:(id:string)=>boolean;onSave:(track:Track)=>void};curated?:CuratedCollection}) {
   const isChurch=Boolean(church);
-  const label=isChurch?"교회 찬양":"CCM 듣기";
-  const searchId=isChurch?"church-praise-find":"ccm-find";
+  const label=isChurch?"교회 찬양":curated?.title||"CCM 듣기";
+  const searchId=isChurch?"church-praise-find":curated?"bible-music-find":"ccm-find";
   const [items,setItems]=useState<Track[]>([]);
   const [selected,setSelected]=useState("");
   const [playing,setPlaying]=useState(false);
@@ -32,7 +33,7 @@ export default function CcmPlayer({visible,interrupted,onPlay,church}:{visible:b
   const itemsRef=useRef(items);itemsRef.current=items;
 
   useEffect(()=>{
-    if(isChurch)return;
+    if(isChurch||curated)return;
     const controller=new AbortController();
     setLoading(true);setError("");
     const timer=setTimeout(()=>controller.abort(),16000);
@@ -51,6 +52,13 @@ export default function CcmPlayer({visible,interrupted,onPlay,church}:{visible:b
     let disposed=false;
     return()=>{disposed=true;controller.abort();clearTimeout(timer);};
   },[retry,isChurch]);
+
+  useEffect(()=>{
+    if(!curated)return;
+    setItems(curated.items);setLoading(false);setError("");
+    setSelected(previous=>curated.items.some(item=>item.id===previous)?previous:curated.items[0]?.id||"");
+    setPlaying(false);
+  },[curated]);
 
   useEffect(()=>{
     if(!church)return;
@@ -125,7 +133,7 @@ export default function CcmPlayer({visible,interrupted,onPlay,church}:{visible:b
   const lastRow=isChurch?Math.min(shown.length,firstRow+Math.ceil(listHeight/86)+9):shown.length;
   const rendered=shown.slice(firstRow,lastRow);
   return <div className="ccm-listener" hidden={!visible}>
-    <div className="ccm-intro"><p>{isChurch?"함께 부르는 믿음의 고백.":"오늘의 마음에, 찬양 한 곡."}</p>{!isChurch&&<a href={ppabangUrl} target="_blank" rel="noopener noreferrer" onClick={()=>setPlaying(false)}>빠방에서 더 듣기 ↗</a>}</div>
+    <div className="ccm-intro"><p>{isChurch?"함께 부르는 믿음의 고백.":curated?.intro||"오늘의 마음에, 찬양 한 곡."}</p>{curated?<a href={curated.sourceUrl} target="_blank" rel="noopener noreferrer" onClick={()=>setPlaying(false)}>{curated.sourceLabel} ↗</a>:!isChurch&&<a href={ppabangUrl} target="_blank" rel="noopener noreferrer" onClick={()=>setPlaying(false)}>빠방에서 더 듣기 ↗</a>}</div>
     <div className="ccm-layout">
       <div className="ccm-main">{current?<>
         <div className="ccm-screen">
@@ -136,7 +144,7 @@ export default function CcmPlayer({visible,interrupted,onPlay,church}:{visible:b
           <div className="ccm-actions"><button type="button" onClick={()=>void share(true)}>↗ 이 찬양 나누기</button>{church&&<button type="button" aria-pressed={church.isSaved(current.id)} onClick={()=>church.onSave(current)}>{church.isSaved(current.id)?"♥ 찜됨":"♡ 찜"}</button>}<a href={`https://www.youtube.com/watch?v=${current.id}`} target="_blank" rel="noopener noreferrer" onClick={()=>setPlaying(false)}>YouTube에서 듣기 ↗</a></div>
         </div>
       </>:<div className="ccm-loading" role="status">{loading?"♫ 찬양을 준비하고 있어요…":error||church?.error||"조건에 맞는 찬양이 없습니다. 검색어나 지역·교단 조건을 바꿔 주세요."}{(error||church?.error)&&<button type="button" onClick={()=>church?church.onRetry():setRetry(value=>value+1)}>다시 불러오기</button>}</div>}</div>
-      <div className="ccm-queue"><div className="ccm-queue-heading"><h3>{isChurch?"함께 듣는 교회 찬양":"함께 듣는 CCM"} <span>{church?church.total:items.length}</span></h3><button type="button" onClick={()=>void share(false)} aria-label={`${label} 공유`}>↗ 나누기</button></div><label className="sr-only" htmlFor={searchId}>{isChurch?"찬양과 교회 찾기":"CCM 곡과 찬양팀 찾기"}</label><input id={searchId} className="ccm-find" type="search" value={church?church.query:query} onChange={event=>church?church.onQuery(event.target.value):setQuery(event.target.value)} placeholder={isChurch?"찬양 제목 · 교회 · 지역 찾기":"곡 제목 · 찬양팀 찾기"}/><div className="ccm-tracks" aria-busy={loading||church?.moreLoading} ref={listRef} onScroll={event=>{if(!church)return;const node=event.currentTarget;setScrollTop(node.scrollTop);if(node.scrollHeight-node.scrollTop-node.clientHeight<240&&church.hasMore&&!church.moreLoading&&!church.error)void church.onMore();}} role="group" aria-label={`${label} 재생목록`}>{firstRow>0&&<div aria-hidden="true" style={{height:firstRow*86}}/>}{rendered.map(item=><button type="button" key={item.id} style={isChurch?{height:86}:undefined} className={`ccm-track${item.id===selected?" is-current":""}`} onClick={()=>choose(item.id)} aria-pressed={item.id===selected}><img src={`https://i.ytimg.com/vi/${item.id}/mqdefault.jpg`} alt="" width={96} height={54} loading="lazy"/><span><strong>{item.title}</strong><small>{item.channel}</small></span><em>{item.id===selected?"♪":duration(item.duration)}</em></button>)}{lastRow<shown.length&&<div aria-hidden="true" style={{height:(shown.length-lastRow)*86}}/>}{church?.hasMore&&<button className="ccm-load-more" type="button" disabled={church.moreLoading} onClick={()=>void church.onMore()}>{church.moreLoading?"찬양 불러오는 중…":"찬양 50개 더 보기"}</button>}{!loading&&!shown.length&&<p className="ccm-no-results">{isChurch?"찾는 찬양이 없어요. 다른 제목이나 교회를 입력해 보세요.":"찾는 곡이 없어요. 다른 제목이나 찬양팀을 입력해 보세요."}</p>}</div><p className="ccm-source">{isChurch?"교회 공식 채널의 찬양":"빠방 CCM에서 함께 고른 찬양"} · 한 곡이 끝나면 다음 곡으로</p></div>
+      <div className="ccm-queue"><div className="ccm-queue-heading"><h3>{isChurch?"함께 듣는 교회 찬양":curated?"바이블뮤직 선곡":"함께 듣는 CCM"} <span>{church?church.total:items.length}</span></h3><button type="button" onClick={()=>void share(false)} aria-label={`${label} 공유`}>↗ 나누기</button></div><label className="sr-only" htmlFor={searchId}>{isChurch?"찬양과 교회 찾기":curated?"바이블뮤직 영상 찾기":"CCM 곡과 찬양팀 찾기"}</label><input id={searchId} className="ccm-find" type="search" value={church?church.query:query} onChange={event=>church?church.onQuery(event.target.value):setQuery(event.target.value)} placeholder={isChurch?"찬양 제목 · 교회 · 지역 찾기":curated?"시편 또는 Holy Verse 찾기":"곡 제목 · 찬양팀 찾기"}/><div className="ccm-tracks" aria-busy={loading||church?.moreLoading} ref={listRef} onScroll={event=>{if(!church)return;const node=event.currentTarget;setScrollTop(node.scrollTop);if(node.scrollHeight-node.scrollTop-node.clientHeight<240&&church.hasMore&&!church.moreLoading&&!church.error)void church.onMore();}} role="group" aria-label={`${label} 재생목록`}>{firstRow>0&&<div aria-hidden="true" style={{height:firstRow*86}}/>}{rendered.map(item=><button type="button" key={item.id} style={isChurch?{height:86}:undefined} className={`ccm-track${item.id===selected?" is-current":""}`} onClick={()=>choose(item.id)} aria-pressed={item.id===selected}><img src={`https://i.ytimg.com/vi/${item.id}/mqdefault.jpg`} alt="" width={96} height={54} loading="lazy"/><span><strong>{item.title}</strong><small>{item.channel}</small></span><em>{item.id===selected?"♪":duration(item.duration)}</em></button>)}{lastRow<shown.length&&<div aria-hidden="true" style={{height:(shown.length-lastRow)*86}}/>}{church?.hasMore&&<button className="ccm-load-more" type="button" disabled={church.moreLoading} onClick={()=>void church.onMore()}>{church.moreLoading?"찬양 불러오는 중…":"찬양 50개 더 보기"}</button>}{!loading&&!shown.length&&<p className="ccm-no-results">{isChurch?"찾는 찬양이 없어요. 다른 제목이나 교회를 입력해 보세요.":curated?"찾는 영상이 없어요. 시편 또는 Holy Verse로 찾아 보세요.":"찾는 곡이 없어요. 다른 제목이나 찬양팀을 입력해 보세요."}</p>}</div><p className="ccm-source">{isChurch?"교회 공식 채널의 찬양":curated?"BibleMusic.co.kr_바이블뮤직 공식 채널의 선별 영상":"빠방 CCM에서 함께 고른 찬양"} · 한 곡이 끝나면 다음 곡으로</p></div>
     </div>
     <p className="ccm-notice" role="status">{church?.error||notice}</p>{shareFallback&&<input className="ccm-share-url" aria-label="공유할 링크" value={shareFallback} readOnly onFocus={event=>event.target.select()}/>}
   </div>;
