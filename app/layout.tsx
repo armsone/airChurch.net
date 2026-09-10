@@ -63,6 +63,6 @@ export default function RootLayout({
     },
   ];
   return (
-    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
+    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/><script dangerouslySetInnerHTML={{__html:"try{var t=localStorage.getItem('airchurch-theme');if(t==='calm'||t==='contrast')document.documentElement.dataset.theme=t}catch(e){}"}} /></head><body><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
   );
 }
