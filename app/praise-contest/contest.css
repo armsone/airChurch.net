@@ -46,3 +46,107 @@
 
 button.contest-sample{width:100%;font:inherit;text-align:left;cursor:pointer}.contest-sample-player{margin:20px 0;padding:16px;border:1px solid #d6e2da;border-radius:12px;background:#fff}.contest-sample-player>div{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.contest-sample-player iframe{display:block;width:100%;aspect-ratio:16/9;max-height:540px;border:0;border-radius:8px}.contest-sample-player button{flex-shrink:0;padding:8px 12px;border:1px solid #d6e2da;border-radius:8px;background:#f4f7f3;color:#254a3b;cursor:pointer}
 .our-event-date{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:16px}
+
+/* Invitation hierarchy and reading rhythm. */
+.contest-shell{font-size:17px;line-height:1.75}
+.contest-header{padding:36px 40px;gap:40px}
+.contest-header>div:first-child{position:relative;z-index:1;min-width:0}
+.contest-header h1{font-size:clamp(2.35rem,4vw,3.6rem);line-height:1.2}
+.contest-header .contest-intro{max-width:550px;font-size:17px;word-break:keep-all;overflow-wrap:break-word}
+.contest-award{flex-basis:240px;padding-left:36px}
+.contest-award small,.contest-award>span{font-size:14px}
+.contest-hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;margin-top:26px}
+.contest-header .contest-hero-actions button{background:#f3dfb5;border-color:#f3dfb5;color:#173d34;padding:12px 20px;font-size:16px}
+.contest-hero-actions a{display:inline-flex;align-items:center;min-height:48px;color:#f4ecda;font-size:15px;text-decoration:underline;text-underline-offset:5px}
+.contest-prizes{margin-top:16px}
+.contest-prizes>div{padding:17px 20px}
+.contest-prizes>div>span,.contest-prizes small{font-size:14px}
+.contest-sponsor-credit{justify-content:flex-start;gap:8px 14px;margin:18px 0;color:#4d6257;font-size:14px}
+.contest-sponsor-credit strong{font-size:18px}
+.contest-timeline{margin:0 0 28px;padding:20px 0;border-top:1px solid #e3e7df;border-bottom:1px solid #e3e7df}
+.contest-timeline li{padding:0 24px;flex-direction:column;align-items:flex-start;gap:3px}
+.contest-timeline b{font-size:17px}
+.contest-timeline span{font-size:15px;color:#52655a}
+.contest-welcome{display:block;margin:28px 0 20px;padding:0;background:transparent;border:0;border-radius:0}
+.contest-welcome h2{font-size:24px;margin-bottom:10px}
+.contest-welcome p{max-width:840px;font-size:17px;color:#405a4d;word-break:keep-all;overflow-wrap:break-word}
+.contest-sample{margin:20px 0 32px;padding:16px 18px;gap:22px;background:#fafbf8}
+.contest-sample-image{width:160px}
+.contest-sample-copy small,.contest-sample-copy>span,.contest-sample-copy b{font-size:14px;color:#52685a}
+.contest-sample-copy strong{font-size:18px;line-height:1.5;word-break:keep-all;overflow-wrap:break-word}
+.contest-sample-copy b{color:#254d3d}
+.contest-toolbar{padding-top:28px}
+.contest-toolbar h2{font-size:26px}
+.contest-toolbar p{font-size:14px;color:#52665b}
+.contest-toolbar .contest-primary{min-height:48px;font-size:15px;padding:11px 16px}
+.contest-invitation{font-size:17px;color:#4b6255}
+.contest-order-note{font-size:14px;line-height:1.8}
+.contest-order-note span{color:#586c60}
+.contest-preparation{list-style:none;padding:0;margin:24px 0 12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.contest-preparation li{display:flex;gap:12px;padding:20px 0;border-top:2px solid #d6dfd5}
+.contest-preparation li>span{font-size:14px;font-weight:700;color:#7b6537;font-variant-numeric:tabular-nums;padding-top:3px}
+.contest-preparation h3{font-size:18px;margin:0 0 6px;line-height:1.5}
+.contest-preparation p{font-size:15px;line-height:1.7;margin:0;color:#52665a;word-break:keep-all;overflow-wrap:break-word}
+.contest-empty{padding:28px 24px}
+.contest-empty>span{font-size:2rem}
+.contest-empty h3{font-size:22px;margin:8px 0}
+.contest-card-copy>p:not(.contest-source){font-size:15px}
+.contest-source,.contest-card-copy p.contest-source{font-size:14px;color:#53695b}
+.contest-card-actions button{font-size:14px}
+.contest-social{padding:32px 24px;margin:32px 0}
+.contest-social h2{font-size:26px;margin-bottom:16px}
+.contest-social p{max-width:690px;margin:8px auto;font-size:17px;line-height:1.8;word-break:keep-all;overflow-wrap:break-word;color:#456151}
+.contest-social .contest-social-result{color:#254a3b;font-weight:650;margin-bottom:14px}
+.contest-social small{max-width:690px;margin:auto;color:#52675a;font-size:14px;word-break:keep-all;overflow-wrap:break-word}
+.contest-social>div{margin:24px 0 18px}
+.contest-social a{display:inline-flex;align-items:center;justify-content:center;min-height:48px;font-size:16px}
+.contest-sponsor{padding:28px 32px;gap:40px;background:#f5f7f2}
+.contest-sponsor-name span{font-size:14px;color:#53685a}
+.contest-sponsor p{font-size:17px;word-break:keep-all;overflow-wrap:break-word}
+.contest-rules summary{min-height:44px;align-content:center;font-size:18px}
+.contest-rules>div{font-size:17px;color:#3f594b}
+.contest-preview-note,.contest-preview-note strong{font-size:14px}
+@media(max-width:1000px){.contest-header{padding:30px;gap:24px}.contest-award{flex-basis:205px;padding-left:24px}.contest-prizes>div{padding:14px}.contest-timeline li{padding:0 18px}.contest-preparation{gap:18px}.contest-card-actions button{font-size:15px}}
+@media(max-width:600px){
+ .contest-shell{padding:20px 16px;font-size:17px}
+ .contest-header{padding:26px 24px}
+ .contest-header h1{font-size:2.45rem}
+ .contest-header .contest-intro{font-size:17px;line-height:1.8}
+ .contest-kicker{font-size:14px;letter-spacing:.04em}
+ .contest-hero-actions{gap:8px 16px;margin-top:22px}
+ .contest-header .contest-hero-actions button{width:100%;min-height:50px}
+ .contest-hero-actions a{justify-content:center;width:100%;min-height:44px}
+ .contest-award{padding:18px 0 0;margin-top:22px;gap:4px 12px}
+ .contest-award>strong{font-size:2.9rem}
+ .contest-prizes>div{padding:14px 12px}
+ .contest-prizes strong{font-size:1.5rem}
+ .contest-sponsor-credit{margin:16px 0;gap:5px 10px}
+ .contest-sponsor-credit span:last-child{flex-basis:100%;text-align:left}
+ .contest-timeline{grid-template-columns:1fr;padding:8px 0;margin-bottom:24px;gap:0}
+ .contest-timeline li,.contest-timeline li:first-child{flex-direction:row;align-items:center;padding:12px 0;gap:16px;border-left:0}
+ .contest-timeline li+li{border-top:1px solid #e8ece5}
+ .contest-timeline b{font-size:16px;min-width:124px}
+ .contest-timeline span{font-size:14px}
+ .contest-welcome{margin:24px 0 18px;padding:0}
+ .contest-welcome h2{font-size:22px}
+ .contest-sample{align-items:flex-start;padding:14px;gap:14px;margin-bottom:28px}
+ .contest-sample-image{width:96px;margin-top:3px}
+ .contest-sample-copy strong{font-size:17px}
+ .contest-sample-copy small,.contest-sample-copy>span,.contest-sample-copy b{font-size:14px}
+ .contest-toolbar{flex-direction:column;align-items:flex-start;gap:14px}
+ .contest-toolbar h2{font-size:24px}
+ .contest-toolbar .contest-primary{font-size:15px;min-height:48px}
+ .contest-preparation{grid-template-columns:1fr;gap:0;margin-top:20px}
+ .contest-preparation li{padding:16px 0;border-top-width:1px;gap:14px}
+ .contest-preparation p{font-size:16px}
+ .contest-order-note{font-size:14px;gap:8px}
+ .contest-card-actions button{font-size:16px}
+ .contest-social{padding:28px 0;margin:28px 0}
+ .contest-social h2{font-size:23px}
+ .contest-social>div{display:grid;grid-template-columns:1fr;gap:10px}
+ .contest-social a{width:100%;padding:12px}
+ .contest-sponsor{padding:24px;gap:18px}
+ .contest-sponsor-name strong{font-size:28px}
+ .contest-sponsor h2{font-size:22px}
+ .contest-preview-note{font-size:14px}
+}
