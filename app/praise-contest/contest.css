@@ -150,3 +150,5 @@ button.contest-sample{width:100%;font:inherit;text-align:left;cursor:pointer}.co
  .contest-sponsor h2{font-size:22px}
  .contest-preview-note{font-size:14px}
 }
+
+.contest-sponsor-logo-small{display:block;width:100px;height:auto;object-fit:contain;border-radius:5px}.contest-sponsor-logo{display:block;width:190px;max-width:100%;height:auto;object-fit:contain;border-radius:8px}
