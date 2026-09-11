@@ -262,3 +262,16 @@
 @media(min-width:761px) and (max-width:980px){.scripture-feature-row{grid-template-columns:minmax(0,1fr) 210px}.scripture-feature-row>.season-scripture{grid-template-columns:1fr;min-height:210px}.scripture-feature-row .scripture-context{padding:14px 20px}.scripture-feature-row .scripture-context h2{font-size:18px}.scripture-feature-row .scripture-context>a{margin-top:8px;padding-top:8px}.scripture-feature-row .scripture-reading{padding:18px 20px}.scripture-feature-row .scripture-reading blockquote{font-size:21px}}
 @media(max-width:760px){.scripture-feature-row{margin:0 16px 16px;grid-template-columns:1fr;gap:14px}.scripture-feature-row>.season-scripture{grid-template-columns:1fr;min-height:0}.scripture-feature-row .scripture-context{padding:16px 20px}.scripture-feature-row .scripture-reading{padding:20px}.scripture-feature-row .scripture-reading blockquote{font-size:21px}.contest-poster-banner{width:min(100%,280px);justify-self:center}}
 
+
+.integrated-portal #our-events{--section-tone:#946127;scroll-margin-top:90px}
+.home-event-feature{display:grid;grid-template-columns:180px minmax(0,1fr);gap:24px;align-items:center;padding:18px;border:1px solid #dbe4de;border-radius:10px;background:white;color:var(--ink)}
+.home-event-feature>img{display:block;width:180px;height:180px;object-fit:contain;border-radius:8px}
+.home-event-status{font-size:12px;color:#946127;font-weight:650}
+.home-event-feature h3{font-family:inherit;font-size:23px;margin:6px 0}
+.home-event-feature p{margin:0 0 12px;font-size:14px;color:var(--muted)}
+.home-event-feature dl{display:flex;flex-wrap:wrap;gap:10px 24px;margin:12px 0}
+.home-event-feature dl>div{display:flex;gap:8px;font-size:12px;line-height:1.6}
+.home-event-feature dt{color:var(--muted)}.home-event-feature dd{margin:0;font-variant-numeric:tabular-nums}
+.home-event-feature strong{font-size:13px}.home-event-feature:hover{border-color:#91a998}
+.home-event-feature:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
+@media(max-width:600px){.home-event-feature{grid-template-columns:100px minmax(0,1fr);gap:14px;padding:14px;align-items:start}.home-event-feature>img{width:100px;height:100px}.home-event-feature h3{font-size:18px}.home-event-feature p{font-size:12px}.home-event-feature dl{display:grid;gap:5px}.home-event-feature dl>div{display:block}}

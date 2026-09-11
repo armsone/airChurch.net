@@ -5,6 +5,7 @@ import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 
 import SiteFooter from "./site-footer";
 import PortalToday from "./portal-today";
 import SeasonalScripture from "./seasonal-scripture";
+import { CONTEST, contestPhase } from "./praise-contest/config";
 import CtsDiscovery from "./cts-discovery";
 import "./portal-today.css";
 import EventsBrowser from "./events/events-browser";
@@ -854,6 +855,11 @@ export default function Home() {
           return <PastorDirectoryCard key={savedId} name={name} href={href} photoUrl={photo} hasPhoto={Boolean(pastor.photo_url)} roleStatus={pastor.role_status} roles={roles} churchName={pastor.church_name} churchHref={pastor.church_id?`/church/${pastor.church_id}`:null} region={pastor.region} denomination={pastor.denomination} sourceUrl={pastor.source_url} selection={manageable&&pastor.person_id?<label className="admin-card-select pastor-home-select"><input type="checkbox" checked={selectedPastors.has(pastor.person_id)} onChange={(event)=>setSelectedPastors((current)=>{const next=new Set(current);if(event.target.checked)next.add(pastor.person_id!);else next.delete(pastor.person_id!);return next;})} aria-label={`${name} 선택`}/></label>:undefined} saveAction={<button className={`church-save pastor-home-save${isSaved(savedId)?" is-saved":""}`} type="button" onClick={()=>toggleSaved({id:savedId,kind:"pastor",title:name,subtitle:[pastor.church_name,pastor.role_title].filter(Boolean).join(" · "),url:href})} aria-label={`${name} 목회자 ${isSaved(savedId)?"찜에서 빼기":"찜하기"}`}>{isSaved(savedId)?"♥":"♡"}</button>} admin={manageable} editor={editor} useGlobalSelection={false}/>;
         })}{!pastorItems.length&&<div className="empty">조건에 맞는 목회자가 없습니다. 이름이나 교회명을 짧게 다시 입력해 보세요.</div>}</div>}
         {!pastorLoading&&pastorItems.length>pastorVisibleCount&&<button className="church-directory-more" type="button" onClick={()=>setPastorVisibleCount((count)=>Math.min(count+12,pastorItems.length))}>목회자 12명 더 보기</button>}
+      </section>
+
+      <section className="content-section our-events-home" id="our-events">
+        <div className="section-heading"><div><span className="section-kicker">에어처치가 함께 만드는</span><h2>이벤트</h2></div><a className="unified-other-button" href="/our-events">전체 이벤트 보기 →</a></div>
+        <a className="home-event-feature" href={CONTEST.path}><img src="/images/praise-contest-2026-square.png" width={1024} height={1024} alt="에어처치 찬양대회 포스터" loading="lazy"/><div><span className="home-event-status">{portalNow?(contestPhase(Date.parse(portalNow))==="upcoming"?"접수 예정":contestPhase(Date.parse(portalNow))==="finished"?"지난 이벤트":"진행 중"):"찬양대회"}</span><h3>에어처치 찬양대회</h3><p>당신의 찬양을 함께 나누고 응원하는 무대</p><dl><div><dt>시작일</dt><dd><time dateTime={CONTEST.startsOn}>{CONTEST.startsOn}</time></dd></div><div><dt>영상 접수</dt><dd>2026-10-01 ~ 2026-10-15</dd></div><div><dt>응원 마감</dt><dd>2026-10-18</dd></div><div><dt>결과 발표</dt><dd>2026-10-19</dd></div></dl><strong>이벤트 안내와 참가작 보기 →</strong></div></a>
       </section>
 
       <section className="content-section church-news-section events-home" id="events"><EventsBrowser compact portalRegion={region} onPortalRegionChange={setRegion}/></section>
