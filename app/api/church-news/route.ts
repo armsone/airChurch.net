@@ -119,7 +119,7 @@ async function readChurchNewsSnapshot(){
   try {
     const payload=JSON.parse(row.payload) as NewsPayload;
     const marks=new Map(sources.map((source)=>[source.name,source.markUrl]));
-    return {...payload,target:sources.length,refreshedAt:row.refreshedAt,sources:publicSources().map(source=>({...source,...payload.sources.find(s=>s.name===source.name),rssUrl:source.rssUrl})),items:payload.items.map((item)=>({...item,markUrl:item.markUrl||marks.get(item.source)||""}))};
+    return {...payload,target:sources.length,refreshedAt:row.refreshedAt,sources:publicSources().map(source=>({...source,...payload.sources.find(s=>s.name===source.name),rssUrl:source.rssUrl})),items:payload.items.map((item)=>({...item,markUrl:marks.get(item.source)||item.markUrl||""}))};
   } catch{return null;}
 }
 

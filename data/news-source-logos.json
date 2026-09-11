@@ -1,0 +1,422 @@
+{
+  "뉴스앤조이": {
+    "path": "/news/publishers/newsnjoy-or-kr.png",
+    "homepage": "https://www.newsnjoy.or.kr/",
+    "sourceUrl": "https://cdn.newsnjoy.or.kr/image/logo/toplogo_20250820092205.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "32e7f45917a9e71ccb5e3ad16a0021b6140c0c857f15d1486f8f0adfd18458b8"
+  },
+  "아이굿뉴스": {
+    "path": "/news/publishers/igoodnews-net.png",
+    "homepage": "https://www.igoodnews.net/",
+    "sourceUrl": "http://www.igoodnews.net/image/logo/toplogo_20190425034423.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "1af8c49affe6604439394986413308f13148ba1e6b289039f256e64b0b578023"
+  },
+  "기독신문": {
+    "path": "/news/publishers/kidok-com.png",
+    "homepage": "https://www.kidok.com/",
+    "sourceUrl": "https://cdn.kidok.com/image/logo/downlogo_20241203020853.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "2a7be32da57f6db0fbd54048ee4af54a616446e4dd6be5146d24fe125a337449"
+  },
+  "기독공보": {
+    "path": "/news/publishers/pckworld-com.png",
+    "homepage": "https://www.pckworld.com/",
+    "sourceUrl": "https://www.pckworld.com/upimages/logo3.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "afab1680e7f3865b4a4ebfef6282c47c34cfe4cec226fea836dd36bd35cfd03c"
+  },
+  "데일리굿뉴스": {
+    "path": "/news/publishers/goodnews1-com.png",
+    "homepage": "https://www.goodnews1.com/",
+    "sourceUrl": "https://cdn.goodnews1.com/image/logo/toplogo_20250721110801.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "09e52b96d6f64ddc3e177f5b80448199b377b8eed747b640e0843f31ba23eff8"
+  },
+  "주간기독교": {
+    "path": "/news/publishers/cnews-or-kr.png",
+    "homepage": "https://www.cnews.or.kr/",
+    "sourceUrl": "https://www.cnews.or.kr/image/logo/toplogo_20211228113810.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "c6a15cd45e762e8ccbdf225a9a2f993883235d3a4443e09f18a45bbe69a95073"
+  },
+  "한국성결신문": {
+    "path": "/news/publishers/kehcnews-co-kr.png",
+    "homepage": "https://www.kehcnews.co.kr/",
+    "sourceUrl": "https://cdn.kehcnews.co.kr/image/logo/toplogo_20200423023741.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "27f61e8cd0791e3ec4f286eefa4ef3bdb469d6c06bfcb45d45d58f238448374d"
+  },
+  "당당뉴스": {
+    "path": "/news/publishers/dangdangnews-com.png",
+    "homepage": "https://www.dangdangnews.com/",
+    "sourceUrl": "https://cdn.dangdangnews.com/image/logo/toplogo_20250520034357.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "6dfc30e2cad2d1964fa0b35c9114d0fb6ad94e9e8a98f633057821c540c49053"
+  },
+  "교회와신앙": {
+    "path": "/news/publishers/amennews-com.png",
+    "homepage": "https://www.amennews.com/",
+    "sourceUrl": "https://cdn.amennews.com/image/logo/toplogo_20250731115309.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "58be338c7e54ab033a61e842a883439b020910978a2b16c7e33bfcb1acd23204"
+  },
+  "뉴스M": {
+    "path": "/news/publishers/newsm-com.png",
+    "homepage": "https://www.newsm.com/",
+    "sourceUrl": "https://cdn.newsm.com/image/logo/toplogo_20240520113228.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "76804d680745ec3656d683b0ace41766f7e714f45d5e73601ce94c16a5519c7e"
+  },
+  "교회갱신협의회": {
+    "path": "/news/publishers/churchr-or-kr.png",
+    "homepage": "https://www.churchr.or.kr/",
+    "sourceUrl": "https://cdn.churchr.or.kr/image/logo/toplogo_20230515040240.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "b5ea164bb35e928357a95036edc1238b13511972693b9a9215cbe8b669160daa"
+  },
+  "기독교타임즈": {
+    "path": "/news/publishers/kmctimes-com.png",
+    "homepage": "https://www.kmctimes.com/",
+    "sourceUrl": "https://cdn.kmctimes.com/image/logo/toplogo_20260622021901.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "67fd7a8767235eef64d89d84bec430b983fd1f2642447f9f47f918ff54159d9a"
+  },
+  "고신뉴스": {
+    "path": "/news/publishers/kosinnews-com.png",
+    "homepage": "https://www.kosinnews.com/",
+    "sourceUrl": "https://cdn.kosinnews.com/image/logo/toplogo_20210104091958.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "c66840dcee3b57481dd9279f0ccd8c09dbd0856c5b6eb452e48471ac8d3a996e"
+  },
+  "미션투데이": {
+    "path": "/news/publishers/missiontoday-co-kr.png",
+    "homepage": "https://www.missiontoday.co.kr/",
+    "sourceUrl": "https://cdn.missiontoday.co.kr/image/logo/toplogo_20220117022538.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "3545505cb9d0737be8bae23638fe226348c9f5ccc76327ec3d6219cca30b020e"
+  },
+  "성공회신문": {
+    "path": "/news/publishers/skhnews-or-kr.png",
+    "homepage": "https://www.skhnews.or.kr/",
+    "sourceUrl": "https://cdn.skhnews.or.kr/image/logo/toplogo_20220721104037.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "88ab4fd630bed82f3ca3c7e7cf376bf04bf52a7f35a9e58ce84a25a3cc96fee1"
+  },
+  "기독교한국신문": {
+    "path": "/news/publishers/cknews-co-kr.png",
+    "homepage": "https://www.cknews.co.kr/",
+    "sourceUrl": "https://cdn.cknews.co.kr/image/logo/toplogo_20210623113617.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "29e16a481f9b1afaf16a6e600309be352bd1e84871c5dff4a48de62c031c3473"
+  },
+  "기독교종합신문": {
+    "path": "/news/publishers/potalnews-com.png",
+    "homepage": "https://www.potalnews.com/",
+    "sourceUrl": "https://cdn.potalnews.com/image/logo/toplogo_20220506094923.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "cb3357aed0ce3005b7a5afdd2e6a97f566e568bf7bf55edb011f6aadea2e4c94"
+  },
+  "기독교포털뉴스": {
+    "path": "/news/publishers/kportalnews-co-kr.png",
+    "homepage": "https://www.kportalnews.co.kr/",
+    "sourceUrl": "https://www.kportalnews.co.kr/image/logo/toplogo_20210924014455.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "0d51f5b10b9e7f57d3599c1684036205210fa5c5ba74205cf0d4adeff1ea1461"
+  },
+  "기독교개혁신보": {
+    "path": "/news/publishers/repress-kr.png",
+    "homepage": "https://www.repress.kr/",
+    "sourceUrl": "https://cdn.repress.kr/image/logo/toplogo_20260223011521.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "3530a1b75011c6cffb75ef1d1286c165810727d258e1c7da5694bbb7365bd683"
+  },
+  "복음기도신문": {
+    "path": "/news/publishers/gpnews-org.jpg",
+    "homepage": "https://gpnews.org/",
+    "sourceUrl": "https://gpnews.org/wp/wp-content/uploads/2024/08/AppIcon_gon_512.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "ecf4319481eefc2802bfc0dad3b8fb9543a755f54c7d2aa17477748073181b78"
+  },
+  "GOODTV": {
+    "path": "/news/publishers/news-goodtv-co-kr.png",
+    "homepage": "https://news.goodtv.co.kr/",
+    "sourceUrl": "https://cdn.news.goodtv.co.kr/image/logo/toplogo_20241007095843.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "5870130d486e4d4a3aca764487a190e326960d7963b6b33f69f7eabc7a4392f4"
+  },
+  "베리타스": {
+    "path": "/news/publishers/veritas-kr.png",
+    "homepage": "https://veritas.kr/",
+    "sourceUrl": "/news/veritas-logo.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "4455f4b8d6f0c3f2b74b346bb8c9228e571623ec65413028847c1bc42119b409"
+  },
+  "기독일보": {
+    "path": "/news/publishers/christiandaily-co-kr.png",
+    "homepage": "https://www.christiandaily.co.kr/",
+    "sourceUrl": "https://www.christiandaily.co.kr/views/images/aboutus/logo.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "225a58cb6c16202d177552948f25cbc4d1b345180315a645c646f10fd1fc7d4b"
+  },
+  "크리스찬저널": {
+    "path": "/news/publishers/kcjlogos-org.png",
+    "homepage": "https://www.kcjlogos.org/",
+    "sourceUrl": "https://cdn.kcjlogos.org/image/logo/toplogo_20210726090555.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "727addcd329de699798810f723e5d43ede708ca64c69f40a39d19e1107894e91"
+  },
+  "뉴스제이": {
+    "path": "/news/publishers/newsjesus-net.gif",
+    "homepage": "https://www.newsjesus.net/",
+    "sourceUrl": "https://www.newsjesus.net/image/logo/toplogo_20240104032146.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "decdfd93671e1a36db6250e2737d38a19094d3b8e51851cfbced3e8f48de553e"
+  },
+  "침례신문": {
+    "path": "/news/publishers/baptistnews-co-kr.png",
+    "homepage": "https://www.baptistnews.co.kr",
+    "sourceUrl": "https://www.baptistnews.co.kr/data/design/logo/toplogo_20250717110433.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "e0085bf74f054f84f3ec2619dfac71dd6d81538983245373497cb16a3fb29e28"
+  },
+  "에큐메니안": {
+    "path": "/news/publishers/ecumenian-com.png",
+    "homepage": "https://www.ecumenian.com",
+    "sourceUrl": "https://cdn.ecumenian.com/image/logo/downlogo_20250716022934.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "c1cc5646461c71ed31db52161a65010e3c1d3455442cd13861e05e153b6cf807"
+  },
+  "한국장로신문": {
+    "path": "/news/publishers/jangro-kr.png",
+    "homepage": "https://jangro.kr",
+    "sourceUrl": "https://jangro.kr/wp-content/uploads/2020/09/logo_jangro_new2.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "fcf430b843ea46b0a8b8e564d514bf7d5bbdb4beb6975b7af7eb4a87d0dd034a"
+  },
+  "컵뉴스": {
+    "path": "/news/publishers/cupnews-kr.png",
+    "homepage": "https://www.cupnews.kr",
+    "sourceUrl": "https://cdn.cupnews.kr/image/logo/toplogo_20230213101236.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "117bd8c84889644600933a6df32ce9045076b20bc5b7c2c266a8221c196c780c"
+  },
+  "복음in": {
+    "path": "/news/publishers/ingn-net.png",
+    "homepage": "https://www.ingn.net",
+    "sourceUrl": "https://cdn.ingn.net/image/logo/toplogo_20251015113724.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "a810fa82e957853c860049bb52b0eaf9f71222cdf4233142a10ccc424861de22"
+  },
+  "한국기독신문": {
+    "path": "/news/publishers/kcnp-com.jpg",
+    "homepage": "https://www.kcnp.com",
+    "sourceUrl": "https://www.kcnp.com/data/logo/2005/c9aa2823283f9863c0f4e15b34e36b56_LC2HL9kb3O1qLyaoaVvbWYeC24.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "e865edf05770eb507cd06a5230405f439c916abe1f83bce77e0ab51e89c5df68"
+  },
+  "KMC뉴스": {
+    "path": "/news/publishers/kmcnews-kr.png",
+    "homepage": "https://www.kmcnews.kr",
+    "sourceUrl": "https://cdn.kmcnews.kr/image/logo/toplogo_20260730105257.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "4f021fcb4d33991b77c916d8a7c485c3a5cfddf6356dab43a4b145ecd856276b"
+  },
+  "뉴스앤넷": {
+    "path": "/news/publishers/newsnnet-com.png",
+    "homepage": "https://www.newsnnet.com",
+    "sourceUrl": "https://cdn.newsnnet.com/image/logo/toplogo_20260327054006.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "ff620f3584ecb4033ad2c6a63239bbc7dc5046423ef8813b46b21ab1e6750693"
+  },
+  "그신문 월드리뷰": {
+    "path": "/news/publishers/christianwr-com.png",
+    "homepage": "https://www.christianwr.com",
+    "sourceUrl": "https://cdn.christianwr.com/image/logo/toplogo_20251211010641.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "a1f669283131bee9f21cd0aec24597054666e505e1914b513036a0482298549d"
+  },
+  "국제기독교뉴스": {
+    "path": "/news/publishers/christiannews-co-kr.jpg",
+    "homepage": "https://www.christiannews.co.kr",
+    "sourceUrl": "http://www.christiannews.co.kr/data/christiannews_co_kr/banner/202207193530771.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "32616578eb5cb523468c9b90381c330410237e867b1070c4e13a4432d0511468"
+  },
+  "뉴스파워": {
+    "path": "/news/publishers/newspower-co-kr.gif",
+    "homepage": "https://www.newspower.co.kr",
+    "sourceUrl": "http://www.newspower.co.kr/data/newspower_co_kr/banner/2015070708285439.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "89b61ccd6c5dd503c4f865174a9933f621290a7b7c07f4787898f3da6ffc822a"
+  },
+  "i기독타임즈": {
+    "path": "/news/publishers/kidoktimes-co-kr.jpg",
+    "homepage": "https://www.kidoktimes.co.kr",
+    "sourceUrl": "http://www.kidoktimes.co.kr/data/kidoktimes_co_kr/banner/2024031822248292.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "b445e97de5a2615e331aa6b9e0ae144376fd904686f274ced184f3eec02f4863"
+  },
+  "미주뉴스앤조이": {
+    "path": "/news/publishers/newsnjoy-us.png",
+    "homepage": "https://www.newsnjoy.us",
+    "sourceUrl": "https://cdn.newsnjoy.us/image/logo/toplogo_20240502092657.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "057d78b8d059148b7003568b0461ec46855ef948c8a9fae170591d3137032a64"
+  },
+  "크리스찬투데이·미주": {
+    "path": "/news/publishers/christiantoday-us.jpg",
+    "homepage": "https://www.christiantoday.us",
+    "sourceUrl": "http://www.christiantoday.us/data/christiantoday/banner/2021022027285081.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "d8e3e05793b805186007a64ac28030b5bd8107c8c06f895e731111e207f2afdc"
+  },
+  "웨슬리안타임즈": {
+    "path": "/news/publishers/kmcdaily-com.png",
+    "homepage": "https://www.kmcdaily.com",
+    "sourceUrl": "https://www.kmcdaily.com/image/logo/toplogo_20210517091716.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "5caec86d4e6f7731d37640ba59b437d441b16c4f19d6903a6e7ab71dc3a52cca"
+  },
+  "가스펠투데이": {
+    "path": "/news/publishers/gospeltoday-co-kr.png",
+    "homepage": "https://www.gospeltoday.co.kr",
+    "sourceUrl": "https://www.gospeltoday.co.kr/image/logo/toplogo_20180208042901.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "addcd10c01c9acf88807adfbd2e7f347a2a17876f9a05a36553820a462a42bdd"
+  },
+  "한국기독저널": {
+    "path": "/news/publishers/christian-journal-com.png",
+    "homepage": "https://www.christian-journal.com",
+    "sourceUrl": "https://cdn.christian-journal.com/image/logo/toplogo2.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "a6656e3c9023766d61f782f7cd4a7e8777d45634dfd3ff66eb1788e557a5122f"
+  },
+  "리폼드뉴스": {
+    "path": "/news/publishers/reformednews-co-kr.gif",
+    "homepage": "https://www.reformednews.co.kr",
+    "sourceUrl": "https://www.reformednews.co.kr/data/reformednews_co_kr/banner/2026042229097260.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "a6221e1ac692d1708bbe74a0d2da51fad2c3cf4eda8ec5ddb29f6cd8a4571f00"
+  },
+  "기독교라인": {
+    "path": "/news/publishers/kidokline-com.png",
+    "homepage": "https://www.kidokline.com",
+    "sourceUrl": "https://cdn.kidokline.com/image/logo/downlogo_20210624101613.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "b1f4836e54b815d9bae24b36ec95a8b5272f1a4f9bf65c72e4530724f317f201"
+  },
+  "평화나무": {
+    "path": "/news/publishers/logosian-com.gif",
+    "homepage": "https://www.logosian.com",
+    "sourceUrl": "https://cdn.logosian.com/image/logo/toplogo_20231026094056.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "4ab864785d54150fea59b12454b7ec74c217bb40c818b0df56934a5caa7b36c4"
+  },
+  "크리스천비전": {
+    "path": "/news/publishers/christianvision-net.gif",
+    "homepage": "https://www.christianvision.net",
+    "sourceUrl": "http://www.christianvision.net/data/christianvision_net/banner/2020040242318959.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "8da2a101a4cacbe8104408680a757cd5014e0c2d3c72f84f6fc82011a2c21729"
+  },
+  "코람데오닷컴": {
+    "path": "/news/publishers/kscoramdeo-com.png",
+    "homepage": "https://www.kscoramdeo.com",
+    "sourceUrl": "https://cdn.kscoramdeo.com/image/logo/downlogo_20200422115030.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "d20162ac050c6550cc07f6e771686b6477cfae8d98e95956ad8ba395de7c7240"
+  },
+  "리폼드투데이": {
+    "path": "/news/publishers/reformedtoday-net.png",
+    "homepage": "https://www.reformedtoday.net",
+    "sourceUrl": "https://cdn.reformedtoday.net/image/logo/toplogo_20201125101949.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "e5d981c6cf60a7f961841786a1c04d6a1c9e551d64da3eb258a4d77db0dd83a5"
+  },
+  "국민일보 더미션": {
+    "path": "/news/publishers/themission-co-kr.png",
+    "homepage": "https://www.themission.co.kr",
+    "sourceUrl": "https://cdn.themission.co.kr/image/logo/toplogo_20220617052541.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "a3ee65e8e13fdfeafbd040b074e5663c6e0f12127abd197235052e54214700a7"
+  },
+  "크리스천투데이": {
+    "path": "/news/publishers/christiantoday-co-kr.svg",
+    "homepage": "https://www.christiantoday.co.kr",
+    "sourceUrl": "https://www.christiantoday.co.kr/assets2024/images/logo.svg",
+    "checkedAt": "2026-09-11",
+    "sha256": "26e9a94373baa875a2da2f2948dde03b286a6b5bd0ae8aeeb15796aa954ec604"
+  },
+  "기독교헤럴드": {
+    "path": "/news/publishers/cherald-co-kr.png",
+    "homepage": "http://www.cherald.co.kr",
+    "sourceUrl": "http://www.cherald.co.kr/image2006/logo.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "b0e417d578d068d187550b2bf00fdb814f875de95378bc1ad983e36f8407503c"
+  },
+  "크리스찬리뷰·호주": {
+    "path": "/news/publishers/christianreview-com-au.gif",
+    "homepage": "https://www.christianreview.com.au",
+    "sourceUrl": "http://www.christianreview.com.au/data/christianreview_com_au/banner/2015072448517850.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "a198f953539eb684ce31ace6f651c351731c156485ec21d09f251c6fca7a94e4"
+  },
+  "크리스천라이프·뉴질랜드": {
+    "path": "/news/publishers/christianlife-nz.png",
+    "homepage": "https://christianlife.nz",
+    "sourceUrl": "https://christianlife.nz/wp-content/uploads/2016/09/clife_logo272x90.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "2054e70575dce10c2f6b1e44afa48ae48db6976dd54750f8c4428f24a829eabe"
+  },
+  "크리스찬타임스·미주 베이": {
+    "path": "/news/publishers/kchristian-com.png",
+    "homepage": "https://www.kchristian.com",
+    "sourceUrl": "https://static.wixstatic.com/media/50f7f8_7b4f52d8bd524bd584c569bb6532f18e%7Emv2.png/v1/fill/w_180%2Ch_180%2Clg_1%2Cusm_0.66_1.00_0.01/50f7f8_7b4f52d8bd524bd584c569bb6532f18e%7Emv2.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "0b8e728048811cc13f37d83093a2470001b71e75d171f0d7ba581b164f6995b5"
+  },
+  "개혁타임즈": {
+    "path": "/news/publishers/reformed-or-kr.png",
+    "homepage": "https://www.reformed.or.kr/",
+    "sourceUrl": "http://www.reformed.or.kr/image/logo/toplogo_20190918054647.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "72c1faec7e209bd740777552684fb69a6014ea66f268528244270fdcd7ff1d9f"
+  },
+  "울산의 빛": {
+    "path": "/news/publishers/thelightofulsan-tistory-com.png",
+    "homepage": "https://thelightofulsan.tistory.com/",
+    "sourceUrl": "https://tistory2.daumcdn.net/tistory/3066942/skinSetting/e66a9ea5dc5d4e9f81feffe87bfad307",
+    "checkedAt": "2026-09-11",
+    "sha256": "db8262779ee049b2b9b8eea791cf4da50dab607639f489912c7dfb3bc026f8e4"
+  },
+  "합동헤럴드": {
+    "path": "/news/publishers/hdherald-com.gif",
+    "homepage": "http://www.hdherald.com/",
+    "sourceUrl": "http://www.hdherald.com/image2006/logo.gif",
+    "checkedAt": "2026-09-11",
+    "sha256": "ae5e03f1a7023f932f143b946762c689dd6c5d190d197b899e36806977ceeb35"
+  },
+  "기독교저널": {
+    "path": "/news/publishers/kdknews-com.png",
+    "homepage": "https://www.kdknews.com/",
+    "sourceUrl": "https://cdn.kdknews.com/image/logo/toplogo_20231103040057.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "49821bad75318656b454a22ec2715cec7dd09a88b446e4df9357fd18d6e6d678"
+  },
+  "교회연합신문": {
+    "path": "/news/publishers/ecumenicalpress-co-kr.png",
+    "homepage": "http://www.ecumenicalpress.co.kr/",
+    "sourceUrl": "http://www.ecumenicalpress.co.kr/data/logo/logo_top.png",
+    "checkedAt": "2026-09-11",
+    "sha256": "e8cabf594b8b341f4401dc520a56e1aace9581d62e5c03894d11ecd37e8aa14a"
+  },
+  "크리스천경남": {
+    "path": "/news/publishers/cgni-kr.jpg",
+    "homepage": "https://www.cgni.kr/",
+    "sourceUrl": "https://www.cgni.kr/data/designImages/TITLE_LOGO_1768804569.jpg",
+    "checkedAt": "2026-09-11",
+    "sha256": "85c2e428632b2b8585221669faa8e2aef041ca783358e4f1e06b257ed7606641"
+  }
+}

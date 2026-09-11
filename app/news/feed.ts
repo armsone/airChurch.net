@@ -1,3 +1,4 @@
+import { newsLogoUrl } from "./news-logo";
 import qualifiedSources from "../../data/qualified-content-sources.json";
 export type FeedSource={name:string;url:string;homepage:string;allowedHost:string;tone:string;markUrl:string;kind?:"rss"};
 export type NewsItem={title:string;summary:string;url:string;publishedAt:string;source:string;tone:string;markUrl:string};
@@ -63,7 +64,7 @@ export const sources:FeedSource[]=[
     ["크리스찬타임스·미주 베이","https://www.kchristian.com","https://www.kchristian.com/blog-feed.xml"],
   ].map(([name,homepage,url])=>({name,homepage,url,allowedHost:new URL(homepage).hostname,tone:"newsnjoy",markUrl:""})),
   ...qualifiedSources.news as FeedSource[],
-];
+].map(source=>({...source,markUrl:newsLogoUrl(source.name,source.markUrl)}));
 
 function decodeXml(value:string) {
   return value
