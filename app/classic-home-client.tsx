@@ -744,50 +744,26 @@ export default function Home() {
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
       </section>
 
+      <section className="daily-devotion" aria-label="말씀과 함께하는 오늘">
       <aside className="search-scripture" aria-label="성경 말씀"><span aria-hidden="true">📖</span><blockquote>수고하고 무거운 짐진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라</blockquote><a href="https://www.bible.com/ko/bible/88/MAT.11.28.KRV" target="_blank" rel="noopener noreferrer">마태복음 11:28 · 개역한글 ↗</a></aside>
-
-      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
-
-
+<div className="devotion-context">
       <section className="daily-journey" aria-labelledby="daily-journey-title">
-        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
+        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<details className="devotion-note"><summary>오늘의 한 줄 기록하기</summary><form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form></details>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
         <div className="daily-paths"><a className={dailyCompleted.includes("bible")?"is-complete":""} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><span>01</span><strong>성경 한 구절</strong><small>{dailyCompleted.includes("bible")?"오늘 읽었습니다 ✓":"공식 한국어 성경에서 읽습니다"}</small></a><a className={dailyCompleted.includes("sermon")?"is-complete":""} href="#sermons"><span>02</span><strong>말씀 한 편</strong><small>{dailyCompleted.includes("sermon")?"오늘 들었습니다 ✓":"재생하면 자동으로 기록됩니다"}</small></a><a className={dailyCompleted.includes("praise")?"is-complete":""} href="#praises"><span>03</span><strong>찬양 한 곡</strong><small>{dailyCompleted.includes("praise")?"오늘 들었습니다 ✓":"재생하면 오늘 여정이 완성됩니다"}</small></a></div>
       </section>
-
-      <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
-        <div className="topic-intro"><span className="section-kicker">마음에서 시작하는 검색</span><h2 id="topic-title">오늘 필요한 말씀은<br/>어떤 주제인가요?</h2><p>정답을 대신 고르지 않습니다. 지금 마음에 가까운 단어를 선택하면 공개된 말씀과 찬양을 함께 찾아드립니다.</p><a href="/search">직접 통합 검색하기 →</a></div>
-        <div className="topic-grid">{discoveryTopics.map((topic,index)=><a href={`/search?q=${encodeURIComponent(topic.name)}`} key={topic.name}><span>0{index+1}</span><i>{topic.symbol}</i><strong>{topic.name}</strong><small>{topic.copy}</small><em>말씀·찬양 찾기 →</em></a>)}</div>
-      </section>
-
       <section className="season-discovery" aria-labelledby="season-title">
         <div className="season-symbol" aria-hidden="true"><span>{currentSeason.accent}</span></div>
         <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} 읽기 ↗</a></div>
         <div className="season-links"><a href="#sermons"><small>01</small><strong>이 절기의 말씀</strong><span>최근 설교에서 발견하기 →</span></a><a href="#praises"><small>02</small><strong>이 절기의 찬양</strong><span>공식 채널에서 듣기 →</span></a><a href="#church-news"><small>03</small><strong>교회의 오늘</strong><span>공식 소식 살펴보기 →</span></a></div>
       </section>
-
-      <section className="content-section church-news-section events-home" id="events"><EventsBrowser compact portalRegion={region} onPortalRegionChange={setRegion}/></section>
-
-
-
-      {personalStateReady&&savedPastors.length>0&&<section className="favorite-pastors" aria-labelledby="favorite-pastors-title"><div><span className="section-kicker">성경과 말씀 곁에</span><h2 id="favorite-pastors-title">내가 찜한 목회자</h2><p>자주 찾는 목회자의 페이지와 새 말씀을 바로 확인하세요.</p></div><div className="favorite-pastor-list">{savedPastors.slice(0,8).map((item)=><a href={item.url} key={item.id}><span aria-hidden="true">♧</span><strong>{item.title}</strong><small>{item.subtitle}</small>{hasNewSermon(item)&&<b>NEW</b>}</a>)}</div></section>}
-
-      {personalStateReady&&<section className={`continue-section${savedItems.length?" has-items":""}`} aria-labelledby="continue-title">
-        <div><span className="section-kicker">이 브라우저에만 저장</span><h2 id="continue-title">나의 이어보기</h2><p>{savedItems.length?"관심 있는 말씀·찬양·교회·목회자·행사를 다시 만나보세요.":"말씀·찬양·교회·목회자·행사의 ‘찜’ 버튼을 누르면 여기에 모입니다."}</p><div className="journey-week" aria-label="최근 7일 오늘의 5분 완료 기록">{journeyWeek.map((day)=><span className={`${day.complete?"is-complete":""}${day.today?" is-today":""}`} key={day.key} title={`${day.key} ${day.complete?"완료":"진행 전"}`}><i>{day.complete?"✓":"·"}</i><small>{day.label}</small></span>)}</div>{savedItems.length>0&&<a className="continue-all" href="/saved">전체 모음 {savedItems.length}개 보기 →</a>}</div>
-        {savedItems.length?<div className="continue-list">{savedItems.slice(0,6).map((item)=>{const external=item.url.startsWith("http");return <article key={item.id}><span>{item.kind==="sermon"?"말씀":item.kind==="praise"?"찬양":item.kind==="event"?"행사":item.kind==="pastor"?"목회자":"교회"}{hasNewSermon(item)&&<b className="saved-new">NEW</b>}</span><a href={item.url} target={external?"_blank":undefined} rel={external?"noopener noreferrer":undefined}><strong>{item.title}</strong><small>{item.subtitle}</small></a><button type="button" onClick={()=>toggleSaved(item)} aria-label={`${item.title} 찜에서 빼기`}>×</button></article>})}</div>:<div className="continue-empty" aria-hidden="true"><span>♡</span><small>로그인 없이 가볍게 저장됩니다</small></div>}
-      </section>}
-
-
-
-      <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
-        <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h3 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h3><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><button className="unified-other-button" type="button" disabled={rankingBusy} onClick={()=>setRankingRefresh(value=>value+1)}>{rankingBusy?"확인 중…":"순위 새로고침"}</button></div>
-        <div className="interest-ranking-grid">
-          <div className="interest-ranking-column" id="ranking-churches"><div className="ranking-column-heading"><h4>교회</h4>{rankings.churches.length>3&&<button type="button" aria-expanded={expandedRankings.churches} onClick={()=>setExpandedRankings(current=>({...current,churches:!current.churches}))}>{expandedRankings.churches?"접기":"더 보기"}</button>}</div>{rankings.churches.length?<ol>{rankings.churches.slice(0,expandedRankings.churches?40:3).map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?`말씀 ${item.sermonCount?.toLocaleString("ko-KR")}편 · 새로 소개`: `${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · ${item.views.toLocaleString("ko-KR")}회`}</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
-          <div className="interest-ranking-column" id="ranking-pastors"><div className="ranking-column-heading"><h4>목회자</h4>{rankings.pastors.length>3&&<button type="button" aria-expanded={expandedRankings.pastors} onClick={()=>setExpandedRankings(current=>({...current,pastors:!current.pastors}))}>{expandedRankings.pastors?"접기":"더 보기"}</button>}</div>{rankings.pastors.length?<ol>{rankings.pastors.slice(0,expandedRankings.pastors?40:3).map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
-        </div>
-        <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>
+</div>
+      <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
+        <div className="topic-intro"><span className="section-kicker">마음에서 시작하는 검색</span><h2 id="topic-title">오늘 필요한 말씀은<br/>어떤 주제인가요?</h2><p>정답을 대신 고르지 않습니다. 지금 마음에 가까운 단어를 선택하면 공개된 말씀과 찬양을 함께 찾아드립니다.</p><a href="/search">직접 통합 검색하기 →</a></div>
+        <div className="topic-grid">{discoveryTopics.map((topic,index)=><a href={`/search?q=${encodeURIComponent(topic.name)}`} key={topic.name}><span>0{index+1}</span><i>{topic.symbol}</i><strong>{topic.name}</strong><small>{topic.copy}</small><em>말씀·찬양 찾기 →</em></a>)}</div>
+      </section>
       </section>
 
-
+      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
 
       <section className="content-section" id="sermons">
         <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><div className="news-home-actions"><button className="unified-other-button" type="button" disabled={sermonLoading||filtered.length<=12} onClick={()=>setSermonOffset(value=>value+12)}>다른 말씀 보기</button><a className="unified-other-button" href="/sermons">전체 말씀 보기 →</a></div></div>
@@ -797,6 +773,18 @@ export default function Home() {
             <div className="sermon-copy"><span className="fresh">{sermon.verified ? "✓ 검증 교회 · 공식 채널" : "검토 중"}</span><h3>{sermon.title}</h3><p>{sermon.church} · {sermon.pastor} · {sermon.region}</p>{sermon.verse && <small>{sermon.verse}</small>}<div className="card-actions"><button type="button" onClick={() => void shareVideo(sermon)}>↗ 말씀 공유</button><button className={isSaved(`sermon:${sermon.youtubeId??sermon.id}`)?"is-saved":""} type="button" onClick={()=>toggleSaved({id:`sermon:${sermon.youtubeId??sermon.id}`,kind:"sermon",title:sermon.title,subtitle:`${sermon.church} · ${sermon.pastor}`,url:sermon.youtubeId?`https://www.youtube.com/watch?v=${sermon.youtubeId}`:"#sermons"})}>{isSaved(`sermon:${sermon.youtubeId??sermon.id}`)?"♥ 찜됨":"♡ 찜"}</button></div></div>
           </article>)}
           {!sermonLoading && !filtered.length && <div className="empty">검색 결과가 없습니다. 교회 등록을 요청하면 확인 후 연결하겠습니다.</div>}
+        </div>
+      </section>
+
+      <section className="content-section praise-section" id="praises">
+        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다시 불러오기"}</button></div>
+        <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button><button type="button" aria-pressed={praiseTab==="bible-music"} onClick={()=>setPraiseTab("bible-music")}>바이블뮤직</button><button type="button" aria-pressed={praiseTab==="holy-verse"} onClick={()=>setPraiseTab("holy-verse")}>홀리 벌스</button></div>
+        <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
+        <CcmPlayer visible={praiseTab==="bible-music"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} curated={{title:"바이블뮤직 듣기",intro:"시편 쇼츠 200개와 오디오바이블 시편 159개를 순서대로 들어 보세요.",sourceUrl:"https://www.youtube.com/@BibleMusic.co.kr_",sourceLabel:"BibleMusic.co.kr_바이블뮤직",endpoint:"/api/bible-music"}} />
+        <CcmPlayer visible={praiseTab==="holy-verse"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} curated={{title:"홀리 벌스 듣기",intro:"말씀을 랩과 노래로 새롭게 들어 보세요.",sourceUrl:"https://www.youtube.com/playlist?list=PLqiTHwLF3Dbb4LSoWz6NfzG8UbprRH4fE",sourceLabel:"[Holy Verse] 홀리 벌스",endpoint:"/api/holy-verse"}} />
+        <div hidden={praiseTab!=="church"}>
+        <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,total:praiseTotal,query:praiseSearch,onQuery:setPraiseSearch,hasMore:praiseCursor!==null,moreLoading:praiseMoreLoading,onMore:loadMorePraises,error:praiseError,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
+        <form className="praise-youtube-search" style={{marginTop:24,marginBottom:0}} role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
         </div>
       </section>
 
@@ -812,35 +800,27 @@ export default function Home() {
         </div>
       </section>
 
-      {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`} onClick={()=>setActiveShortIndex(null)}>
-        <div ref={shortViewerRef} className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
-          <iframe
-            ref={shortPlayerRef}
-            className="shorts-viewer-frame"
-            src={shortViewerEmbedUrl}
-            title={activeShort.title}
-            referrerPolicy="strict-origin-when-cross-origin"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
-          <button ref={shortCloseButtonRef} type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
-          <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
-          <button type="button" className="shorts-viewer-nav shorts-viewer-next" onClick={()=>setActiveShortIndex((current)=>current!==null && current<filteredShorts.length-1 ? current+1 : current)} disabled={activeShortIndex===filteredShorts.length-1} aria-label="다음 쇼츠 보기">›</button>
-          <div className="shorts-viewer-meta"><strong>{activeShort.church}</strong><span>{activeShort.title}</span></div>
-        </div>
-      </div>}
+      <CtsDiscovery/>
 
-      <section className="content-section praise-section" id="praises">
-        <div className="section-heading"><div><span className="section-kicker">함께 부르는 믿음의 고백</span><h2>오늘의 찬양</h2></div><button hidden={praiseTab!=="church"} className="shorts-refresh-button" type="button" onClick={()=>void loadDifferentPraises()} disabled={praiseLoading}>{praiseLoading ? "불러오는 중…" : "↻ 다시 불러오기"}</button></div>
-        <div className="praise-tabs" role="group" aria-label="찬양 종류"><button type="button" aria-pressed={praiseTab==="ccm"} onClick={()=>{setPraiseTab("ccm");setActiveVideoId(null);}}>♫ CCM 듣기</button><button type="button" aria-pressed={praiseTab==="church"} onClick={()=>setPraiseTab("church")}>교회 찬양</button><button type="button" aria-pressed={praiseTab==="bible-music"} onClick={()=>setPraiseTab("bible-music")}>바이블뮤직</button><button type="button" aria-pressed={praiseTab==="holy-verse"} onClick={()=>setPraiseTab("holy-verse")}>홀리 벌스</button></div>
-        <CcmPlayer visible={praiseTab==="ccm"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} />
-        <CcmPlayer visible={praiseTab==="bible-music"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} curated={{title:"바이블뮤직 듣기",intro:"시편 쇼츠 200개와 오디오바이블 시편 159개를 순서대로 들어 보세요.",sourceUrl:"https://www.youtube.com/@BibleMusic.co.kr_",sourceLabel:"BibleMusic.co.kr_바이블뮤직",endpoint:"/api/bible-music"}} />
-        <CcmPlayer visible={praiseTab==="holy-verse"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} curated={{title:"홀리 벌스 듣기",intro:"말씀을 랩과 노래로 새롭게 들어 보세요.",sourceUrl:"https://www.youtube.com/playlist?list=PLqiTHwLF3Dbb4LSoWz6NfzG8UbprRH4fE",sourceLabel:"[Holy Verse] 홀리 벌스",endpoint:"/api/holy-verse"}} />
-        <div hidden={praiseTab!=="church"}>
-        <CcmPlayer visible={praiseTab==="church"} interrupted={activeVideoId!==null||activeShortIndex!==null} onPlay={()=>{setActiveVideoId(null);setActiveShortIndex(null);markDailyStep("praise");}} church={{items:churchPraiseTracks,loading:praiseLoading,total:praiseTotal,query:praiseSearch,onQuery:setPraiseSearch,hasMore:praiseCursor!==null,moreLoading:praiseMoreLoading,onMore:loadMorePraises,error:praiseError,onRetry:()=>void loadDifferentPraises(),isSaved:(id)=>isSaved(`praise:${id}`),onSave:(track)=>toggleSaved({id:`praise:${track.id}`,kind:"praise",title:track.title,subtitle:track.channel,url:`https://www.youtube.com/watch?v=${track.id}`})}} />
-        <form className="praise-youtube-search" style={{marginTop:24,marginBottom:0}} role="search" onSubmit={searchYouTubePraise}><label className="sr-only" htmlFor="praise-youtube-query">YouTube에서 찬양 검색</label><input id="praise-youtube-query" name="praiseQuery" required placeholder="듣고 싶은 찬양을 검색하세요" /><button type="submit">YouTube에서 찾기 ↗</button></form>
+      <section className="content-section church-news-section" id="church-news">
+        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
+        {!churchNewsLoading&&churchNewsSources.length>0&&<NewsSources sources={churchNewsSources}/>}
+        <div className="church-news-grid news-preview-grid">
+          {churchNewsLoading ? Array.from({length:12},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card publisher-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
+            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><NewsMark source={item.source} markUrl={item.markUrl}/><small>{item.source}</small></span>
+            <span className="church-news-copy"><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR")}</small><strong>{item.title}</strong><span>{item.summary}</span><em>원문에서 읽기 ↗</em></span>
+          </a>)}
+          {!churchNewsLoading&&!churchNews.length&&<div className="empty">새 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}
         </div>
+      </section>
+
+      <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
+        <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h3 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h3><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><button className="unified-other-button" type="button" disabled={rankingBusy} onClick={()=>setRankingRefresh(value=>value+1)}>{rankingBusy?"확인 중…":"순위 새로고침"}</button></div>
+        <div className="interest-ranking-grid">
+          <div className="interest-ranking-column" id="ranking-churches"><div className="ranking-column-heading"><h4>교회</h4>{rankings.churches.length>3&&<button type="button" aria-expanded={expandedRankings.churches} onClick={()=>setExpandedRankings(current=>({...current,churches:!current.churches}))}>{expandedRankings.churches?"접기":"더 보기"}</button>}</div>{rankings.churches.length?<ol>{rankings.churches.slice(0,expandedRankings.churches?40:3).map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?`말씀 ${item.sermonCount?.toLocaleString("ko-KR")}편 · 새로 소개`: `${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · ${item.views.toLocaleString("ko-KR")}회`}</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+          <div className="interest-ranking-column" id="ranking-pastors"><div className="ranking-column-heading"><h4>목회자</h4>{rankings.pastors.length>3&&<button type="button" aria-expanded={expandedRankings.pastors} onClick={()=>setExpandedRankings(current=>({...current,pastors:!current.pastors}))}>{expandedRankings.pastors?"접기":"더 보기"}</button>}</div>{rankings.pastors.length?<ol>{rankings.pastors.slice(0,expandedRankings.pastors?40:3).map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+        </div>
+        <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>
       </section>
 
       <section className="church-directory-section" id="church-directory">
@@ -902,20 +882,65 @@ export default function Home() {
         {!pastorLoading&&pastorItems.length>pastorVisibleCount&&<button className="church-directory-more" type="button" onClick={()=>setPastorVisibleCount((count)=>Math.min(count+12,pastorItems.length))}>목회자 12명 더 보기</button>}
       </section>
 
+      <section className="content-section church-news-section events-home" id="events"><EventsBrowser compact portalRegion={region} onPortalRegionChange={setRegion}/></section>
 
-      <CtsDiscovery/>
 
-      <section className="content-section church-news-section" id="church-news">
-        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
-        {!churchNewsLoading&&churchNewsSources.length>0&&<NewsSources sources={churchNewsSources}/>}
-        <div className="church-news-grid news-preview-grid">
-          {churchNewsLoading ? Array.from({length:12},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card publisher-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
-            <span className={`church-news-thumb ${item.tone}`} aria-hidden="true"><NewsMark source={item.source} markUrl={item.markUrl}/><small>{item.source}</small></span>
-            <span className="church-news-copy"><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR")}</small><strong>{item.title}</strong><span>{item.summary}</span><em>원문에서 읽기 ↗</em></span>
-          </a>)}
-          {!churchNewsLoading&&!churchNews.length&&<div className="empty">새 소식을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.</div>}
+
+
+
+
+
+
+
+
+
+
+      {personalStateReady&&savedPastors.length>0&&<section className="favorite-pastors" aria-labelledby="favorite-pastors-title"><div><span className="section-kicker">성경과 말씀 곁에</span><h2 id="favorite-pastors-title">내가 찜한 목회자</h2><p>자주 찾는 목회자의 페이지와 새 말씀을 바로 확인하세요.</p></div><div className="favorite-pastor-list">{savedPastors.slice(0,8).map((item)=><a href={item.url} key={item.id}><span aria-hidden="true">♧</span><strong>{item.title}</strong><small>{item.subtitle}</small>{hasNewSermon(item)&&<b>NEW</b>}</a>)}</div></section>}
+
+      {personalStateReady&&<section className={`continue-section${savedItems.length?" has-items":""}`} aria-labelledby="continue-title">
+        <div><span className="section-kicker">이 브라우저에만 저장</span><h2 id="continue-title">나의 이어보기</h2><p>{savedItems.length?"관심 있는 말씀·찬양·교회·목회자·행사를 다시 만나보세요.":"말씀·찬양·교회·목회자·행사의 ‘찜’ 버튼을 누르면 여기에 모입니다."}</p><div className="journey-week" aria-label="최근 7일 오늘의 5분 완료 기록">{journeyWeek.map((day)=><span className={`${day.complete?"is-complete":""}${day.today?" is-today":""}`} key={day.key} title={`${day.key} ${day.complete?"완료":"진행 전"}`}><i>{day.complete?"✓":"·"}</i><small>{day.label}</small></span>)}</div>{savedItems.length>0&&<a className="continue-all" href="/saved">전체 모음 {savedItems.length}개 보기 →</a>}</div>
+        {savedItems.length?<div className="continue-list">{savedItems.slice(0,6).map((item)=>{const external=item.url.startsWith("http");return <article key={item.id}><span>{item.kind==="sermon"?"말씀":item.kind==="praise"?"찬양":item.kind==="event"?"행사":item.kind==="pastor"?"목회자":"교회"}{hasNewSermon(item)&&<b className="saved-new">NEW</b>}</span><a href={item.url} target={external?"_blank":undefined} rel={external?"noopener noreferrer":undefined}><strong>{item.title}</strong><small>{item.subtitle}</small></a><button type="button" onClick={()=>toggleSaved(item)} aria-label={`${item.title} 찜에서 빼기`}>×</button></article>})}</div>:<div className="continue-empty" aria-hidden="true"><span>♡</span><small>로그인 없이 가볍게 저장됩니다</small></div>}
+      </section>}
+
+
+
+
+
+
+
+
+
+
+
+      {activeShort && <div className="shorts-viewer-overlay" role="dialog" aria-modal="true" aria-label={`${activeShort.church} 쇼츠 재생 화면`} onClick={()=>setActiveShortIndex(null)}>
+        <div ref={shortViewerRef} className="shorts-viewer" onClick={(event)=>event.stopPropagation()}>
+          <iframe
+            ref={shortPlayerRef}
+            className="shorts-viewer-frame"
+            src={shortViewerEmbedUrl}
+            title={activeShort.title}
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
+          <button ref={shortCloseButtonRef} type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} aria-label="쇼츠 재생 닫기">×</button>
+          <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
+          <button type="button" className="shorts-viewer-nav shorts-viewer-next" onClick={()=>setActiveShortIndex((current)=>current!==null && current<filteredShorts.length-1 ? current+1 : current)} disabled={activeShortIndex===filteredShorts.length-1} aria-label="다음 쇼츠 보기">›</button>
+          <div className="shorts-viewer-meta"><strong>{activeShort.church}</strong><span>{activeShort.title}</span></div>
         </div>
-      </section>
+      </div>}
+
+
+
+
+
+
+
+
+
+
+
 
       <section className="community-section" id="community">
         <div className="community-copy"><span className="section-kicker">서로를 지키는 익명 광장</span><h2>이름을 숨겨도,<br />말의 책임은 남도록</h2><p>신앙의 생각과 고민을 솔직하게 나누되, 교리 논쟁·비방·선동이 공동체를 해치지 않도록 모든 첫 글은 운영 원칙에 따라 검토합니다.</p><ul><li>개인정보를 요구하지 않는 별칭</li><li>신고 누적 시 자동 숨김과 운영자 확인</li><li>특정 교회·개인을 향한 확인되지 않은 비방 금지</li></ul><div className="community-safety"><strong>긴급한 도움이 필요한가요?</strong><p>이 광장은 상담기관이 아닙니다. 생명이나 안전이 위험하면 112·119, 자살예방상담전화 109에 바로 연락해 주세요.</p><a href="/community-guidelines">공동체 안전 원칙 보기 →</a></div></div>
