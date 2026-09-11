@@ -753,9 +753,8 @@ export default function Home() {
       </section>
 
       <section className="season-scripture" aria-label="교회력과 성경 말씀">
-        <div className="scripture-date"><time>{koreanNow.toLocaleDateString("ko-KR",{timeZone:"UTC",year:"numeric",month:"long",day:"numeric",weekday:"long"})}</time><span>{currentSeason.name} · {currentSeason.accent}</span></div>
-        <blockquote>{seasonScriptures[currentSeason.reference].text}</blockquote>
-        <a href={`https://www.bible.com/ko/bible/88/${seasonScriptures[currentSeason.reference].path}.KRV`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} · 개역한글 ↗</a>
+        <div className="scripture-context"><time>{koreanNow.toLocaleDateString("ko-KR",{timeZone:"UTC",year:"numeric",month:"long",day:"numeric",weekday:"long"})}</time><h2>{currentSeason.name}</h2><span className="scripture-season">{currentSeason.accent}</span><a href={`https://www.bible.com/ko/bible/88/${seasonScriptures[currentSeason.reference].path}.KRV`} target="_blank" rel="noopener noreferrer"><strong>{currentSeason.reference}</strong><span>성경에서 읽기 ↗</span></a></div>
+        <div className="scripture-reading"><blockquote>{seasonScriptures[currentSeason.reference].text}</blockquote><small>개역한글</small></div>
       </section>
 
       <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
