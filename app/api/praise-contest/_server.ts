@@ -29,14 +29,17 @@ export async function browser(request: Request, issue = false): Promise<{hash:st
   const id = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
   return {hash:await sign(`identity|${id}`),cookie:`${name}=${id}.${await sign(id)}; Path=/; Max-Age=15552000; HttpOnly; SameSite=Lax${new URL(request.url).protocol==="https:"?"; Secure":""}`};
 }
+export function contestDecisionStatement() {
+  return database().prepare(`INSERT OR IGNORE INTO praise_contest_decisions(contest_id,eligible_count,cancelled,decided_at)
+    SELECT ?,COUNT(*),CASE WHEN COUNT(*)<? THEN 1 ELSE 0 END,strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM praise_contest_entries
+    WHERE contest_id=? AND status='published' AND created_at<? HAVING strftime('%Y-%m-%dT%H:%M:%fZ','now')>=?`).bind(CONTEST.id,CONTEST.minimumEntries,CONTEST.id,CONTEST.submissionEndsAt,CONTEST.submissionEndsAt);
+}
 // Freeze the entry threshold once, before any post-deadline moderation changes.
 export async function resolvedContestPhase() {
   const phase=contestPhase();
   if(phase==="upcoming"||phase==="open")return phase;
   const db=database();
-  await db.prepare(`INSERT OR IGNORE INTO praise_contest_decisions(contest_id,eligible_count,cancelled,decided_at)
-    SELECT ?,COUNT(*),CASE WHEN COUNT(*)<? THEN 1 ELSE 0 END,strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM praise_contest_entries
-    WHERE contest_id=? AND status='published' AND created_at<?`).bind(CONTEST.id,CONTEST.minimumEntries,CONTEST.id,CONTEST.submissionEndsAt).run();
+  await contestDecisionStatement().run();
   const decision=await db.prepare("SELECT cancelled FROM praise_contest_decisions WHERE contest_id=?").bind(CONTEST.id).first<{cancelled:number}>();
   if(!decision)throw new Error("Contest decision missing");
   return decision.cancelled?"cancelled" as const:phase;

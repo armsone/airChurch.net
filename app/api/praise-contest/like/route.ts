@@ -14,7 +14,7 @@ export async function POST(request:Request) {
     if(previous)return json({ok:previous.entryId===id,votedEntryId:previous.entryId,error:previous.entryId===id?undefined:"이 브라우저에서는 오늘 이미 좋아요에 참여했습니다."},previous.entryId===id?200:409);
     const inserted=await db.prepare(`INSERT OR IGNORE INTO praise_contest_votes(contest_id,entry_id,browser_hash,vote_day,created_at)
       SELECT ?,e.id,?,date('now','+9 hours'),strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM praise_contest_entries e
-      WHERE e.id=? AND e.contest_id=? AND e.status='published' AND strftime('%Y-%m-%dT%H:%M:%fZ','now')>=? AND strftime('%Y-%m-%dT%H:%M:%fZ','now')<?`).bind(CONTEST.id,identity.hash,id,CONTEST.id,CONTEST.startsAt,CONTEST.votingEndsAt).run();
+      WHERE e.id=? AND e.contest_id=? AND e.status='published' AND strftime('%Y-%m-%dT%H:%M:%fZ','now')>=? AND strftime('%Y-%m-%dT%H:%M:%fZ','now')<? AND (strftime('%Y-%m-%dT%H:%M:%fZ','now')<? OR EXISTS (SELECT 1 FROM praise_contest_decisions WHERE contest_id=e.contest_id AND cancelled=0))`).bind(CONTEST.id,identity.hash,id,CONTEST.id,CONTEST.startsAt,CONTEST.votingEndsAt,CONTEST.submissionEndsAt).run();
     if(!inserted.meta.changes){const vote=await db.prepare("SELECT entry_id AS entryId FROM praise_contest_votes WHERE contest_id=? AND browser_hash=? AND vote_day=date('now','+9 hours')").bind(CONTEST.id,identity.hash).first<{entryId:number}>();return json({error:vote?"이 브라우저에서는 오늘 이미 좋아요에 참여했습니다.":"마감되었거나 현재 참여할 수 없는 영상입니다.",votedEntryId:vote?.entryId??null},409);}
     return json({ok:true,votedEntryId:id});
   }catch{return json({error:"좋아요를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."},503);}
