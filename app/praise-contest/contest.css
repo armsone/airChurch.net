@@ -18,3 +18,5 @@
 @media(prefers-reduced-motion:reduce){.contest-card{transition:none}}
 
 .contest-share-dialog{position:fixed;inset:0;margin:auto}.contest-video{flex:none;overflow:hidden}.contest-video .contest-thumbnail{position:absolute;inset:0}
+
+.contest-welcome{display:flex;align-items:center;gap:28px;padding:28px;margin:24px 0;background:#f5f4ed;border:1px solid #e3dfcf;border-radius:18px}.contest-welcome h2{font-size:22px;margin:0 0 10px}.contest-welcome p{font-size:17px;line-height:1.8;margin:0;max-width:760px}.contest-welcome-actions{display:flex;flex-shrink:0;flex-direction:column;gap:12px;text-align:center}.contest-welcome-actions a{color:#214d3e;font-weight:600;padding:10px}.contest-share-image{width:100%;max-height:220px;object-fit:cover;border-radius:12px}.contest-share-invitation{line-height:1.8;font-size:17px;user-select:text}@media(max-width:700px){.contest-welcome{flex-direction:column;align-items:stretch;padding:20px}.contest-welcome-actions{width:100%}}
