@@ -27,7 +27,7 @@ export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLo
  const shown=[...new Map(sermons.filter(item=>/^[\w-]{11}$/.test(item.youtubeId||"")&&Number.isFinite(Date.parse(item.publishedAt||""))&&(!now||Date.parse(item.publishedAt!)<=Date.parse(now))).map(item=>[item.youtubeId,item])).values()].sort((a,b)=>Date.parse(b.publishedAt!)-Date.parse(a.publishedAt!)).filter(item=>!savedOnly||followed.some(savedItem=>savedItem.kind==="church"?normalize(savedItem.title)===normalize(item.church):normalize(savedItem.pastorName||savedItem.title)===normalize(item.pastor||"")&&(!savedItem.churchNames?.length||savedItem.churchNames.some(name=>normalize(name)===normalize(item.church))))).slice(0,4);
  const sortedNews=[...new Map(news.filter(item=>safeHttpUrl(item.url)&&Number.isFinite(Date.parse(item.publishedAt))&&(!now||Date.parse(item.publishedAt)<=Date.parse(now))).map(item=>[item.title,item])).values()].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
  const diverse=sortedNews.filter((item,index,all)=>all.findIndex(other=>other.source===item.source)===index);
- const headlines=[...diverse,...sortedNews.filter(item=>!diverse.includes(item))].slice(0,4);
+ const headlines=diverse.slice(0,4);
  return <section className="portal-today" aria-labelledby="portal-today-title">
   <div className="portal-heading"><div><span className="section-kicker">{now?new Date(now).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",weekday:"long"}):"오늘"}</span><h2 id="portal-today-title">오늘의 에어처치</h2><p className="portal-caption">추천을 한눈에 보고, 더 궁금한 곳으로 이어가세요.</p></div><a href="#continue-title">♡ 나의 이어보기</a></div>
   <div className="portal-overview portal-eight">

@@ -48,6 +48,7 @@ const goals = [
   ["사람을 세우는 공동체", "평신도 지도자와 미래 사회·교회의 인재를 세웁니다."],
   ["상식이 통하는 공동체", "하나님만 영광받고 예수님이 주인 되며 평신도가 함께 운영합니다."],
 ];
+function distinctNewsSources(items:ChurchNews[],limit=12){const seen=new Set<string>();return items.filter(item=>{const key=item.source.replace(/\s/g,"").toLocaleLowerCase("ko-KR");if(seen.has(key))return false;seen.add(key);return true;}).slice(0,limit);}
 const dailyGuides = [
   { day:"주일", theme:"예배와 공동체", reference:"시편 122:1", question:"오늘 예배에서 마음에 오래 남은 한 문장은 무엇인가요?" },
   { day:"월요일", theme:"새로운 한 주", reference:"잠언 3:5-6", question:"이번 주 하나님께 맡기고 한 걸음 내디딜 일은 무엇인가요?" },
@@ -300,7 +301,7 @@ export default function Home() {
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];
         setChurchNews(items);
-        setVisibleChurchNews(items.slice(0,12));
+        setVisibleChurchNews(distinctNewsSources(items));
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
@@ -407,8 +408,7 @@ export default function Home() {
     setVisibleChurchNews((current)=>{
       const currentUrls=new Set(current.map((item)=>item.url));
       const unseen=churchNews.filter((item)=>!currentUrls.has(item.url));
-      const pool=unseen.length>=12?unseen:[...unseen,...churchNews.filter((item)=>currentUrls.has(item.url))];
-      return shuffled(pool).slice(0,12);
+      return distinctNewsSources([...shuffled(unseen),...shuffled(churchNews.filter(item=>currentUrls.has(item.url)))]);
     });
   }
   async function showDifferentPastors(){
@@ -803,7 +803,7 @@ export default function Home() {
       <CtsDiscovery/>
 
       <section className="content-section church-news-section" id="church-news">
-        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
+        <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=visibleChurchNews.length}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
         {!churchNewsLoading&&churchNewsSources.length>0&&<NewsSources sources={churchNewsSources}/>}
         <div className="church-news-grid news-preview-grid">
           {churchNewsLoading ? Array.from({length:12},(_,index)=><article className="church-news-card skeleton-card" aria-hidden="true" key={`news-loading-${index}`}><div className="church-news-thumb skeleton-thumb" /><div className="church-news-copy"><span className="skeleton-line skeleton-kicker"/><span className="skeleton-line skeleton-title"/><span className="skeleton-line skeleton-meta"/></div></article>) : visibleChurchNews.map((item)=><a className="church-news-card publisher-news-card" href={item.url} target="_blank" rel="noopener noreferrer" key={`${item.source}-${item.url}`} aria-label={`${item.source} 원문에서 읽기: ${item.title}`}>
