@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
-import SiteFooter from "../../site-footer";
-import ContestBoard from "../contest-board";
-import "../contest.css";
-export const metadata:Metadata={title:"2026년 10월 찬양대회 | 에이처치",description:"에이처치 2026년 10월 찬양대회 참가작과 공식 결과를 만나는 공간입니다.",alternates:{canonical:"/praise-contest/2026-10"}};
-// Permanent October edition. Retain its board and praise-2026-10 data when introducing another edition.
-export default function OctoberContestPage(){return <main className="contest-shell"><a className="contest-back" href="/our-events">← 에이처치 행사 모아보기</a><ContestBoard/><SiteFooter/></main>;}
+import { redirect } from "next/navigation";
+export const dynamic = "force-dynamic";
+export default async function ContestRedirect({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+  const params=await searchParams,query=new URLSearchParams();
+  for(const [key,value] of Object.entries(params)){if(Array.isArray(value))value.forEach(item=>query.append(key,item));else if(value!==undefined)query.set(key,value);}
+  const suffix=query.toString();
+  redirect("/praise-contest/2026-10-01"+(suffix?`?${suffix}`:""));
+}

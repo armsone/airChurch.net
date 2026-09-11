@@ -1,5 +1,8 @@
 export const CONTEST = {
+  // Keep the existing storage ID so entries and votes remain attached.
   id: "praise-2026-10",
+  startsOn: "2026-10-01",
+  path: "/praise-contest/2026-10-01",
   title: "에이처치 찬양대회",
   startsAt: "2026-09-30T15:00:00.000Z",
   submissionEndsAt: "2026-10-15T15:00:00.000Z",
