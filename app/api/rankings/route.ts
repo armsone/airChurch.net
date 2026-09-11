@@ -45,7 +45,7 @@ export async function GET() {
         AND c.review_status = 'approved'
       GROUP BY c.id, c.public_id, c.name, c.pastor
       ORDER BY COUNT(DISTINCT v.visitor_hash) DESC, COUNT(*) DESC, c.name
-      LIMIT 5
+      LIMIT 40
     `).all<RankingRow>(),
     db.prepare(`
       SELECT
@@ -69,7 +69,7 @@ export async function GET() {
         AND p.review_status = 'approved'
       GROUP BY p.id, p.public_id, p.name, r.church_name
       ORDER BY COUNT(DISTINCT v.visitor_hash) DESC, COUNT(*) DESC, p.name
-      LIMIT 5
+      LIMIT 40
     `).all<RankingRow>(),
   ]);
 

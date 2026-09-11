@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { safeHttpUrl } from "./safe-url";
 import type { SavedItem } from "./saved-items";
 
 type Sermon = { youtubeId?:string; title:string; church:string; pastor:string; publishedAt?:string; thumbnailUrl?:string };
 type News = { title:string; url:string; source:string; publishedAt:string };
 type Props = {
+  children?:ReactNode;
   news:News[]; sermons:Sermon[]; saved:SavedItem[]; now:string;
   newsLoading:boolean; sermonLoading:boolean;
   refresh:{sermons:string;news:string;sermonError:boolean;newsError:boolean};
@@ -17,7 +18,7 @@ const stamp=(value?:string)=>{const time=Date.parse(value||"");return Number.isF
 function dateLabel(value:string){return stamp(value)?new Date(value).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric"}):"날짜 확인 필요";}
 function freshness(value:string,now:string){if(!value)return "최근 확인 기록 없음";return `${dateLabel(value)} 확인${stamp(now)-stamp(value)>86400000?" · 갱신 지연":""}`;}
 
-export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLoading,refresh}:Props){
+export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLoading,refresh,children}:Props){
   const [tab,setTab]=useState<"recent"|"saved">("recent"),[playing,setPlaying]=useState<string|null>(null);
   const followed=saved.filter(item=>item.kind==="church"||item.kind==="pastor");
   const recent=useMemo(()=>[...new Map(sermons.filter(item=>/^[\w-]{11}$/.test(item.youtubeId||"")&&stamp(item.publishedAt)>0&&(!now||stamp(item.publishedAt)<=stamp(now))).map(item=>[item.youtubeId,item])).values()].sort((a,b)=>stamp(b.publishedAt)-stamp(a.publishedAt)),[sermons,now]);
@@ -39,5 +40,6 @@ export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLo
         <p className="portal-health">{refresh.sermonError?"연결 지연 · 마지막으로 받은 말씀을 표시합니다":"화면이 열려 있는 동안 새 말씀을 주기적으로 확인합니다"}</p>
       </article>
     </div>
+    {children}
   </section>;
 }
