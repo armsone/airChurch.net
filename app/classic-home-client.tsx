@@ -2,6 +2,8 @@
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "./site-footer";
+import PortalToday from "./portal-today";
+import "./portal-today.css";
 import EventsBrowser from "./events/events-browser";
 import { NewsSources } from "./news/news-card";
 import { clearRecentSearches, readRecentSearches, writeRecentSearches } from "./recent-searches";
@@ -120,6 +122,8 @@ export default function Home() {
   const currentSeason=seasonGuide(koreanNow);
   const todayKey=koreanNow.toISOString().slice(0,10);
   const [query, setQuery] = useState("");
+  const [portalNow,setPortalNow]=useState("");
+  useEffect(()=>{const update=()=>setPortalNow(new Date().toISOString());update();const timer=window.setInterval(update,60000);return()=>clearInterval(timer);},[]);
   const [region, setRegion] = useState("전체");
   const [denomination, setDenomination] = useState("전체 교단");
   const [notice, setNotice] = useState("");
@@ -165,6 +169,7 @@ export default function Home() {
   const [visibleChurchNews,setVisibleChurchNews]=useState<ChurchNews[]>([]);
   const [churchNewsSources,setChurchNewsSources]=useState<ChurchNewsSource[]>([]);
   const [churchNewsLoading,setChurchNewsLoading]=useState(true);
+  const [portalRefresh,setPortalRefresh]=useState({sermons:"",news:"",sermonError:false,newsError:false});
   const [approvedPosts,setApprovedPosts]=useState<CommunityItem[]>([]);
   const [approvedTalents,setApprovedTalents]=useState<TalentItem[]>([]);
   const [churchItems,setChurchItems]=useState<ChurchItem[]>([]);
@@ -264,9 +269,11 @@ export default function Home() {
     };
     const lowData=prefersLowData();
     const todayBucket=Math.floor(Date.now()/86400000)%50;const storedBrowserSeed=sessionStorage.getItem("airchurch:pastor-bucket-seed");let browserSeed=Number(storedBrowserSeed);if(storedBrowserSeed===null||!Number.isInteger(browserSeed)||browserSeed<0||browserSeed>49){browserSeed=Math.floor(Math.random()*50);sessionStorage.setItem("airchurch:pastor-bucket-seed",String(browserSeed));}pastorBucketRef.current=(todayBucket+browserSeed)%50;
-    const loaders: Record<string, () => void> = {
+    const loaders: Record<string, () => Promise<unknown>> = {
       sermons: ()=>loadItems(`/api/sermons?limit=${lowData?12:60}`).then((sermonData)=>{
         if(!alive) return;
+        setPortalRefresh(current=>({...current,sermonError:Boolean(sermonData.loadFailed),...(!sermonData.loadFailed?{sermons:new Date().toISOString()}: {})}));
+        if(sermonData.loadFailed){setSermonLoading(false);return;}
         const sermonResults=(sermonData as {items?:Array<{youtubeId:string;title:string;thumbnailUrl:string;publishedAt:string;church:string;pastor:string;region:string;denomination:string}>}).items;
         setSermonItems(sermonResults?.length ? sermonResults.map((item,index)=>({id:index+100,church:item.church,pastor:item.pastor,region:item.region,denomination:item.denomination,title:item.title,verse:"",date:new Date(item.publishedAt).toLocaleDateString("ko-KR"),publishedAt:item.publishedAt,tone:["peach","blue","green","gold","lavender","sky"][index%6],rank:index+1,verified:true,thumbnailUrl:item.thumbnailUrl,youtubeId:item.youtubeId})) : sermons);
         setSermonLoading(false);
@@ -281,10 +288,12 @@ export default function Home() {
       }),
       "church-news": ()=>loadItems("/api/church-news?v=2").then((data)=>{
         if(!alive) return;
+        setPortalRefresh(current=>({...current,newsError:Boolean(data.loadFailed),...(!data.loadFailed?{news:data.refreshedAt||""}: {})}));
+        if(data.loadFailed){setChurchNewsLoading(false);return;}
         const result=data as {items?:ChurchNews[];sources?:ChurchNewsSource[]};
         const items=result.items||[];
         setChurchNews(items);
-        setVisibleChurchNews(shuffled(items).slice(0,12));
+        setVisibleChurchNews(items.slice(0,12));
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
@@ -313,16 +322,22 @@ export default function Home() {
       })},
     };
     const loaded=new Set<string>();
+    let refreshing=false,lastRefresh=Date.now();
+    const refresh=()=>{if(document.visibilityState!=="visible"||refreshing||Date.now()-lastRefresh<5*60000)return;refreshing=true;lastRefresh=Date.now();void Promise.allSettled([loaders.sermons(),loaders["church-news"]()]).finally(()=>{refreshing=false;});};
+    const refreshTimer=window.setInterval(refresh,5*60000);
+    window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",refresh);
+    const cleanRefresh=()=>{clearInterval(refreshTimer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh);};
     const loadSection=(id:string)=>{ if(!loaded.has(id)){ loaded.add(id);loaders[id]?.(); } };
+    ["sermons","church-news","church-directory"].forEach(loadSection);
     if(!("IntersectionObserver" in window)) {
       Object.keys(loaders).forEach(loadSection);
-      return()=>{alive=false;controller.abort();};
+      return()=>{alive=false;controller.abort();cleanRefresh();};
     }
     const observer=new IntersectionObserver((entries)=>entries.forEach((entry)=>{
       if(entry.isIntersecting) { loadSection(entry.target.id);observer.unobserve(entry.target); }
     }),{rootMargin:lowData?"200px 0px":"800px 0px"});
     Object.keys(loaders).forEach((id)=>{ const section=document.getElementById(id);if(section) observer.observe(section); });
-    return()=>{alive=false;controller.abort();observer.disconnect();};
+    return()=>{alive=false;controller.abort();observer.disconnect();cleanRefresh();};
   },[]);
   useEffect(()=>{
     const trimmed=churchQuery.trim(),global=query.trim(),active=Boolean(trimmed||global||region!=="전체"||denomination!=="전체 교단"),searchKey=[trimmed,global,region,denomination].join("|");
@@ -700,13 +715,13 @@ export default function Home() {
   }
 
   return (
-    <main id="top">
+    <main id="top" className="integrated-portal">
       {notice && <div className="toast" role="status"><span>{notice}</span><button type="button" onClick={() => setNotice("")} aria-label="알림 닫기">×</button></div>}
 
 
       <section className="hero" id="primary-content" tabIndex={-1}>
-        <div className="eyebrow"><span /> 크리스천 포털의 다음 장</div>
-        <h1>말씀을 발견하고<br />교회와 이어지는 곳</h1>
+        <div className="eyebrow"><span /> 오늘의 말씀 · 교회 · 세상의 소식</div>
+        <h1>말씀을 발견하고 교회와 이어지는 곳</h1>
         <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(normalized){const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}}>
           <label className="sr-only" htmlFor="site-search">교회, 목회자, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
@@ -724,10 +739,14 @@ export default function Home() {
         <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
 
+      <PortalToday news={churchNews} sermons={sermonItems} churches={region==="전체"?churchItems:currentChurchSearch?.items??[]} saved={savedItems} now={portalNow} region={region} onRegionChange={setRegion} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} churchLoading={churchLoading||(region!=="전체"&&churchSearchPending)} churchError={churchLoadFailed} refresh={portalRefresh} />
+
       <section className="daily-journey" aria-labelledby="daily-journey-title">
         <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
         <div className="daily-paths"><a className={dailyCompleted.includes("bible")?"is-complete":""} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><span>01</span><strong>성경 한 구절</strong><small>{dailyCompleted.includes("bible")?"오늘 읽었습니다 ✓":"공식 한국어 성경에서 읽습니다"}</small></a><a className={dailyCompleted.includes("sermon")?"is-complete":""} href="#sermons"><span>02</span><strong>말씀 한 편</strong><small>{dailyCompleted.includes("sermon")?"오늘 들었습니다 ✓":"재생하면 자동으로 기록됩니다"}</small></a><a className={dailyCompleted.includes("praise")?"is-complete":""} href="#praises"><span>03</span><strong>찬양 한 곡</strong><small>{dailyCompleted.includes("praise")?"오늘 들었습니다 ✓":"재생하면 오늘 여정이 완성됩니다"}</small></a></div>
       </section>
+
+      <section className="content-section church-news-section events-home" id="events"><EventsBrowser compact portalRegion={region} onPortalRegionChange={setRegion}/></section>
 
       <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
         <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h2 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h2><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><span className="result-count">7일 기준</span></div>
@@ -869,7 +888,6 @@ export default function Home() {
         {!pastorLoading&&pastorItems.length>pastorVisibleCount&&<button className="church-directory-more" type="button" onClick={()=>setPastorVisibleCount((count)=>Math.min(count+12,pastorItems.length))}>목회자 12명 더 보기</button>}
       </section>
 
-      <section className="content-section church-news-section events-home" id="events"><EventsBrowser compact/></section>
 
       <section className="content-section church-news-section" id="church-news">
         <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
