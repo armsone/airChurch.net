@@ -8884,5 +8884,102 @@
         ]
       }
     ]
+  },
+  "portrait_post_deploy": {
+    "checked": 489,
+    "http_errors": [],
+    "decode_errors": []
+  },
+  "post_deploy": {
+    "checked_pages": 2506,
+    "checked_new_or_repaired_images": 11574,
+    "page_errors": [],
+    "remaining_held_schedule_ids": [],
+    "followup_videos": [
+      {
+        "id": "F8eqd9rITcE",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "Nn2FjYLCJso",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "QXxmrJXrx0s",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "RPWSrosJ-f0",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "VGeF-zKcISA",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "Ztw5TXxYf4g",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "deaaPTSaBLc",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "kUpM3ceqxN0",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "lcFgCsN20yk",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "m44Mj1NhayE",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "qml9F6oy7N0",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "ui9b5JL4K2s",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "vrfJTJEJsdU",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "xHPZiyMYhEA",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      }
+    ]
   }
 }

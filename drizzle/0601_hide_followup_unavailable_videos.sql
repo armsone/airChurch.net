@@ -1,0 +1,3 @@
+-- Additional inaccessible videos exposed after the full profile audit cleanup.
+UPDATE sermons SET status='hidden' WHERE status='published' AND youtube_id IN ('F8eqd9rITcE','Nn2FjYLCJso','QXxmrJXrx0s','RPWSrosJ-f0','VGeF-zKcISA','Ztw5TXxYf4g','deaaPTSaBLc','kUpM3ceqxN0','lcFgCsN20yk','m44Mj1NhayE','qml9F6oy7N0','ui9b5JL4K2s','vrfJTJEJsdU','xHPZiyMYhEA');
+UPDATE praise_videos SET status='hidden' WHERE status='published' AND youtube_id IN ('F8eqd9rITcE','Nn2FjYLCJso','QXxmrJXrx0s','RPWSrosJ-f0','VGeF-zKcISA','Ztw5TXxYf4g','deaaPTSaBLc','kUpM3ceqxN0','lcFgCsN20yk','m44Mj1NhayE','qml9F6oy7N0','ui9b5JL4K2s','vrfJTJEJsdU','xHPZiyMYhEA');
