@@ -57,3 +57,21 @@
 .portal-eight .portal-panel-heading h3>a{display:flex;align-items:center;gap:7px;min-height:32px;color:var(--panel-tone,var(--ink))}.portal-title-icon{display:inline-grid;place-items:center;flex:none;width:27px;height:27px;border-radius:7px;background:var(--panel-tint);font-size:16px;line-height:1}.portal-eight .portal-panel-heading>a{color:var(--panel-tone)}.portal-eight .portal-panel-heading h3>a:hover{text-decoration:underline;text-underline-offset:4px}
 
 .portal-story-title{display:block;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}.portal-story-title:hover{text-decoration:underline}
+
+/* Shared homepage section frame; content-specific players and forms keep their layout. */
+.integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section,.topic-discovery,.season-discovery){width:100%;max-width:1180px;margin:0 auto;padding:32px 24px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+.integrated-portal>:is(.community-section,.talent-section,.safety-section,.topic-discovery){gap:32px}
+.integrated-portal .section-heading,.integrated-portal>.cts-discovery>.portal-panel-heading{align-items:center;gap:16px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.integrated-portal .section-heading.centered{justify-content:flex-start;text-align:left}
+.integrated-portal :is(.section-heading h2,.section-heading h3,.community-copy h2,.talent-section h2,.safety-section h2,.topic-intro h2,.season-discovery h2),.integrated-portal>.cts-discovery h3{font-family:inherit;font-size:25px;font-weight:750;line-height:1.35;letter-spacing:-.04em;margin:4px 0 0;color:var(--ink)}
+.integrated-portal :is(.section-heading p,.community-copy>p,.talent-section>div>p,.topic-intro p){font-size:13px;line-height:1.7;color:var(--muted);margin:8px 0 0}
+.integrated-portal .section-heading .section-kicker,.integrated-portal>:is(.community-section,.talent-section,.safety-section,.topic-discovery) .section-kicker{font-size:11px;letter-spacing:.02em;color:#527061}
+.integrated-portal .unified-other-button,.integrated-portal>.cts-discovery>.portal-panel-heading>a,.integrated-portal>.cts-discovery>.faith-more{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border:1px solid #d4dfd7;border-radius:7px;background:#fff;color:var(--ink);font-family:inherit;font-size:12px;font-weight:650;line-height:1.4;text-decoration:none;box-shadow:none}
+.integrated-portal .unified-other-button:hover,.integrated-portal>.cts-discovery>.portal-panel-heading>a:hover,.integrated-portal>.cts-discovery>.faith-more:hover{background:#edf3ee;border-color:#94ab9a}
+.integrated-portal .unified-other-button:disabled{opacity:.5;cursor:default}
+.integrated-portal :is(.sermon-card,.faith-video-card,.church-card,.pastor-card,.impact-grid>article,.community-form,.talent-form,.approved-section>div){border-radius:12px;box-shadow:none}
+.integrated-portal .news-home-actions{gap:8px;flex-wrap:wrap}
+.integrated-portal>.approved-section{max-width:1180px;padding:0 24px 32px;margin:0 auto;gap:20px}
+.integrated-portal .vision-quote{margin-bottom:28px}
+.integrated-portal .vision-quote blockquote{font-size:25px;line-height:1.5}
+@media(max-width:760px){.integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section,.topic-discovery,.season-discovery){padding:26px 16px;margin:0 auto}.integrated-portal>:is(.community-section,.talent-section,.safety-section,.topic-discovery){gap:24px}.integrated-portal :is(.section-heading h2,.section-heading h3,.community-copy h2,.talent-section h2,.safety-section h2,.topic-intro h2,.season-discovery h2),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .section-heading{gap:12px;margin-bottom:16px}.integrated-portal .unified-other-button,.integrated-portal>.cts-discovery>.portal-panel-heading>a,.integrated-portal>.cts-discovery>.faith-more{min-height:40px}.integrated-portal>.approved-section{padding:0 16px 26px}.integrated-portal .vision-quote blockquote{font-size:21px}}
