@@ -80,8 +80,9 @@ export async function maintainContest() {
   if (Date.now() < Date.parse(CONTEST.resultsAt) + 180 * 86400000) return;
   const db=database();
   await db.batch([
-    db.prepare("UPDATE praise_contest_entries SET contact='',source_file_url=NULL,browser_hash='',admin_note=NULL WHERE contest_id=? AND (contact<>'' OR source_file_url IS NOT NULL OR browser_hash<>'' OR admin_note IS NOT NULL)").bind(CONTEST.id),
+    db.prepare("UPDATE praise_contest_entries SET contact='',source_file_url=NULL,payout_ciphertext=NULL,browser_hash='',admin_note=NULL WHERE contest_id=? AND (contact<>'' OR source_file_url IS NOT NULL OR payout_ciphertext IS NOT NULL OR browser_hash<>'' OR admin_note IS NOT NULL)").bind(CONTEST.id),
     db.prepare("DELETE FROM praise_contest_votes WHERE contest_id=?").bind(CONTEST.id),
+    db.prepare("DELETE FROM praise_contest_vote_events WHERE contest_id=?").bind(CONTEST.id),
     db.prepare("DELETE FROM praise_contest_audit WHERE entry_id IN (SELECT id FROM praise_contest_entries WHERE contest_id=?)").bind(CONTEST.id),
   ]);
 }

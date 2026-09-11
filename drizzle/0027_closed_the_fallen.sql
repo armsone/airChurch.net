@@ -1,0 +1,1 @@
+ALTER TABLE `praise_contest_entries` ADD `payout_ciphertext` text;

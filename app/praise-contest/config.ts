@@ -7,7 +7,7 @@ export const CONTEST = {
   resultsAt: "2026-10-18T15:00:00.000Z",
   prizes: [500000, 300000, 100000, 50000, 50000],
   minimumEntries: 6,
-  consentVersion: "2026-10-v2-links",
+  consentVersion: "2026-10-v3-payout",
 } as const;
 export type ContestEntry = { id: number; performer: string; title: string; youtubeId: string; channelName: string; createdAt: string; likes: number; rank: number | null; prize: number; reuploadUrl?: string | null };
 export function contestPhase(now = Date.now()) {
