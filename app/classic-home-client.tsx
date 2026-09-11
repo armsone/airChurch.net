@@ -4,6 +4,7 @@ import NewsMark from "./news/news-mark";
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "./site-footer";
 import PortalToday from "./portal-today";
+import SeasonalScripture from "./seasonal-scripture";
 import CtsDiscovery from "./cts-discovery";
 import "./portal-today.css";
 import EventsBrowser from "./events/events-browser";
@@ -67,27 +68,6 @@ const discoveryTopics=[
   {name:"감사",copy:"평범한 하루에서 은혜 찾기",symbol:"기쁨"},
 ] as const;
 
-function easterSunday(year:number){
-  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=(h+l-7*m+114)%31+1;
-  return new Date(Date.UTC(year,month-1,day));
-}
-function seasonGuide(now:Date){
-  const date=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())),year=date.getUTCFullYear(),day=24*60*60*1000,easter=easterSunday(year),lentStart=new Date(easter.getTime()-46*day),pentecost=new Date(easter.getTime()+49*day),nov27=new Date(Date.UTC(year,10,27)),adventStart=new Date(nov27.getTime()+((7-nov27.getUTCDay())%7)*day),christmas=new Date(Date.UTC(year,11,25)),epiphanyEnd=new Date(Date.UTC(year+1,0,6));
-  if(date>=adventStart&&date<christmas)return {name:"대림절",copy:"기다림 속에서 오시는 주님을 바라보는 시간",reference:"이사야 9:6",accent:"기다림"};
-  if(date>=christmas&&date<=epiphanyEnd)return {name:"성탄절",copy:"우리 가운데 오신 예수님의 사랑을 기뻐하는 시간",reference:"누가복음 2:11",accent:"기쁨"};
-  if(date>=lentStart&&date<easter)return {name:"사순절",copy:"십자가를 바라보며 삶을 돌아보는 시간",reference:"마가복음 8:34",accent:"성찰"};
-  if(date>=easter&&date<=pentecost)return {name:"부활절기",copy:"부활의 소망을 일상에서 살아내는 시간",reference:"고린도전서 15:20",accent:"소망"};
-  return {name:"성령강림 후",copy:"말씀을 삶과 이웃 사랑으로 이어가는 성장의 시간",reference:"갈라디아서 5:22-23",accent:"성장"};
-}
-
-const seasonScriptures:Record<string,{text:string;path:string}>={
- "이사야 9:6":{text:"이는 한 아기가 우리에게 났고 한 아들을 우리에게 주신바 되었는데 그 어깨에는 정사를 메었고 그 이름은 기묘자라, 모사라, 전능하신 하나님이라, 영존하시는 아버지라, 평강의 왕이라 할것임이라",path:"ISA.9.6"},
- "누가복음 2:11":{text:"오늘날 다윗의 동네에 너희를 위하여 구주가 나셨으니 곧 그리스도 주시니라",path:"LUK.2.11"},
- "마가복음 8:34":{text:"무리와 제자들을 불러 이르시되 아무든지 나를 따라 오려거든 자기를 부인하고 자기 십자가를 지고 나를 좇을 것이니라",path:"MRK.8.34"},
- "고린도전서 15:20":{text:"그러나 이제 그리스도께서 죽은 자 가운데서 다시 살아 잠자는 자들의 첫 열매가 되셨도다",path:"1CO.15.20"},
- "갈라디아서 5:22-23":{text:"오직 성령의 열매는 사랑과 희락과 화평과 오래 참음과 자비와 양선과 충성과 온유와 절제니 이같은 것을 금지할 법이 없느니라",path:"GAL.5.22-23"}
-};
-
 const regions = [
   "전체", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
   "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
@@ -130,7 +110,6 @@ function LoadingCards({ count = 3 }: { count?: number }) {
 export default function Home() {
   const koreanNow=new Date(Date.now()+9*60*60*1000);
   const todayGuide=dailyGuides[koreanNow.getUTCDay()];
-  const currentSeason=seasonGuide(koreanNow);
   const todayKey=koreanNow.toISOString().slice(0,10);
   const [query, setQuery] = useState("");
   const [portalNow,setPortalNow]=useState("");
@@ -578,7 +557,7 @@ export default function Home() {
     if(!exists&&current.length>=30){setNotice("모음은 최대 30개입니다. 나의 모음에서 정리한 뒤 추가해 주세요.");return;}
     const next=exists?current.filter(saved=>saved.id!==item.id):[{...item,...((item.kind==="church"||item.kind==="pastor")&&!item.savedAt?{savedAt:new Date().toISOString()}: {})},...current];
     writeSavedItems(next);setSavedItems(readSavedItems());
-    setNotice(exists?"찜에서 뺐습니다.":"내 이어보기에 저장했습니다. 이 브라우저에만 보관됩니다.");
+    setNotice(exists?"찜에서 뺐습니다.":"나의 모음에 저장했습니다. 이 브라우저에만 보관됩니다.");
   }
 
   function isSaved(id:string){return savedItems.some((item)=>item.id===id);}
@@ -752,10 +731,7 @@ export default function Home() {
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
       </section>
 
-      <section className="season-scripture" aria-label="교회력과 성경 말씀">
-        <div className="scripture-context"><time>{koreanNow.toLocaleDateString("ko-KR",{timeZone:"UTC",year:"numeric",month:"long",day:"numeric",weekday:"long"})}</time><h2>{currentSeason.name}</h2><span className="scripture-season">{currentSeason.accent}</span><a href={`https://www.bible.com/ko/bible/88/${seasonScriptures[currentSeason.reference].path}.KRV`} target="_blank" rel="noopener noreferrer"><strong>{currentSeason.reference}</strong><span>성경에서 읽기 ↗</span></a></div>
-        <div className="scripture-reading"><blockquote>{seasonScriptures[currentSeason.reference].text}</blockquote><small>성경전서 개역한글판 · 대한성서공회</small></div>
-      </section>
+      <SeasonalScripture />
 
       <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
 
@@ -891,10 +867,7 @@ export default function Home() {
 
       {personalStateReady&&savedPastors.length>0&&<section className="favorite-pastors" aria-labelledby="favorite-pastors-title"><div><span className="section-kicker">성경과 말씀 곁에</span><h2 id="favorite-pastors-title">내가 찜한 목회자</h2><p>자주 찾는 목회자의 페이지와 새 말씀을 바로 확인하세요.</p></div><div className="favorite-pastor-list">{savedPastors.slice(0,8).map((item)=><a href={item.url} key={item.id}><span aria-hidden="true">♧</span><strong>{item.title}</strong><small>{item.subtitle}</small>{hasNewSermon(item)&&<b>NEW</b>}</a>)}</div></section>}
 
-      {personalStateReady&&<section className={`continue-section${savedItems.length?" has-items":""}`} aria-labelledby="continue-title">
-        <div><span className="section-kicker">이 브라우저에만 저장</span><h2 id="continue-title">나의 이어보기</h2><p>{savedItems.length?"관심 있는 말씀·찬양·교회·목회자·행사를 다시 만나보세요.":"말씀·찬양·교회·목회자·행사의 ‘찜’ 버튼을 누르면 여기에 모입니다."}</p><div className="journey-week" aria-label="최근 7일 오늘의 5분 완료 기록">{journeyWeek.map((day)=><span className={`${day.complete?"is-complete":""}${day.today?" is-today":""}`} key={day.key} title={`${day.key} ${day.complete?"완료":"진행 전"}`}><i>{day.complete?"✓":"·"}</i><small>{day.label}</small></span>)}</div>{savedItems.length>0&&<a className="continue-all" href="/saved">전체 모음 {savedItems.length}개 보기 →</a>}</div>
-        {savedItems.length?<div className="continue-list">{savedItems.slice(0,6).map((item)=>{const external=item.url.startsWith("http");return <article key={item.id}><span>{item.kind==="sermon"?"말씀":item.kind==="praise"?"찬양":item.kind==="event"?"행사":item.kind==="pastor"?"목회자":"교회"}{hasNewSermon(item)&&<b className="saved-new">NEW</b>}</span><a href={item.url} target={external?"_blank":undefined} rel={external?"noopener noreferrer":undefined}><strong>{item.title}</strong><small>{item.subtitle}</small></a><button type="button" onClick={()=>toggleSaved(item)} aria-label={`${item.title} 찜에서 빼기`}>×</button></article>})}</div>:<div className="continue-empty" aria-hidden="true"><span>♡</span><small>로그인 없이 가볍게 저장됩니다</small></div>}
-      </section>}
+
 
 
 
