@@ -243,3 +243,8 @@
 .open-participation-form .agreement a{text-decoration:underline;text-underline-offset:3px}
 .open-participation-form>.participation-guidance{display:block;margin-top:6px}
 @media(max-width:760px){.integrated-portal .open-participation-form{padding:16px}.participation-submit-row{gap:8px}.participation-submit-row button{padding:10px 16px}}
+
+/* Separate search from the reading surface without lengthening the masthead. */
+.integrated-portal .hero{padding-top:18px;padding-bottom:34px}
+.integrated-portal .hero h1{margin-bottom:14px}
+@media(max-width:760px){.integrated-portal .hero{padding-top:16px;padding-bottom:28px}.integrated-portal .hero h1{margin-bottom:10px}}
