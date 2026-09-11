@@ -95,3 +95,5 @@ export const praiseContestResults = sqliteTable("praise_contest_results", {
 export const praiseContestAudit = sqliteTable("praise_contest_audit", {
   id:integer("id").primaryKey({autoIncrement:true}),entryId:integer("entry_id").notNull(),action:text("action").notNull(),detail:text("detail").notNull(),createdAt:text("created_at").notNull(),
 });
+
+export const praiseContestDecisions = sqliteTable("praise_contest_decisions", {contestId:text("contest_id").primaryKey(),eligibleCount:integer("eligible_count").notNull(),cancelled:integer("cancelled").notNull(),decidedAt:text("decided_at").notNull()});

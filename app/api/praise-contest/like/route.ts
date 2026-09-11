@@ -1,10 +1,11 @@
 import { database, readLimitedJson } from "../../_shared";
 import { CONTEST, contestPhase } from "../../../praise-contest/config";
-import { browser, json, validMutation } from "../_server";
+import { browser, json, resolvedContestPhase, validMutation } from "../_server";
 export async function POST(request:Request) {
   if(!validMutation(request))return json({error:"같은 사이트에서 다시 눌러 주세요."},403);
   if(!["open","voting"].includes(contestPhase()))return json({error:"좋아요는 10월 1일부터 18일까지 참여할 수 있습니다."},409);
   try {
+    if(await resolvedContestPhase()==="cancelled")return json({error:"접수 작품이 5개 이하로 대회가 취소되어 좋아요가 종료되었습니다."},409);
     const identity=await browser(request);if(!identity)return json({error:"쿠키를 허용한 뒤 페이지를 새로 열어 주세요."},403);
     const body=await readLimitedJson(request,1024);if(body.tooLarge)return json({error:"요청을 확인해 주세요."},413);
     const id=Number(body.data.entryId);if(!Number.isSafeInteger(id)||id<1)return json({error:"참가 영상을 확인해 주세요."},400);

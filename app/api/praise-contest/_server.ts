@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { database } from "../_shared";
-import { CONTEST, type ContestEntry } from "../../praise-contest/config";
+import { CONTEST, contestPhase, type ContestEntry } from "../../praise-contest/config";
 export const noStore = { "cache-control": "private, no-store", "vary": "Cookie" };
 export function json(data: unknown, status = 200, cookie?: string) {
   return Response.json(data, { status, headers: { ...noStore, ...(cookie ? { "set-cookie": cookie } : {}) } });
@@ -28,6 +28,18 @@ export async function browser(request: Request, issue = false): Promise<{hash:st
   if (!issue) return null;
   const id = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b=>b.toString(16).padStart(2,"0")).join("");
   return {hash:await sign(`identity|${id}`),cookie:`${name}=${id}.${await sign(id)}; Path=/; Max-Age=15552000; HttpOnly; SameSite=Lax${new URL(request.url).protocol==="https:"?"; Secure":""}`};
+}
+// Freeze the entry threshold once, before any post-deadline moderation changes.
+export async function resolvedContestPhase() {
+  const phase=contestPhase();
+  if(phase==="upcoming"||phase==="open")return phase;
+  const db=database();
+  await db.prepare(`INSERT OR IGNORE INTO praise_contest_decisions(contest_id,eligible_count,cancelled,decided_at)
+    SELECT ?,COUNT(*),CASE WHEN COUNT(*)<? THEN 1 ELSE 0 END,strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM praise_contest_entries
+    WHERE contest_id=? AND status='published' AND created_at<?`).bind(CONTEST.id,CONTEST.minimumEntries,CONTEST.id,CONTEST.submissionEndsAt).run();
+  const decision=await db.prepare("SELECT cancelled FROM praise_contest_decisions WHERE contest_id=?").bind(CONTEST.id).first<{cancelled:number}>();
+  if(!decision)throw new Error("Contest decision missing");
+  return decision.cancelled?"cancelled" as const:phase;
 }
 const rankedSql = `SELECT e.id,e.performer,e.title,e.youtube_id AS youtubeId,e.channel_name AS channelName,e.created_at AS createdAt,e.reupload_url AS reuploadUrl,COUNT(v.id) AS likes
  FROM praise_contest_entries e LEFT JOIN praise_contest_votes v ON v.entry_id=e.id AND v.contest_id=e.contest_id AND v.created_at < ?
@@ -59,8 +71,9 @@ function decorate(rows: ContestEntry[], final:boolean) {
 }
 
 export async function maintainContest() {
-  if (Date.now() < Date.parse(CONTEST.resultsAt)) return;
-  await entriesWithRanks(true);
+  const phase=await resolvedContestPhase();
+  if(phase!=="cancelled"&&phase!=="finished")return;
+  if(phase==="finished")await entriesWithRanks(true);
   if (Date.now() < Date.parse(CONTEST.resultsAt) + 180 * 86400000) return;
   const db=database();
   await db.batch([
