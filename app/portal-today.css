@@ -229,3 +229,17 @@
 .participation-guidance,.participation-safety{font-size:12px;line-height:1.65;color:var(--muted)}
 .participation-safety{margin:12px 0 0}
 .participation-anchor{display:block;scroll-margin-top:100px}
+
+.integrated-portal .open-participation-form{margin:0 0 22px;padding:20px;border:1px solid #cbdad1;background:#f6f9f7;border-radius:10px;scroll-margin-top:100px}
+.participation-intro h3{margin:0;font-size:18px;font-family:inherit;font-weight:700;color:var(--ink)}
+.participation-intro p{margin:6px 0 12px;font-size:14px;line-height:1.6;color:var(--muted)}
+.open-participation-form textarea{display:block;margin:0;background:white;font:inherit;font-size:14px;line-height:1.65}
+.participation-submit-row{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-top:12px}
+.participation-submit-row>div{width:200px;max-width:60%}
+.participation-submit-row input{font-size:14px;background:white}
+.participation-submit-row button{min-height:42px;padding:10px 22px;border:0;border-radius:7px;background:var(--ink);color:white;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.open-participation-form .agreement{font-size:12px;line-height:1.5;align-items:flex-start}
+.open-participation-form .agreement input{flex:none;margin-top:2px}
+.open-participation-form .agreement a{text-decoration:underline;text-underline-offset:3px}
+.open-participation-form>.participation-guidance{display:block;margin-top:6px}
+@media(max-width:760px){.integrated-portal .open-participation-form{padding:16px}.participation-submit-row{gap:8px}.participation-submit-row button{padding:10px 16px}}

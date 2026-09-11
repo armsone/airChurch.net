@@ -1,5 +1,5 @@
 import { clean, consumeSubmissionLimit, database, ensureCommunityTables, fingerprint, readLimitedJson, requestOriginIsInvalid } from "../_shared";
-const categories=new Set(["신앙과 삶","말씀 나눔","우리 교회 이야기","기도 부탁"]);
+const categories=new Set(["이야기와 나눔","신앙과 삶","말씀 나눔","우리 교회 이야기","기도 부탁"]);
 export async function GET() {
   const db=database();
   const result=await db.prepare("SELECT id,category,nickname,content,created_at AS createdAt FROM community_posts WHERE status='approved' ORDER BY created_at DESC LIMIT 12").all();

@@ -112,7 +112,6 @@ export default function Home() {
   const todayGuide=dailyGuides[koreanNow.getUTCDay()];
   const todayKey=koreanNow.toISOString().slice(0,10);
   const [query, setQuery] = useState("");
-  const [participationKind,setParticipationKind]=useState<"community"|"talent">("community");
   const [portalNow,setPortalNow]=useState("");
   useEffect(()=>{const update=()=>setPortalNow(new Date().toISOString());update();const timer=window.setInterval(update,60000);return()=>clearInterval(timer);},[]);
   const [region, setRegion] = useState("전체");
@@ -911,19 +910,16 @@ export default function Home() {
 
       <section className="community-section community-reading" id="community">
         <div className="section-heading"><h2>이야기와 나눔</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
+        <form id="talent" className="community-form open-participation-form" onSubmit={(e)=>submitInterest(e,"community")}>
+          <div className="participation-intro"><h3>함께 나누고 싶은 이야기가 있나요?</h3><p>오늘의 생각, 기도 부탁, 나눌 수 있는 재능까지 편하게 남겨주세요.</p></div>
+          <input type="hidden" name="category" value="이야기와 나눔" />
+          <label className="sr-only" htmlFor="participation-content">나누고 싶은 내용</label><textarea id="participation-content" name="content" required minLength={20} maxLength={1000} rows={3} placeholder="어떤 이야기든 좋아요. 함께 나누고 싶은 내용을 20자 이상 적어주세요." />
+          <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+          <div className="participation-submit-row"><div><label className="sr-only" htmlFor="participation-nickname">별칭</label><input id="participation-nickname" name="nickname" minLength={2} maxLength={16} required placeholder="별칭 (2~16자)" /></div><button type="submit">글 남기기</button></div>
+          <label className="agreement"><input type="checkbox" required /><span><a href="/community-guidelines" target="_blank" rel="noopener noreferrer">공동체 원칙</a>과 검토 후 공개에 동의합니다.</span></label>
+          <small className="participation-guidance">연락처 등 개인정보는 적지 마세요.</small>
+        </form>
         {approvedPosts.length > 0 || approvedTalents.length > 0 ? <div className="approved-list">{[...approvedPosts.map(post=>({kind:"post" as const,id:post.id,title:post.nickname,label:post.category,content:post.content,createdAt:post.createdAt,post})),...approvedTalents.map(talent=>({kind:"talent" as const,id:talent.id,title:talent.title,label:`달란트 · ${talent.region}`,content:talent.description,createdAt:talent.createdAt,post:null}))].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(item=><article key={`${item.kind}:${item.id}`} id={item.kind==="post"?`community-post-${item.id}`:`community-talent-${item.id}`}><small>{item.label}</small><h3>{item.title}</h3><p>{item.content}</p>{item.post&&<button className="community-report" type="button" aria-label={`${item.title} 글을 운영자에게 신고`} onClick={()=>void reportPost(item.post!)}>원칙에 맞지 않는 글 신고</button>}</article>)}</div> : <p className="community-empty">아직 공개된 글이 없습니다. 이야기, 기도, 나누고 싶은 달란트를 남겨주세요.</p>}
-        <span id="talent" className="participation-anchor" />
-        <details className="participation-disclosure" id="participation-write"><summary>이야기와 나눔 글 쓰기</summary>
-          <form className="community-form participation-form" onSubmit={(e)=>submitInterest(e,participationKind)}>
-            <label>어떤 글을 나누고 싶나요?<select value={participationKind} onChange={e=>setParticipationKind(e.target.value as "community"|"talent")}><option value="community">이야기 · 기도</option><option value="talent">달란트 · 도움 나눔</option></select></label>
-            {participationKind==="community"?<div className="form-top"><label>주제<select name="category"><option>신앙과 삶</option><option>말씀 나눔</option><option>우리 교회 이야기</option><option>기도 부탁</option></select></label><label>별칭<input name="nickname" maxLength={16} required placeholder="사용할 별칭" /></label></div>:<div className="form-top"><label>나누고 싶은 것<input name="title" minLength={3} maxLength={100} required placeholder="예: 교회 행사 사진을 찍어드려요" /></label><label>활동 지역<input name="region" minLength={2} maxLength={60} required placeholder="예: 경기 고양 또는 온라인" /></label></div>}
-            <label>내용<textarea name={participationKind==="community"?"content":"description"} required minLength={participationKind==="community"?20:10} maxLength={participationKind==="community"?1000:800} rows={5} placeholder={participationKind==="community"?"마음에 남은 이야기나 함께 기도할 일을 나눠주세요.":"나눌 수 있는 재능과 가능한 시간, 방법을 적어주세요."} /></label>
-            <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
-            <p className="participation-guidance">연락처 등 개인정보는 적지 마세요. 모든 글은 검토 후 공개됩니다.</p>
-            <label className="agreement"><input type="checkbox" required /> <span><a href="/community-guidelines" target="_blank" rel="noopener noreferrer">공동체 원칙</a>과 검토 후 공개에 동의합니다.</span></label>
-            <button type="submit">글 나누기</button>
-          </form>
-        </details>
         <p className="participation-safety">긴급한 도움이 필요하면 112·119 또는 자살예방상담전화 109로 연락해 주세요.</p>
       </section>
 
