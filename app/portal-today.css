@@ -220,3 +220,12 @@
  .participation-disclosure{padding:0 14px}
  .integrated-portal .vision-quote blockquote{font-size:20px}
 }
+.participation-form{max-width:760px;margin:8px 0 18px}
+.participation-form>label:not(.agreement),.participation-form .form-top>label{display:block;font-size:14px;font-weight:600;margin:12px 0;color:var(--ink)}
+.participation-form label>select,.participation-form label>input{display:block;margin-top:7px}
+.participation-form .agreement{font-size:12px;font-weight:400}
+.participation-form .agreement input{flex:none;width:auto;margin:0}
+.participation-form .agreement a{text-decoration:underline;text-underline-offset:3px}
+.participation-guidance,.participation-safety{font-size:12px;line-height:1.65;color:var(--muted)}
+.participation-safety{margin:12px 0 0}
+.participation-anchor{display:block;scroll-margin-top:100px}

@@ -112,6 +112,7 @@ export default function Home() {
   const todayGuide=dailyGuides[koreanNow.getUTCDay()];
   const todayKey=koreanNow.toISOString().slice(0,10);
   const [query, setQuery] = useState("");
+  const [participationKind,setParticipationKind]=useState<"community"|"talent">("community");
   const [portalNow,setPortalNow]=useState("");
   useEffect(()=>{const update=()=>setPortalNow(new Date().toISOString());update();const timer=window.setInterval(update,60000);return()=>clearInterval(timer);},[]);
   const [region, setRegion] = useState("전체");
@@ -580,9 +581,9 @@ export default function Home() {
       const response = await fetch(`/api/${kind === "talent" ? "talents" : "posts"}`, { method:"POST", headers:{"content-type":"application/json"}, body:JSON.stringify(body) });
       if (!response.ok) throw new Error();
       form.reset();
-      setNotice(kind === "talent" ? "따뜻한 마음이 접수되었습니다. 연결 전 확인을 거쳐 안내할게요." : "글이 접수되었습니다. 서로를 지키기 위한 검토 후 공개됩니다.");
+      setNotice(kind === "talent" ? "나눔 글이 접수되었습니다. 검토 후 광장에 공개됩니다." : "글이 접수되었습니다. 서로를 지키기 위한 검토 후 공개됩니다.");
     } catch {
-      setNotice("아직 접수 기능을 준비하고 있습니다. 화면 구성은 먼저 둘러보실 수 있어요.");
+      setNotice("글을 접수하지 못했습니다. 입력 내용은 그대로 있으니 잠시 후 다시 시도해 주세요.");
     }
   }
 
@@ -909,10 +910,21 @@ export default function Home() {
 
 
       <section className="community-section community-reading" id="community">
-        <div className="section-heading"><h2>익명광장</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
-        {approvedPosts.length > 0 ? <div className="approved-list">{approvedPosts.map((post)=><article key={post.id} id={`community-post-${post.id}`}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p><button className="community-report" type="button" aria-label={`${post.nickname} 글을 운영자에게 신고`} onClick={()=>void reportPost(post)}>원칙에 맞지 않는 글 신고</button></article>)}</div> : <p className="community-empty">아직 공개된 이야기가 없습니다. 첫 마음을 나눠주세요.</p>}
-        <details className="participation-disclosure"><summary>익명으로 글 쓰기</summary><div className="community-compose"><div className="community-copy"><span className="section-kicker">서로를 지키는 익명 광장</span><h2>이름을 숨겨도,<br />말의 책임은 남도록</h2><p>신앙의 생각과 고민을 솔직하게 나누되, 교리 논쟁·비방·선동이 공동체를 해치지 않도록 모든 첫 글은 운영 원칙에 따라 검토합니다.</p><ul><li>개인정보를 요구하지 않는 별칭</li><li>신고 누적 시 자동 숨김과 운영자 확인</li><li>특정 교회·개인을 향한 확인되지 않은 비방 금지</li></ul><div className="community-safety"><strong>긴급한 도움이 필요한가요?</strong><p>이 광장은 상담기관이 아닙니다. 생명이나 안전이 위험하면 112·119, 자살예방상담전화 109에 바로 연락해 주세요.</p><a href="/community-guidelines">공동체 안전 원칙 보기 →</a></div></div>
-        <form className="community-form" onSubmit={(e) => submitInterest(e,"community")}><div className="form-top"><select name="category" aria-label="글 분류"><option>신앙과 삶</option><option>말씀 나눔</option><option>우리 교회 이야기</option><option>기도 부탁</option></select><input name="nickname" maxLength={16} required placeholder="별칭" /></div><textarea name="content" required minLength={20} maxLength={1000} rows={6} placeholder="서로에게 도움이 되는 생각을 나눠주세요. (20자 이상)" /><input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" /><label className="agreement"><input type="checkbox" required /> 공동체 원칙과 검토 후 공개에 동의합니다.</label><button type="submit">익명으로 나누기</button></form></div></details>
+        <div className="section-heading"><h2>이야기와 나눔</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
+        {approvedPosts.length > 0 || approvedTalents.length > 0 ? <div className="approved-list">{approvedPosts.map((post)=><article key={post.id} id={`community-post-${post.id}`}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p><button className="community-report" type="button" aria-label={`${post.nickname} 글을 운영자에게 신고`} onClick={()=>void reportPost(post)}>원칙에 맞지 않는 글 신고</button></article>)}{approvedTalents.map((talent)=><article key={talent.id}><small>달란트 · {talent.region}</small><h3>{talent.title}</h3><p>{talent.description}</p></article>)}</div> : <p className="community-empty">아직 공개된 글이 없습니다. 이야기, 기도, 나누고 싶은 달란트를 남겨주세요.</p>}
+        <span id="talent" className="participation-anchor" />
+        <details className="participation-disclosure" id="participation-write"><summary>이야기와 나눔 글 쓰기</summary>
+          <form className="community-form participation-form" onSubmit={(e)=>submitInterest(e,participationKind)}>
+            <label>어떤 글을 나누고 싶나요?<select value={participationKind} onChange={e=>setParticipationKind(e.target.value as "community"|"talent")}><option value="community">이야기 · 기도</option><option value="talent">달란트 · 도움 나눔</option></select></label>
+            {participationKind==="community"?<div className="form-top"><label>주제<select name="category"><option>신앙과 삶</option><option>말씀 나눔</option><option>우리 교회 이야기</option><option>기도 부탁</option></select></label><label>별칭<input name="nickname" maxLength={16} required placeholder="사용할 별칭" /></label></div>:<div className="form-top"><label>나누고 싶은 것<input name="title" minLength={3} maxLength={100} required placeholder="예: 교회 행사 사진을 찍어드려요" /></label><label>활동 지역<input name="region" minLength={2} maxLength={60} required placeholder="예: 경기 고양 또는 온라인" /></label></div>}
+            <label>내용<textarea name={participationKind==="community"?"content":"description"} required minLength={participationKind==="community"?20:10} maxLength={participationKind==="community"?1000:800} rows={5} placeholder={participationKind==="community"?"마음에 남은 이야기나 함께 기도할 일을 나눠주세요.":"나눌 수 있는 재능과 가능한 시간, 방법을 적어주세요."} /></label>
+            <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+            <p className="participation-guidance">연락처 등 개인정보는 적지 마세요. 모든 글은 검토 후 공개됩니다.</p>
+            <label className="agreement"><input type="checkbox" required /> <span><a href="/community-guidelines" target="_blank" rel="noopener noreferrer">공동체 원칙</a>과 검토 후 공개에 동의합니다.</span></label>
+            <button type="submit">글 나누기</button>
+          </form>
+        </details>
+        <p className="participation-safety">긴급한 도움이 필요하면 112·119 또는 자살예방상담전화 109로 연락해 주세요.</p>
       </section>
 
       <section className="goodshare-section" id="goodshare">
@@ -923,13 +935,6 @@ export default function Home() {
           <article className="accent"><span className="impact-icon">∞</span><small>나를 나누는 새로운 방법</small><h3>달란트 브릿지</h3><p>내가 가진 것과 할 수 있는 것, 기꺼이 내어놓는 마음을 실제 필요와 잇습니다.</p><a href="#talent">내 달란트 등록하기 →</a></article>
         </div>
       </section>
-
-      <section className="talent-section" id="talent">
-        <div><span className="section-kicker">TALENT BRIDGE</span><h2>당신의 평범한 능력이<br />누군가에겐 꼭 필요한 선물입니다</h2><p>웹사이트 제작, 사진 촬영, 차량 이동, 법률·회계 조언, 공간 제공, 반찬 한 끼까지 모두 달란트가 될 수 있습니다.</p><div className="talent-tags"><span>디자인·영상</span><span>교육·상담</span><span>수리·봉사</span><span>공간·물품</span><span>전문 지식</span><span>기도·동행</span></div></div>
-        <details className="participation-disclosure"><summary>내 달란트 등록하기</summary><form className="talent-form" onSubmit={(e) => submitInterest(e,"talent")}><h3>나눌 수 있는 달란트</h3><label>무엇을 나눌 수 있나요?<input name="title" required placeholder="예: 교회 홈페이지를 만들어 드릴 수 있어요" /></label><label>활동 가능 지역<input name="region" required placeholder="예: 경기 고양 또는 온라인" /></label><label>간단한 설명<textarea name="description" required placeholder="가능한 시간과 도울 수 있는 범위를 알려주세요" rows={4} /></label><input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" /><button type="submit">착한나눔에 마음 전하기</button><small>연락처는 공개하지 않으며, 확인된 요청과 연결할 때만 사용합니다.</small></form></details>
-      </section>
-
-      <section className="approved-section talent-approved" aria-label="공개된 달란트">{approvedTalents.length > 0 && <div><span className="section-kicker">이어진 달란트</span><h2>나눌 수 있는 선물</h2><div className="approved-list">{approvedTalents.map((talent)=><article key={talent.id}><small>{talent.region}</small><h3>{talent.title}</h3><p>{talent.description}</p></article>)}</div></div>}</section>
 
       <section className="vision-section" id="vision">
         <div className="vision-quote"><span>airChurch가 지키는 한 문장</span><blockquote>“말씀과 교회를 정직하게 연결하고, 소속과 돌봄이 필요한 사람을 건강한 지역교회로 잇습니다.”</blockquote></div>
