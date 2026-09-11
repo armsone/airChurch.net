@@ -31,3 +31,10 @@ export async function GET(){
   }
   return Response.json(cached,{headers:{"cache-control":"public, max-age=120, s-maxage=600, stale-while-revalidate=600"}});
 }
+
+// Manual refresh bypasses browser/CDN caches and shares any ongoing source fetch.
+export async function POST(){
+  if(!inFlight)inFlight=refresh().then(result=>{cached=result;return result;}).finally(()=>{inFlight=undefined;});
+  const result=await inFlight;
+  return Response.json(result,{headers:{"cache-control":"no-store"}});
+}
