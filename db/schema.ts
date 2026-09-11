@@ -87,8 +87,8 @@ export const praiseContestEntries = sqliteTable("praise_contest_entries", {
   id: integer("id").primaryKey({autoIncrement:true}), contestId: text("contest_id").notNull(), youtubeId:text("youtube_id").notNull(), performer:text("performer").notNull(), title:text("title").notNull(), channelName:text("channel_name").notNull(), contact:text("contact").notNull(), sourceFileUrl:text("source_file_url"), browserHash:text("browser_hash").notNull(), consentVersion:text("consent_version").notNull(), consentAt:text("consent_at").notNull(), status:text("status").notNull().default("published"), reuploadStatus:text("reupload_status").notNull().default("awaiting_source"), reuploadUrl:text("reupload_url"), adminNote:text("admin_note"), createdAt:text("created_at").notNull(),
 },t=>[uniqueIndex("idx_contest_unique_video").on(t.contestId,t.youtubeId),index("idx_contest_entries_order").on(t.contestId,t.status,t.createdAt)]);
 export const praiseContestVotes = sqliteTable("praise_contest_votes", {
-  id:integer("id").primaryKey({autoIncrement:true}),contestId:text("contest_id").notNull(),entryId:integer("entry_id").notNull().references(()=>praiseContestEntries.id),browserHash:text("browser_hash").notNull(),createdAt:text("created_at").notNull(),
-},t=>[uniqueIndex("idx_contest_browser_vote").on(t.contestId,t.browserHash),index("idx_contest_entry_votes").on(t.contestId,t.entryId)]);
+  id:integer("id").primaryKey({autoIncrement:true}),contestId:text("contest_id").notNull(),entryId:integer("entry_id").notNull().references(()=>praiseContestEntries.id),browserHash:text("browser_hash").notNull(),voteDay:text("vote_day").notNull().default(""),createdAt:text("created_at").notNull(),
+},t=>[uniqueIndex("idx_contest_browser_vote").on(t.contestId,t.browserHash,t.voteDay),index("idx_contest_entry_votes").on(t.contestId,t.entryId)]);
 export const praiseContestResults = sqliteTable("praise_contest_results", {
   contestId:text("contest_id").primaryKey(),snapshot:text("snapshot").notNull(),finalizedAt:text("finalized_at").notNull(),
 });

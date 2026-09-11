@@ -169,6 +169,13 @@
       "when": 1789137213129,
       "tag": "0023_praise_contest",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1789137767840,
+      "tag": "0024_brief_silver_sable",
+      "breakpoints": true
     }
   ]
 }

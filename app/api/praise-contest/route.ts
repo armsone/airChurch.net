@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     await maintainContest();
     const phase=contestPhase(), identity=await browser(request,phase==="open"||phase==="voting");
-    const [items,vote]=await Promise.all([entriesWithRanks(phase==="finished"),identity?database().prepare("SELECT entry_id AS entryId FROM praise_contest_votes WHERE contest_id=? AND browser_hash=?").bind(CONTEST.id,identity.hash).first<{entryId:number}>():null]);
+    const [items,vote]=await Promise.all([entriesWithRanks(phase==="finished"),identity?database().prepare("SELECT entry_id AS entryId FROM praise_contest_votes WHERE contest_id=? AND browser_hash=? AND vote_day=date('now','+9 hours')").bind(CONTEST.id,identity.hash).first<{entryId:number}>():null]);
     return json({items,phase,serverNow:new Date().toISOString(),votedEntryId:vote?.entryId??null,finalized:phase==="finished"},200,identity?.cookie);
   } catch { return json({error:"대회 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요."},503); }
 }
