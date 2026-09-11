@@ -33,9 +33,10 @@ export function parseDays(text) {
   const value = String(text || "");
   if (/월\s*[~-]\s*토/.test(value)) return ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
   if (/월\s*[~-]\s*금/.test(value)) return ["MON", "TUE", "WED", "THU", "FRI"];
+  if (/매일/.test(value)) return ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
   const result = [];
-  for (const match of value.matchAll(/(주일|월|화|수|목|금|토|일)(?:요일)?/g)) {
-    const day = DAYS[match[1]];
+  for (const match of value.matchAll(/(주일|[월화수목금토일]요일|[월화수목금토]요)(?=[^가-힣]|오전|오후|저녁|밤|낮|새벽|예배|기도|말씀|$)|(?<![가-힣0-9])([월화수목금토일])(?=[^가-힣]|$)/g)) {
+    const day = DAYS[(match[1] || match[2]).replace(/요일$|요$/g, "")];
     if (day && !result.includes(day)) result.push(day);
   }
   return result;
@@ -47,25 +48,31 @@ function cleanLabel(value) {
 }
 
 function serviceFromContext(lines, index, section) {
+  const inline = cleanLabel(lines[index].split(/(?:오전|오후|저녁|밤|낮)?\s*\d{1,2}\s*(?:시|:)/)[0]);
+  if (/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)/.test(inline)) return inline.replace(/(?:매주\s*)?(?:[월화수목금토일]요일|주일)\s*$/, "").trim() || inline;
   const nearby = lines.slice(Math.max(0, index - 3), index).reverse();
-  const explicit = nearby.find((line) => /(?:예배|기도회|미사|집회)/.test(line) && !/\d{1,2}\s*(?:시|:)/.test(line) && line.length <= 80);
+  const explicit = nearby.find((line) => /(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)/.test(line) && !/\d{1,2}\s*(?:시|:)/.test(line) && line.length <= 80);
   const part = nearby.find((line) => /^\d+부(?:\s*예배)?$/.test(cleanLabel(line)));
   let label = cleanLabel(part && section && !section.includes(part) ? `${section} ${cleanLabel(part)}` : explicit || section || "예배");
-  const concise = label.match(/^(.{1,50}?(?:예배|기도회|미사|집회)(?:\s*\d+부|\d+부)?)/)?.[1];
+  const concise = label.match(/^(.{1,50}?(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)(?:\s*\d+부|\d+부)?)/)?.[1];
   if (concise) label = cleanLabel(concise);
   return label;
 }
 
-function venueFromLine(line, matchedText) {
-  const rest = cleanLabel(line.replace(matchedText, "").replace(/^(?:매주\s*)?(?:(?:월|화|수|목|금|토|일)\s*[~-]\s*(?:월|화|수|목|금|토|일)|주일|월|화|수|목|금|토|일)(?:요일)?\s*/g, ""));
+function venueFromLine(line) {
+  const rest = cleanLabel(line.replace(/(오전|오후|저녁|밤|낮)?\s*\d{1,2}\s*(?:시|:)(?:\s*\d{1,2}\s*분?)?/g, "").replace(/^(?:매주\s*)?(?:(?:월|화|수|목|금|토|일)\s*[~-]\s*(?:월|화|수|목|금|토|일)|주일|월|화|수|목|금|토|일)(?:요일)?\s*/g, ""));
   return cleanLabel(rest.replace(/^[,，/\s]+/, "")) || null;
 }
 
-function venueFromContext(lines, index, matchedText) {
-  const inline = venueFromLine(lines[index], matchedText);
+function venueFromContext(lines, index) {
+  const inline = venueFromLine(lines[index]);
   if (inline && !/^(?:주일|월|화|수|목|금|토|일)(?:요일)?$/.test(inline)) return inline;
-  const next = cleanLabel(lines[index + 1] || "");
-  return next && next.length <= 120 && !/(?:예배|기도회|미사|집회|\d{1,2}\s*(?:시|:))/.test(next) ? next : null;
+  for (const nextLine of lines.slice(index + 1, index + 4)) {
+    const next = cleanLabel(nextLine);
+    if (/^(?:오전|오후|저녁|밤|낮)?\s*\d{1,2}\s*(?:시|:)\s*\d{0,2}\s*분?$/.test(next)) continue;
+    return next && next.length <= 120 && !/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회|\d{1,2}\s*(?:시|:))/.test(next) ? next : null;
+  }
+  return null;
 }
 
 function freshnessFlags(sourceLastModified, collectedAt) {
@@ -86,10 +93,10 @@ export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt
   const timePattern = /(오전|오후|저녁|밤|낮)?\s*(\d{1,2})\s*(?:시|:)(?:\s*(\d{1,2})\s*분?)?/g;
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
-    if (/(?:예배|기도회|미사|집회)$/.test(line) && line.length <= 50) section = cleanLabel(line);
+    if (/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)$/.test(line) && line.length <= 50) section = cleanLabel(line);
     for (const match of line.matchAll(timePattern)) {
       const context = lines.slice(Math.max(0, index - 3), index + 2).join(" ");
-      if (!/(예배|기도회|미사|집회)/.test(context)) continue;
+      if (!/(예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)/.test(context)) continue;
       const startTime = normalizeTime(match[1] || "", match[2], match[3] || "0");
       if (!startTime) continue;
       // 요일은 같은 행 또는 현재 예배 제목에서만 확정한다. 인접한 다른
@@ -99,11 +106,20 @@ export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt
       const sourceText = cleanLabel(lines.slice(Math.max(0, index - 2), Math.min(lines.length, index + 2)).join(" | "));
       const flags = [...freshnessFlags(sourceLastModified, collectedAt)];
       if (!dayOfWeek.length) flags.push("ambiguous_day");
-      if (!/(?:예배|기도회|미사|집회)/.test(serviceType) || /^(?:예배|예배영상)$/.test(serviceType) || /video\s*예배영상/i.test(serviceType)) flags.push("ambiguous_service");
+      if (match[0].includes(":") && !match[3]) flags.push("ambiguous_time");
+      const timePrefix = line.slice(0, match.index).trim();
+      if (!match[1] && /[가-힣]$/.test(timePrefix) && !/(?:요일|주일|예배|기도회|사경회|부)$/.test(timePrefix)) flags.push("ambiguous_time_context");
+      if (/(?:차량|노선|출발|관리자.*문의)/.test(line)) flags.push("ambiguous_non_service_time");
+      const labelDays = parseDays(serviceType);
+      if (labelDays.length === 1 && dayOfWeek.length && !dayOfWeek.includes(labelDays[0])) flags.push("ambiguous_schedule_mapping");
+      if (/(?:복음|행전|계시록|시편|잠언|로마서|고린도전서|고린도후서|창세기|출애굽기)\s*$/.test(line.slice(0, match.index)) || /\d{4}[-.]\d{1,2}[-.]\d{1,2}/.test(serviceType)) flags.push("ambiguous_scripture_or_dated_event");
+      const previous = cleanLabel(lines[index - 1] || "");
+      if (!/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)/.test(line) && !/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회|\d+부)/.test(previous) && /(?:어와나|부서|[가-힣]부(?:\s|$)|[가-힣]학교)/.test(previous)) flags.push("ambiguous_service");
+      if (!/(?:예배(?!\s*(?:당|실|장소|드림홀))|기도회|미사|집회|사경회)/.test(serviceType) || /^(?:예배|예배영상|예배\s*(?:시간|안내|장소).*)$/.test(serviceType) || /video\s*예배영상/i.test(serviceType)) flags.push("ambiguous_service");
       const record = {
         record_id: "", church_id: church.church_id, church_name: church.church_name,
         service_type: serviceType, day_of_week: dayOfWeek, start_time: startTime,
-        venue_audience: venueFromContext(lines, index, match[0]), source_text: sourceText.slice(0, 500), source_url: sourceUrl,
+        venue_audience: venueFromContext(lines, index), source_text: sourceText.slice(0, 500), source_url: sourceUrl,
         collected_at: collectedAt, source_last_modified: sourceLastModified, confidence: dayOfWeek.length ? "medium" : "low",
         review_status: flags.some((flag) => flag.startsWith("ambiguous_")) ? "hold" : "pending", flags,
       };
@@ -180,7 +196,13 @@ export function deduplicate(records) {
     const previous = byKey.get(key);
     if (!previous || String(record.collected_at) > String(previous.collected_at)) byKey.set(key, { ...record, record_id: key });
   }
-  return [...byKey.values()];
+  const unique = [...byKey.values()];
+  // A part-only venue from a homepage duplicates the same part with its room
+  // on the detailed guide. Do not merge different departments or actual rooms.
+  return unique.filter((record) => !/^\d+부$/.test(record.venue_audience || "") || !unique.some((other) =>
+    other !== record && other.church_id === record.church_id && other.service_type === record.service_type &&
+    other.day_of_week.join(",") === record.day_of_week.join(",") && other.start_time === record.start_time &&
+    String(other.venue_audience || "").startsWith(`${record.venue_audience} `)));
 }
 
 export function parseRobots(text, userAgent = "AirChurchWorshipCollector") {

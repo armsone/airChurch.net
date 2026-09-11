@@ -12,7 +12,7 @@ const reviewedAt=new Date().toISOString();
 const candidates=[...(bundle.candidates??[]).map((item)=>({...item,candidateType:"worship_schedule",recordId:item.record_id})),...(bundle.profiles??[]).map((item)=>({...item,candidateType:"church_profile",recordId:item.profile_id}))];
 const reviews=candidates.map((item)=>{
   const flags=item.flags??[];
-  const clearSchedule=item.candidateType==="worship_schedule"&&Array.isArray(item.day_of_week)&&item.day_of_week.length===1&&/^\d{2}:\d{2}$/.test(item.start_time??"")&&Boolean(String(item.service_type??"").trim())&&/^https?:\/\//.test(item.source_url??"")&&!flags.some((flag)=>unsafeFlags.has(flag));
+  const clearSchedule=item.candidateType==="worship_schedule"&&Array.isArray(item.day_of_week)&&item.day_of_week.length===1&&/^\d{2}:\d{2}$/.test(item.start_time??"")&&Boolean(String(item.service_type??"").trim())&&/^https?:\/\//.test(item.source_url??"")&&item.review_status==="pending"&&!flags.some((flag)=>unsafeFlags.has(flag)||flag.startsWith("ambiguous_"))&&!/\d{1,2}\s*(?:시|:)\s*\d{0,2}/.test(item.venue_audience??"");
   return {record_id:item.recordId,decision:clearSchedule?"approve":"reject",reviewed_at:reviewedAt,note:clearSchedule?"공식 출처의 교회·예배명·요일·시각이 한 항목으로 명확함":"자동 공개 기준 밖이므로 자료는 보존하고 공개만 보류"};
 });
 const approvedCount=reviews.filter((item)=>item.decision==="approve").length;
