@@ -58,3 +58,6 @@ ADMIN_SESSION_SECRET을 바꾸기 전에 이전 키를 안전하게 보존하고
 국세청 기타소득 안내: https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7893
 YouTube 대회 정책: https://support.google.com/youtube/answer/1620498?hl=ko
 2026-09-12 한국 시간 확인. 이 대회에 적용할 세액을 코드가 자동 확정하지 않는다.
+
+## 행사 목록과 날짜 주소
+공개 행사 목록은 /our-events, 10월 영구 주소는 /praise-contest/2026-10. 기존 /praise-contest 주소도 10월 페이지로 유지한다. 다음 회차를 만들 때 기존 board/config/API의 praise-2026-10 연결을 다른 ID로 덮어쓰지 않는다. 현재 회차 추가·수정은 코드로 관리하며 관리자에서 새 회차를 만드는 기능은 아직 없다. 새 회차 개발 시 날짜별 board/API/config 분리를 완료하고 과거 페이지 조회를 검증해야 한다.
