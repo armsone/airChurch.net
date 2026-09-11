@@ -32,7 +32,7 @@ export default function CtsDiscovery({compact=false,dedicated=false}:{compact?:b
   useEffect(()=>{void refresh();const interval=setInterval(()=>void refresh(),15*60000);return()=>{request.current?.abort();request.current=null;clearInterval(interval);};},[refresh]);
   const filtered=mixFaithVideos(category==="추천"?items:items.filter(video=>video.category===category)).filter(video=>!query.trim()||`${video.title} ${video.source}`.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
   const start=filtered.length?videoOffset%filtered.length:0;
-  const visible=[...filtered.slice(start),...filtered.slice(0,start)].slice(0,compact?2:dedicated?limit:4);
+  const visible=[...filtered.slice(start),...filtered.slice(0,start)].slice(0,compact?4:dedicated?limit:4);
 
   const player=useRef<HTMLDivElement>(null);
   const play=(video:Video)=>{setPlaying(video);requestAnimationFrame(()=>player.current?.scrollIntoView({block:"nearest",behavior:"auto"}));};
