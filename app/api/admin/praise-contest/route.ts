@@ -23,7 +23,7 @@ export async function PATCH(request:Request){
   if(["ready","uploaded"].includes(reuploadStatus)&&d.rightsReviewed!==true)return json({error:"원본과 곡·반주·출연자 게시 권리 확인을 체크해 주세요."},400);
   const results=await db.batch([
    contestDecisionStatement(),
-   db.prepare(`UPDATE praise_contest_entries SET status=?,reupload_status=?,reupload_url=?,admin_note=? WHERE id=? AND contest_id=?`).bind(status,reuploadStatus,uploadedId?`https://www.youtube.com/watch?v=${uploadedId}`:null,note,id,CONTEST.id),
+   db.prepare(`UPDATE praise_contest_entries SET status=?,reupload_status=?,reupload_url=?,admin_note=? WHERE id=? AND contest_id=? AND (strftime('%Y-%m-%dT%H:%M:%fZ','now')<? OR EXISTS (SELECT 1 FROM praise_contest_results WHERE contest_id=?))`).bind(status,reuploadStatus,uploadedId?`https://www.youtube.com/watch?v=${uploadedId}`:null,note,id,CONTEST.id,CONTEST.resultsAt,CONTEST.id),
    db.prepare("INSERT INTO praise_contest_audit(entry_id,action,detail,created_at) SELECT ?,'admin-update',?,strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE changes()>0").bind(id,JSON.stringify({status,reuploadStatus,note,rightsReviewed:d.rightsReviewed===true})),
   ]);
   if(!results[1].meta.changes)return json({error:"집계가 마감되어 상태를 변경하지 못했습니다."},409);

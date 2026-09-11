@@ -55,7 +55,7 @@ export async function entriesWithRanks(final: boolean): Promise<ContestEntry[]> 
     if (saved) return visibleFinal(JSON.parse(saved.snapshot) as ContestEntry[]);
     // One atomic INSERT...SELECT freezes the whole ranking; UNIQUE contest_id makes concurrent finalization idempotent.
     await db.prepare(`INSERT OR IGNORE INTO praise_contest_results(contest_id,snapshot,finalized_at)
-      SELECT ?,COALESCE(json_group_array(json_object('id',id,'performer',performer,'title',title,'youtubeId',youtubeId,'channelName',channelName,'createdAt',createdAt,'reuploadUrl',reuploadUrl,'likes',likes))),'[]'),strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM (${rankedSql})`).bind(CONTEST.id,CONTEST.votingEndsAt,CONTEST.id,CONTEST.submissionEndsAt).run();
+      SELECT ?,COALESCE(json_group_array(json_object('id',id,'performer',performer,'title',title,'youtubeId',youtubeId,'channelName',channelName,'createdAt',createdAt,'reuploadUrl',reuploadUrl,'likes',likes)),'[]'),strftime('%Y-%m-%dT%H:%M:%fZ','now') FROM (${rankedSql})`).bind(CONTEST.id,CONTEST.votingEndsAt,CONTEST.id,CONTEST.submissionEndsAt).run();
     const result = await db.prepare("SELECT snapshot FROM praise_contest_results WHERE contest_id=?").bind(CONTEST.id).first<{snapshot:string}>();
     if (!result) throw new Error("Finalization missing");
     return visibleFinal(JSON.parse(result.snapshot) as ContestEntry[]);

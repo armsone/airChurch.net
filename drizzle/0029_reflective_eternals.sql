@@ -1,0 +1,1 @@
+ALTER TABLE `praise_contest_payments` ADD `attempt_id` text DEFAULT '' NOT NULL;
