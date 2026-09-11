@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import CtsDiscovery from "./cts-discovery";
 import { safeHttpUrl } from "./safe-url";
 import type { SavedItem } from "./saved-items";
 
@@ -41,5 +42,6 @@ export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLo
       </article>
     </div>
     {children}
+    <CtsDiscovery/>
   </section>;
 }
