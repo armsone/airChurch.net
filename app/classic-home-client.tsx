@@ -732,7 +732,7 @@ export default function Home() {
 
       <SeasonalScripture />
 
-      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
+      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={[...approvedPosts,...approvedTalents.map(item=>({id:-item.id,category:"달란트 나눔",nickname:item.region,content:`${item.title} · ${item.description}`,createdAt:item.createdAt,href:`#community-talent-${item.id}`}))].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
 
       <section className="content-section" id="sermons">
         <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><div className="news-home-actions"><button className="unified-other-button" type="button" disabled={sermonLoading||filtered.length<=12} onClick={()=>setSermonOffset(value=>value+12)}>다른 말씀 보기</button><a className="unified-other-button" href="/sermons">전체 말씀 보기 →</a></div></div>
@@ -910,8 +910,8 @@ export default function Home() {
 
       <section className="community-section community-reading" id="community">
         <div className="section-heading"><h2>이야기와 나눔</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
-        <form id="talent" className="community-form open-participation-form" onSubmit={(e)=>submitInterest(e,"community")}>
-          <div className="participation-intro"><h3>함께 나누고 싶은 이야기가 있나요?</h3><p>오늘의 생각, 기도 부탁, 나눌 수 있는 재능까지 편하게 남겨주세요.</p></div>
+        <span id="goodshare" className="participation-anchor" /><form id="talent" className="community-form open-participation-form" onSubmit={(e)=>submitInterest(e,"community")}>
+          <div className="participation-intro"><h3>함께 나누고 싶은 이야기가 있나요?</h3><p>오늘의 이야기와 기도부터 작은 교회 돕기, 은퇴 목회자 동행, 재능 나눔까지. 함께하고 싶은 마음을 남겨주세요.</p></div>
           <input type="hidden" name="category" value="이야기와 나눔" />
           <label className="sr-only" htmlFor="participation-content">나누고 싶은 내용</label><textarea id="participation-content" name="content" required minLength={20} maxLength={1000} rows={3} placeholder="어떤 이야기든 좋아요. 함께 나누고 싶은 내용을 20자 이상 적어주세요." />
           <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
@@ -921,15 +921,6 @@ export default function Home() {
         </form>
         {approvedPosts.length > 0 || approvedTalents.length > 0 ? <div className="approved-list">{[...approvedPosts.map(post=>({kind:"post" as const,id:post.id,title:post.nickname,label:post.category,content:post.content,createdAt:post.createdAt,post})),...approvedTalents.map(talent=>({kind:"talent" as const,id:talent.id,title:talent.title,label:`달란트 · ${talent.region}`,content:talent.description,createdAt:talent.createdAt,post:null}))].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(item=><article key={`${item.kind}:${item.id}`} id={item.kind==="post"?`community-post-${item.id}`:`community-talent-${item.id}`}><small>{item.label}</small><h3>{item.title}</h3><p>{item.content}</p>{item.post&&<button className="community-report" type="button" aria-label={`${item.title} 글을 운영자에게 신고`} onClick={()=>void reportPost(item.post!)}>원칙에 맞지 않는 글 신고</button>}</article>)}</div> : <p className="community-empty">아직 공개된 글이 없습니다. 이야기, 기도, 나누고 싶은 달란트를 남겨주세요.</p>}
         <p className="participation-safety">긴급한 도움이 필요하면 112·119 또는 자살예방상담전화 109로 연락해 주세요.</p>
-      </section>
-
-      <section className="goodshare-section" id="goodshare">
-        <div className="section-heading centered"><div><span className="section-kicker">goodshare · 착한나눔</span><h2>마음이 필요한 곳에 닿도록</h2><p>돈만이 아니라 시간, 경험, 공간, 기술, 기도로 서로의 빈틈을 채웁니다.</p></div></div>
-        <div className="impact-grid">
-          <article><span className="impact-icon">⌂</span><small>함께 서는 교회</small><h3>작은 교회 살리기</h3><p>지역을 지키는 작은 교회의 필요한 일과 도울 수 있는 성도를 연결합니다.</p><a href="#talent">필요와 달란트 연결하기 →</a></article>
-          <article><span className="impact-icon">✦</span><small>수고를 기억하는 공동체</small><h3>은퇴 목회자 동행</h3><p>오랜 섬김 뒤의 생활·건강·사역 경험이 단절되지 않도록 함께합니다.</p><a href="#talent">동행 방법 알아보기 →</a></article>
-          <article className="accent"><span className="impact-icon">∞</span><small>나를 나누는 새로운 방법</small><h3>달란트 브릿지</h3><p>내가 가진 것과 할 수 있는 것, 기꺼이 내어놓는 마음을 실제 필요와 잇습니다.</p><a href="#talent">내 달란트 등록하기 →</a></article>
-        </div>
       </section>
 
       <section className="vision-section" id="vision">
