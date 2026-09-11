@@ -2,6 +2,7 @@
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import type { LogoColor, LogoPalette } from "../../logo-palettes";
+import DirectoryImage from "../../directory-image";
 import { denominationMark } from "../../directory-cards";
 
 type Rgb = LogoColor;
@@ -151,10 +152,10 @@ function SeasonExplorerStrip({ explorer }: { explorer: SeasonExplorer }) {
   return <div className="liturgical-season-explorer" aria-label="절기 배경 미리보기" onPointerLeave={() => explorer.setHovered(null)}>{SEASON_KEYS.map((key) => <button key={key} type="button" aria-label={`${previewSeason(key)?.name} 배경 보기`} onPointerEnter={() => explorer.setHovered(key)} onFocus={() => explorer.setHovered(key)} onBlur={() => explorer.setHovered(null)} onClick={() => explorer.setSelected(key)} />)}</div>;
 }
 
-export default function ChurchDetailHero({ image, publicId, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
+export default function ChurchDetailHero({ image, name, pastor, region, denomination, primaryPerson, children }: { image: string | null; publicId: number; name: string; pastor: string; region: string; denomination: string; primaryPerson: { public_id: number } | undefined; children: ReactNode }) {
   const activePalette = useLogoPalette(image, denominationMark(denomination)?.src ?? null);
   const explorer = useSeasonExplorer();
-  return <SeasonExplorerContext.Provider value={explorer}><section className={`church-detail-hero season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <img src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta"><a className="church-pastor-profile-link" href={primaryPerson ? `/pastors/${primaryPerson.public_id}` : `/church/${publicId}`}>{pastor} 목회 기록 보기 →</a><span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={explorer.defaultSeason} inActions/>{children}</div><SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
+  return <SeasonExplorerContext.Provider value={explorer}><section className={`church-detail-hero season-${explorer.season.key}${activePalette ? " has-logo-palette" : ""}`} style={activePalette ? paletteStyle(activePalette) : undefined} id="primary-content" tabIndex={-1}><div className="church-detail-identity">{image ? <DirectoryImage fallbackLabel="교회" src={image} alt="" width={96} height={96} loading="eager" decoding="async" referrerPolicy="no-referrer" /> : <span aria-hidden="true">교회</span>}<div><small>확인된 공식 정보</small><h1>{name}</h1><p className="church-detail-meta">{primaryPerson?<a className="church-pastor-profile-link" href={`/pastors/${primaryPerson.public_id}`}>{pastor} 목회 기록 보기 →</a>:<span>{pastor}</span>}<span>{region}</span><span>{denomination}</span></p></div></div><div className="church-detail-actions"><SeasonLabel season={explorer.defaultSeason} inActions/>{children}</div><SeasonExplorerStrip explorer={explorer}/></section></SeasonExplorerContext.Provider>;
 }
 
 function useLogoPalette(image: string | null, fallbackImage: string | null) {

@@ -1,4 +1,5 @@
 import {database,ensurePastorPeopleTables} from "../../_shared";
+import recoveredPhotos from "../../../../data/recovered-pastor-photos.json";
 
 type PhotoRecord={photo_url:string};
 const allowedTypes=new Set(["image/jpeg","image/png","image/webp","image/gif"]);
@@ -34,5 +35,12 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
   const db=database();await ensurePastorPeopleTables(db);
   const photo=await db.prepare("SELECT photo_url FROM pastor_people WHERE COALESCE(public_id,1000000+id)=? AND review_status='approved' AND photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') LIMIT 1").bind(id).first<PhotoRecord>();
   const url=photo?.photo_url?safeRemoteImage(photo.photo_url):null;if(!url)return new Response(null,{status:404});
-  try{const image=await fetchImage(url);return new Response(image.bytes,{headers:{"content-type":image.contentType,"cache-control":"public, max-age=86400, stale-while-revalidate=604800","x-content-type-options":"nosniff"}});}catch{return new Response(null,{status:502,headers:{"cache-control":"public, max-age=300"}});}
+  // These verified copies retain the live approval check above. A changed source
+  // must never receive an older person's portrait from the recovery collection.
+  const recovered=(recoveredPhotos as Record<string,{sourceUrl:string;contentType:string;base64:string}>)[String(id)];
+  if(recovered?.sourceUrl===photo?.photo_url){
+    const bytes=Uint8Array.from(atob(recovered.base64),(character)=>character.charCodeAt(0));
+    return new Response(bytes,{headers:{"content-type":recovered.contentType,"cache-control":"public, max-age=86400, stale-while-revalidate=604800","x-content-type-options":"nosniff"}});
+  }
+  try{const image=await fetchImage(url);return new Response(image.bytes,{headers:{"content-type":image.contentType,"cache-control":"public, max-age=86400, stale-while-revalidate=604800","x-content-type-options":"nosniff"}});}catch{return new Response(null,{status:502,headers:{"cache-control":"no-store"}});}
 }

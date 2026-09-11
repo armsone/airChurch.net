@@ -777,3 +777,5 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .publisher-news-card .church-news-mark img{inset:6px;width:88px;height:52px;object-fit:contain}
 .publisher-news-card .church-news-thumb small{max-width:108px}
 .news-mark-fallback{padding:6px;font-size:12px;font-weight:800;line-height:1.4;word-break:keep-all;text-align:center}
+
+.directory-image-unavailable{display:flex;align-items:center;justify-content:center;min-height:96px;aspect-ratio:16/9;background:#edf1ee;color:#52665b;font-size:12px;text-align:center;padding:12px;box-sizing:border-box}

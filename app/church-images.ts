@@ -15,7 +15,7 @@ export const churchImageUrls: Readonly<Record<string,string>> = {
   "지구촌교회": "https://www.jiguchon.or.kr/icon_500.jpg",
   "할렐루야교회": "https://www.hallelujah.or.kr/common2/images/common/favicon.ico",
   "제자광성교회": "https://www.jejaks.org/UserData/jejaks/Layouts/jejaks_layout/Images/1.logo_3.png",
-  "한소망교회": "https://www.hansomang.or.kr/images/main/logo.gif",
+  "한소망교회": "https://airchurch.net/church-logos/hansomang.png",
   "만나교회": "https://manna.or.kr/wp-content/themes/manna/images/touch-icon-web.jpg",
   "호산나교회": "https://www.thehosanna.com/UserData/thehosanna/Layouts/thehosanna_Layout/Images/1_gnb_logo.png",
   "새문안교회": "https://www.saemoonan.org/ico/apple-touch-icon.png",
