@@ -8981,5 +8981,77 @@
         "unavailable": true
       }
     ]
+  },
+  "older_video_audit": {
+    "search_pages": 20,
+    "video_images_checked": 156,
+    "videos": [
+      {
+        "id": "1KXbmvuLdu0",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "2ESxdVP3LOA",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "ADP8JROEcK8",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "KCl1OWeBWvk",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "U-DQAAexsTA",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "YgWUmhOvUus",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "_mprYe3ijws",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "bOEeSxvAFnM",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "gURdfmIBx0w",
+        "oembedStatus": 404,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "sAFavXhsQc0",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      },
+      {
+        "id": "yuWXFlyCz9c",
+        "oembedStatus": 403,
+        "hqStatus": 404,
+        "unavailable": true
+      }
+    ]
   }
 }
