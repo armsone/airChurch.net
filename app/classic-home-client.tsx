@@ -744,6 +744,8 @@ export default function Home() {
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
       </section>
 
+      <aside className="search-scripture" aria-label="성경 말씀"><span aria-hidden="true">📖</span><blockquote>수고하고 무거운 짐진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라</blockquote><a href="https://www.bible.com/ko/bible/88/MAT.11.28.KRV" target="_blank" rel="noopener noreferrer">마태복음 11:28 · 개역한글 ↗</a></aside>
+
       <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
 
 
