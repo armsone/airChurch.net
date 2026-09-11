@@ -682,7 +682,7 @@ export default function Home() {
   function toggleChurchDirectory() {
     const collapsing=showAllChurches;
     setShowAllChurches(!showAllChurches);
-    if(collapsing) requestAnimationFrame(()=>document.querySelector("#church-directory")?.scrollIntoView({block:"start",behavior:"smooth"}));
+    if(collapsing) requestAnimationFrame(()=>document.querySelector("#church-directory")?.scrollIntoView({block:"start",behavior:"instant"}));
   }
 
   async function shareVideo(video: { youtubeId?: string; title: string; church: string; pastor: string }) {
