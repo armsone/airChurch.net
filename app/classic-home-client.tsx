@@ -730,7 +730,12 @@ export default function Home() {
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
       </section>
 
-      <SeasonalScripture />
+      <div className="scripture-feature-row">
+        <SeasonalScripture />
+        <a className="contest-poster-banner" href="/praise-contest" aria-label="찬양대회 안내 보기 · 2026년 10월 1일부터 15일까지 참가 접수">
+          <img src="/images/praise-contest-2026-square.png" width={1024} height={1024} alt="airchurch 찬양대회 · 2026. 10. 1–15 참가 접수 · 대회 안내 보기" />
+        </a>
+      </div>
 
       <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={[...approvedPosts,...approvedTalents.map(item=>({id:-item.id,category:"달란트 나눔",nickname:item.region,content:`${item.title} · ${item.description}`,createdAt:item.createdAt,href:`#community-talent-${item.id}`}))].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
 

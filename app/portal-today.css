@@ -248,3 +248,16 @@
 .integrated-portal .hero{padding-top:18px;padding-bottom:34px}
 .integrated-portal .hero h1{margin-bottom:14px}
 @media(max-width:760px){.integrated-portal .hero{padding-top:16px;padding-bottom:28px}.integrated-portal .hero h1{margin-bottom:10px}}
+
+/* Scripture remains the main feature; a square contest poster sits beside it. */
+.scripture-feature-row{max-width:1132px;margin:0 auto 18px;display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px;align-items:start}
+.scripture-feature-row>.season-scripture{width:100%;max-width:none;margin:0;min-height:240px;grid-template-columns:190px minmax(0,1fr)}
+.scripture-feature-row .scripture-context{padding:20px}
+.scripture-feature-row .scripture-reading{padding:24px}
+.scripture-feature-row .scripture-reading blockquote{font-size:23px;line-height:1.7}
+.contest-poster-banner{display:block;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#193930;line-height:0}
+.contest-poster-banner img{display:block;width:100%;height:100%;object-fit:contain}
+.contest-poster-banner:focus-visible{outline:3px solid var(--orange);outline-offset:4px}
+@media(max-width:1180px){.scripture-feature-row{margin-left:24px;margin-right:24px}}
+@media(min-width:761px) and (max-width:980px){.scripture-feature-row{grid-template-columns:minmax(0,1fr) 210px}.scripture-feature-row>.season-scripture{grid-template-columns:1fr;min-height:210px}.scripture-feature-row .scripture-context{padding:14px 20px}.scripture-feature-row .scripture-context h2{font-size:18px}.scripture-feature-row .scripture-context>a{margin-top:8px;padding-top:8px}.scripture-feature-row .scripture-reading{padding:18px 20px}.scripture-feature-row .scripture-reading blockquote{font-size:21px}}
+@media(max-width:760px){.scripture-feature-row{margin:0 16px 16px;grid-template-columns:1fr;gap:14px}.scripture-feature-row>.season-scripture{grid-template-columns:1fr;min-height:0}.scripture-feature-row .scripture-context{padding:16px 20px}.scripture-feature-row .scripture-reading{padding:20px}.scripture-feature-row .scripture-reading blockquote{font-size:21px}.contest-poster-banner{width:min(100%,280px);justify-self:center}}
