@@ -9053,5 +9053,15 @@
         "unavailable": true
       }
     ]
+  },
+  "final_verification": {
+    "checked_at": "2026-09-11T16:14:22.660736+00:00",
+    "site_version": 578,
+    "commit": "d69ac760f793bce2b66587781192b8eb2d04155a",
+    "remaining_affected_pages_checked": 14,
+    "page_errors": 0,
+    "replacement_images_checked": 6,
+    "broken_images": 0,
+    "unavailable_video_ids_hidden": 830
   }
 }
