@@ -11,7 +11,10 @@ export const metadata: Metadata = {
   title: "에어처치 | 말씀을 발견하고 교회와 이어지는 곳",
   description: "공개된 말씀과 교계 소식을 정리하고, 사람을 건강한 지역교회와 잇는 가볍고 정직한 크리스천 포털",
   category: "religion",
-  verification: { google: "nNxbb3NBzUX3Nf1Xy79UGJKs2d2a6-egj06BPJFjSPg" },
+  verification: {
+    google: "nNxbb3NBzUX3Nf1Xy79UGJKs2d2a6-egj06BPJFjSPg",
+    other: { "naver-site-verification": "e857bad726151196aee5a281878796705fc8b6a5" },
+  },
   manifest: "/site.webmanifest",
   icons: {
     icon: "/favicon.svg",
