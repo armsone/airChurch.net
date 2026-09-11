@@ -159,3 +159,64 @@
  .scripture-context h2{font-size:18px;margin:0}
  .portal-eight .portal-switch{gap:14px}
 }
+
+/* Shared section rhythm and category cues continue the overview palette. */
+.integrated-portal #sermons{--section-tone:#355c47}
+.integrated-portal #praises{--section-tone:#7051a0}
+.integrated-portal #shorts{--section-tone:#7051a0}
+.integrated-portal #faith-stories{--section-tone:#946127}
+.integrated-portal #church-news{--section-tone:#365e93}
+.integrated-portal :is(#interest-ranking,#church-directory){--section-tone:#36746a}
+.integrated-portal #pastor-directory{--section-tone:#655a8e}
+.integrated-portal #events{--section-tone:#a45733}
+.integrated-portal #community{--section-tone:#975b70}
+.integrated-portal :is(#goodshare,#talent){--section-tone:#36746a}
+.integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:30px;padding-bottom:30px;border-top:1px solid #d4dfd8}
+.integrated-portal .section-heading,.integrated-portal>.cts-discovery>.portal-panel-heading{border-bottom:0;border-left:3px solid var(--section-tone,#355c47);padding:2px 0 2px 12px;margin-bottom:20px;min-height:38px}
+.integrated-portal .section-heading .section-kicker{color:var(--section-tone,#527061);font-size:11px}
+.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:23px;margin:0;line-height:1.4}
+.integrated-portal .news-home-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.integrated-portal .news-home-actions>.unified-other-button{font-size:12px;min-height:36px;padding:8px 12px;border:1px solid #d4dfd7;border-radius:7px;background:white;color:var(--ink);font-weight:650;line-height:1.4}
+.integrated-portal :is(.praise-tabs,.cts-switch){display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.integrated-portal :is(.praise-tabs,.cts-switch) button{min-height:36px;padding:7px 12px;border:1px solid #d4dfd7;border-radius:7px;background:#fff;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;line-height:1.5}
+.integrated-portal :is(.praise-tabs,.cts-switch) button[aria-pressed=true]{background:var(--section-tone,#355c47);border-color:var(--section-tone,#355c47);color:white}
+.integrated-portal #church-news .publisher-news-card{grid-template-columns:76px minmax(0,1fr);border-radius:10px}
+.integrated-portal #church-news .church-news-thumb{background:#f3f6f4;padding:8px 4px}
+.integrated-portal #church-news .church-news-mark{width:64px;height:48px;border-radius:6px}
+.integrated-portal #church-news .church-news-mark img{inset:4px;width:56px;height:40px}
+.integrated-portal #church-news .church-news-thumb small{max-width:68px;color:#66746d;font-weight:600}
+.integrated-portal>.community-reading{display:block}
+.community-reading>.approved-list,.talent-approved .approved-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.community-reading>.approved-list article,.talent-approved .approved-list article{margin:0;padding:18px;border:1px solid #dbe4de;border-radius:10px;background:#fff;min-width:0}
+.community-reading .approved-list p{font-size:14px;line-height:1.75;overflow-wrap:anywhere}
+.community-reading .approved-list small{font-size:12px;color:#975b70}
+.community-reading .community-report{font-size:12px;margin-top:14px}
+.community-empty{color:var(--muted);font-size:14px}
+.participation-disclosure{border:1px solid #d4dfd7;border-radius:10px;background:#fff;padding:0 18px}
+.participation-disclosure>summary{padding:14px 0;cursor:pointer;font-size:14px;font-weight:700;color:var(--ink)}
+.participation-disclosure>summary:focus-visible{outline:2px solid var(--orange);outline-offset:3px}
+.community-compose{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:10px 0 18px;align-items:start}
+.integrated-portal .community-compose .community-copy h2{font-family:inherit;font-size:20px;line-height:1.5;margin:8px 0}
+.integrated-portal :is(.community-form,.talent-form){padding:18px;border:1px solid #dbe4de;border-radius:8px;box-shadow:none}
+.integrated-portal .talent-section{display:block}
+.integrated-portal .talent-section>div>p{max-width:none}
+.integrated-portal .talent-section h2{font-size:23px;font-family:inherit;margin:6px 0 10px}
+.integrated-portal .talent-section h2 br{display:none}
+.integrated-portal .talent-tags{margin:12px 0 18px}
+.participation-disclosure>.talent-form{margin-bottom:18px;max-width:700px}
+.integrated-portal>.talent-approved{display:block;padding-bottom:24px}
+.talent-approved:empty{display:none}
+.integrated-portal>.talent-approved>div{border:0;padding:0;background:none}
+.integrated-portal .vision-quote blockquote{font-family:inherit;font-size:22px;line-height:1.6}
+.integrated-portal :is(.impact-grid,.goal-grid) article{border-radius:10px;padding:20px;box-shadow:none}
+.integrated-portal :is(.impact-grid,.goal-grid) h3{font-family:inherit;font-size:18px}
+.integrated-portal .page-jumps .jump-overview{font-size:10px;font-weight:700}
+#daily-scripture,#portal-today-title{scroll-margin-top:90px}
+@media(max-width:760px){
+ .integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:24px;padding-bottom:24px}
+ .integrated-portal .section-heading{align-items:flex-start;gap:12px}
+ .integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:21px}
+ .community-reading>.approved-list,.talent-approved .approved-list,.community-compose{grid-template-columns:1fr}
+ .participation-disclosure{padding:0 14px}
+ .integrated-portal .vision-quote blockquote{font-size:20px}
+}
