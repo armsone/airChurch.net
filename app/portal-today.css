@@ -30,3 +30,25 @@
 .portal-eight .portal-picks:not(.portal-rank-picks) strong{min-height:40px}.portal-eight .portal-picks:not(.portal-rank-picks) small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.portal-eight .portal-video small{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}.portal-eight .faith-video-source{white-space:nowrap;overflow:hidden}.portal-eight .faith-video-source small{overflow:hidden;text-overflow:ellipsis}.portal-eight .faith-video-source a{flex:none}
 
 .portal-eight .portal-video,.portal-eight .faith-video-card,.portal-eight .portal-picks li{height:96px;min-height:96px}.portal-eight .portal-picks li>a{min-width:0;display:block}.portal-eight .portal-rank-picks strong{-webkit-line-clamp:1}.portal-eight .portal-rank-picks small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.portal-eight .portal-panel{min-height:498px}.portal-eight .portal-player{height:auto;min-height:0}.portal-eight .portal-video:has(.portal-player){height:auto;min-height:96px}.portal-eight .portal-empty{min-height:96px}@media(max-width:760px){.portal-eight .portal-panel{min-height:0}}
+
+/* Compact portal overview: shared headers, four readable rows, less empty space. */
+.integrated-portal .hero{padding-top:16px;padding-bottom:8px}
+.portal-today{padding-bottom:20px}
+.integrated-portal .portal-heading{padding-top:12px;padding-bottom:12px;margin-bottom:12px;gap:12px}
+.portal-heading>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.portal-heading h2{margin:0;font-size:23px;order:-1}
+.portal-heading>div>.portal-caption{flex-basis:100%;margin:0;font-size:11px}
+.portal-eight{gap:10px}
+.portal-eight>.portal-panel{padding:14px 16px 8px;min-height:0;border-radius:10px;box-shadow:none}
+.portal-eight .portal-panel-heading{min-height:28px;padding-bottom:9px}
+.portal-eight .portal-caption,.portal-eight .portal-switch{height:32px;min-height:32px;margin:8px 0 4px;align-items:center}
+.portal-eight .portal-caption{display:flex;align-items:center;font-size:11px;line-height:1.4}
+.portal-eight .portal-video,.portal-eight .faith-video-card,.portal-eight .portal-picks li{height:76px;min-height:76px;padding:8px 0}
+.portal-eight .portal-video,.portal-eight .faith-video-card{grid-template-columns:84px minmax(0,1fr);column-gap:10px}
+.portal-eight .portal-picks:not(.portal-rank-picks) strong{min-height:0;line-height:1.45}
+.portal-eight .portal-video strong,.portal-eight .faith-video-title{line-height:1.45}
+.portal-eight .portal-picks small,.portal-eight .portal-video small,.portal-eight .faith-video-source{margin-top:4px}
+.portal-eight .portal-rank-picks li{gap:10px}
+.portal-eight .portal-video:has(.portal-player){height:auto;min-height:76px}
+.integrated-portal .portal-extras{padding-top:8px}
+@media(max-width:760px){.portal-heading>div{gap:6px 10px}.portal-heading h2{font-size:21px}.portal-heading>a{font-size:11px}.portal-eight>.portal-panel{padding:14px 16px 8px}.portal-eight .portal-caption{height:32px;min-height:32px}.portal-eight .portal-switch{height:36px;min-height:36px}.portal-eight .portal-switch button{min-height:34px}.portal-eight .portal-video,.portal-eight .faith-video-card{grid-template-columns:92px minmax(0,1fr)}}
