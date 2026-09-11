@@ -138,3 +138,24 @@
  .scripture-reading{padding:20px}
  .scripture-reading blockquote{font-size:21px;line-height:1.7}
 }
+
+/* Final hierarchy: quiet identity, prominent Scripture, consistent overview controls. */
+.integrated-portal .hero h1{font-size:clamp(22px,2.1vw,27px);font-weight:500;letter-spacing:-.025em;line-height:1.45}
+.integrated-portal .hero .search{border-width:1px;border-color:#8fa89a}
+.integrated-portal .hero .search:focus-within{border-color:#355c47;box-shadow:0 0 0 2px #355c4718}
+.scripture-context h2{font-family:inherit;font-size:20px;font-weight:600;letter-spacing:-.025em;line-height:1.5;margin-top:8px}
+.scripture-context time{color:#d2ded6}
+.scripture-context>a{border-top-color:#ffffff1a}
+.portal-eight .portal-panel-heading{border-bottom-color:#edf1ee}
+.portal-eight .portal-panel-heading>a{color:#66746d;font-weight:500}
+.portal-eight .portal-panel-heading>a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.portal-eight .portal-caption,.portal-eight .portal-switch{height:36px;min-height:36px;margin:8px 0 4px;align-items:center}
+.portal-eight .portal-switch{gap:14px}
+.portal-eight .portal-switch button{min-height:36px;padding:7px 0;border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:#66746d;font-size:11px;font-weight:500;line-height:20px;white-space:nowrap}
+.portal-eight .portal-switch button[aria-pressed=true]{background:transparent;color:var(--ink);border-color:var(--ink);font-weight:750}
+.portal-eight .portal-switch button:hover{color:var(--ink)}
+@media(max-width:760px){
+ .integrated-portal .hero h1{font-size:22px}
+ .scripture-context h2{font-size:18px;margin:0}
+ .portal-eight .portal-switch{gap:14px}
+}
