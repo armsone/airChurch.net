@@ -909,9 +909,9 @@ export default function Home() {
 
 
       <section className="community-section community-reading" id="community">
-        <div className="section-heading"><h2>이야기와 나눔</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
+        <div className="section-heading"><h2>goodshare · 선한 영향력</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
         <span id="goodshare" className="participation-anchor" /><form id="talent" className="community-form open-participation-form" onSubmit={(e)=>submitInterest(e,"community")}>
-          <div className="participation-intro"><h3>함께 나누고 싶은 이야기가 있나요?</h3><p>오늘의 이야기와 기도부터 작은 교회 돕기, 은퇴 목회자 동행, 재능 나눔까지. 함께하고 싶은 마음을 남겨주세요.</p></div>
+          <div className="participation-intro"><h3>작은 마음도 누군가에게 힘이 됩니다</h3><p>따뜻한 이야기, 기도 부탁, 작은 교회 돕기, 은퇴 목회자 동행, 재능 나눔까지. 함께 나누고 싶은 마음을 적어주세요.</p></div>
           <input type="hidden" name="category" value="이야기와 나눔" />
           <label className="sr-only" htmlFor="participation-content">나누고 싶은 내용</label><textarea id="participation-content" name="content" required minLength={20} maxLength={1000} rows={3} placeholder="어떤 이야기든 좋아요. 함께 나누고 싶은 내용을 20자 이상 적어주세요." />
           <input className="honeypot" name="company" tabIndex={-1} autoComplete="off" aria-hidden="true" />
