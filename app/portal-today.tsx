@@ -29,7 +29,7 @@ export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLo
  const diverse=sortedNews.filter((item,index,all)=>all.findIndex(other=>other.source===item.source)===index);
  const headlines=diverse.slice(0,4);
  return <section className="portal-today" aria-labelledby="portal-today-title">
-  <div className="portal-heading"><div><span className="section-kicker">{now?new Date(now).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",weekday:"long"}):"오늘"}</span><h2 id="portal-today-title">오늘의 에어처치</h2><p className="portal-caption">추천을 한눈에 보고, 더 궁금한 곳으로 이어가세요.</p></div><a href="/saved">♡ 나의 모음</a></div>
+  <div className="portal-heading"><h2 id="portal-today-title">오늘의 에어처치</h2><a href="/saved">♡ 나의 모음</a></div>
   <div className="portal-overview portal-eight">
    <Panel title="말씀" href="#sermons"><div className="portal-switch"><button type="button" aria-pressed={!savedOnly} onClick={()=>setSavedOnly(false)}>최근 말씀</button><button type="button" aria-pressed={savedOnly} onClick={()=>setSavedOnly(true)}>관심 교회·목회자</button></div>{sermonLoading?<p className="portal-empty">말씀을 불러오는 중입니다.</p>:shown.length?<VideoList items={shown}/>:<p className="portal-empty">{savedOnly?"관심 교회·목회자에 해당하는 최근 말씀이 없습니다.":"말씀을 아직 불러오지 못했습니다."}</p>}{refresh.sermonError&&<p className="portal-health">새 말씀 확인 지연 · 이전 목록 표시</p>}</Panel>
    <Panel title="찬양" href="#praises"><p className="portal-caption">오늘 함께 듣는 CCM</p>{praises.length?<VideoList items={praises}/>:<p className="portal-empty">{praiseState==="loading"?"찬양을 불러오는 중입니다.":"찬양을 아직 불러오지 못했습니다."}{praiseState==="failed"&&<button type="button" onClick={()=>setRetry(value=>value+1)}>다시 시도</button>}</p>}</Panel>

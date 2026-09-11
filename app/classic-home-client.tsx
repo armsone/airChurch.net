@@ -715,7 +715,6 @@ export default function Home() {
 
 
       <section className="hero" id="primary-content" tabIndex={-1}>
-        <div className="eyebrow"><span /> 오늘의 말씀 · 교회 · 세상의 소식</div>
         <h1>말씀을 발견하고 교회와 이어지는 곳</h1>
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(normalized){const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}}>
           <label className="sr-only" htmlFor="site-search">말씀, 교회, 목회자 검색</label><span aria-hidden="true">⌕</span>
