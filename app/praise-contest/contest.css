@@ -158,3 +158,6 @@ button.contest-sample{width:100%;font:inherit;text-align:left;cursor:pointer}.co
 .contest-sponsor-name span{text-align:center}
 .contest-sponsor{background:linear-gradient(110deg,#fafbf8,#f2f6ef);border-color:#dce4d8}
 @media(max-width:700px){.contest-sponsor-name{flex:none;width:260px;max-width:100%;align-self:center}.contest-sponsor-logo-small{width:140px;height:56px}}
+
+/* Event listing uses the same poster as the homepage. */
+.our-event-card{align-items:center}.our-event-poster{display:block;width:240px;height:auto;aspect-ratio:1;object-fit:contain;flex:0 0 240px;border-radius:12px}.our-event-copy{min-width:0}.our-event-copy>small{margin-left:16px}.our-event-copy p{margin:8px 0}@media(max-width:600px){.our-event-card{align-items:stretch}.our-event-poster{width:100%;max-width:240px;flex:none;align-self:center}.our-event-copy h3{font-size:24px}}
