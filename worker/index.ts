@@ -33,6 +33,7 @@ async function runScheduledMaintenance(env:Env,ctx:ExecutionContext){
     new Request("https://airchurch.internal/api/church-news/sync",{method:"POST"}),
     new Request("https://airchurch.internal/api/events/sync",{method:"POST"}),
     new Request("https://airchurch.internal/api/maintenance/retention",{method:"POST"}),
+    new Request("https://airchurch.internal/api/praise-contest/maintenance",{method:"POST"}),
   ];
   await Promise.allSettled(requests.map((request)=>handler.fetch(request,env,ctx)));
 }

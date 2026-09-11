@@ -162,6 +162,13 @@
       "when": 1788966990675,
       "tag": "0022_misty_thunderbolt",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1789137213129,
+      "tag": "0023_praise_contest",
+      "breakpoints": true
     }
   ]
 }
