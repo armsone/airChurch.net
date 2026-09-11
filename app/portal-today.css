@@ -181,7 +181,7 @@
 .integrated-portal :is(.praise-tabs,.cts-switch) button{min-height:36px;padding:7px 12px;border:1px solid #d4dfd7;border-radius:7px;background:#fff;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;line-height:1.5}
 .integrated-portal :is(.praise-tabs,.cts-switch) button[aria-pressed=true]{background:var(--section-tone,#355c47);border-color:var(--section-tone,#355c47);color:white}
 .integrated-portal #church-news .publisher-news-card{grid-template-columns:76px minmax(0,1fr);border-radius:10px}
-.integrated-portal #church-news .church-news-thumb{background:#f3f6f4;padding:8px 4px}
+.integrated-portal #church-news .church-news-thumb{padding:8px 4px}
 .integrated-portal #church-news .church-news-mark{width:64px;height:48px;border-radius:6px}
 .integrated-portal #church-news .church-news-mark img{inset:4px;width:56px;height:40px}
 .integrated-portal #church-news .church-news-thumb small{max-width:68px;color:#66746d;font-weight:600}
