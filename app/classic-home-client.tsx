@@ -554,7 +554,7 @@ export default function Home() {
   const churchSearchPending=Boolean(hasActiveChurchFilter&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":isUnfilteredChurchDirectory?`전국 ${churchTotal.toLocaleString("ko-KR")}개 교회`:`${churchSearchTotal.toLocaleString("ko-KR")}개 검색 결과`;
   const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${Math.min(48,filteredChurches.length)}곳까지)`;
-  const dailyProgress=Math.round(dailyCompleted.filter((step)=>["bible","sermon","praise"].includes(step)).length/3*100);
+  
 
   function markDailyStep(step:"bible"|"sermon"|"praise") {
     setDailyCompleted((current)=>{
@@ -748,18 +748,18 @@ export default function Home() {
       <aside className="search-scripture" aria-label="성경 말씀"><span aria-hidden="true">📖</span><blockquote>수고하고 무거운 짐진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라</blockquote><a href="https://www.bible.com/ko/bible/88/MAT.11.28.KRV" target="_blank" rel="noopener noreferrer">마태복음 11:28 · 개역한글 ↗</a></aside>
 <div className="devotion-context">
       <section className="daily-journey" aria-labelledby="daily-journey-title">
-        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<details className="devotion-note"><summary>오늘의 한 줄 기록하기</summary><form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form></details>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
-        <div className="daily-paths"><a className={dailyCompleted.includes("bible")?"is-complete":""} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><span>01</span><strong>성경 한 구절</strong><small>{dailyCompleted.includes("bible")?"오늘 읽었습니다 ✓":"공식 한국어 성경에서 읽습니다"}</small></a><a className={dailyCompleted.includes("sermon")?"is-complete":""} href="#sermons"><span>02</span><strong>말씀 한 편</strong><small>{dailyCompleted.includes("sermon")?"오늘 들었습니다 ✓":"재생하면 자동으로 기록됩니다"}</small></a><a className={dailyCompleted.includes("praise")?"is-complete":""} href="#praises"><span>03</span><strong>찬양 한 곡</strong><small>{dailyCompleted.includes("praise")?"오늘 들었습니다 ✓":"재생하면 오늘 여정이 완성됩니다"}</small></a></div>
+        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 묵상</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<details className="devotion-note"><summary>오늘의 한 줄 기록하기</summary><form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form></details>}</div>
+
       </section>
       <section className="season-discovery" aria-labelledby="season-title">
         <div className="season-symbol" aria-hidden="true"><span>{currentSeason.accent}</span></div>
-        <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} 읽기 ↗</a></div>
-        <div className="season-links"><a href="#sermons"><small>01</small><strong>이 절기의 말씀</strong><span>최근 설교에서 발견하기 →</span></a><a href="#praises"><small>02</small><strong>이 절기의 찬양</strong><span>공식 채널에서 듣기 →</span></a><a href="#church-news"><small>03</small><strong>교회의 오늘</strong><span>공식 소식 살펴보기 →</span></a></div>
+        <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">이 절기에 묵상할 성경 · {currentSeason.reference} ↗</a></div>
+
       </section>
 </div>
       <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
-        <div className="topic-intro"><span className="section-kicker">마음에서 시작하는 검색</span><h2 id="topic-title">오늘 필요한 말씀은<br/>어떤 주제인가요?</h2><p>정답을 대신 고르지 않습니다. 지금 마음에 가까운 단어를 선택하면 공개된 말씀과 찬양을 함께 찾아드립니다.</p><a href="/search">직접 통합 검색하기 →</a></div>
-        <div className="topic-grid">{discoveryTopics.map((topic,index)=><a href={`/search?q=${encodeURIComponent(topic.name)}`} key={topic.name}><span>0{index+1}</span><i>{topic.symbol}</i><strong>{topic.name}</strong><small>{topic.copy}</small><em>말씀·찬양 찾기 →</em></a>)}</div>
+        <div className="topic-intro"><h2 id="topic-title">성경에서 주제로 찾기</h2><p>주제를 누르면 Bible.com의 성경 검색 결과가 새 창으로 열립니다.</p></div>
+        <div className="topic-grid">{discoveryTopics.map(topic=><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(topic.name)}`} target="_blank" rel="noopener noreferrer" key={topic.name} aria-label={`${topic.name} 성경 검색 · 새 창`}><strong>{topic.name} ↗</strong></a>)}</div>
       </section>
       </section>
 
