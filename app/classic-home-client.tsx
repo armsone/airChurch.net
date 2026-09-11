@@ -74,11 +74,19 @@ function easterSunday(year:number){
 function seasonGuide(now:Date){
   const date=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())),year=date.getUTCFullYear(),day=24*60*60*1000,easter=easterSunday(year),lentStart=new Date(easter.getTime()-46*day),pentecost=new Date(easter.getTime()+49*day),nov27=new Date(Date.UTC(year,10,27)),adventStart=new Date(nov27.getTime()+((7-nov27.getUTCDay())%7)*day),christmas=new Date(Date.UTC(year,11,25)),epiphanyEnd=new Date(Date.UTC(year+1,0,6));
   if(date>=adventStart&&date<christmas)return {name:"대림절",copy:"기다림 속에서 오시는 주님을 바라보는 시간",reference:"이사야 9:6",accent:"기다림"};
-  if(date>=christmas&&date<=epiphanyEnd)return {name:"성탄절",copy:"우리 가운데 오신 예수님의 사랑을 기뻐하는 시간",reference:"누가복음 2:10-11",accent:"기쁨"};
+  if(date>=christmas&&date<=epiphanyEnd)return {name:"성탄절",copy:"우리 가운데 오신 예수님의 사랑을 기뻐하는 시간",reference:"누가복음 2:11",accent:"기쁨"};
   if(date>=lentStart&&date<easter)return {name:"사순절",copy:"십자가를 바라보며 삶을 돌아보는 시간",reference:"마가복음 8:34",accent:"성찰"};
   if(date>=easter&&date<=pentecost)return {name:"부활절기",copy:"부활의 소망을 일상에서 살아내는 시간",reference:"고린도전서 15:20",accent:"소망"};
   return {name:"성령강림 후",copy:"말씀을 삶과 이웃 사랑으로 이어가는 성장의 시간",reference:"갈라디아서 5:22-23",accent:"성장"};
 }
+
+const seasonScriptures:Record<string,{text:string;path:string}>={
+ "이사야 9:6":{text:"이는 한 아기가 우리에게 났고 한 아들을 우리에게 주신바 되었는데 그 어깨에는 정사를 메었고 그 이름은 기묘자라, 모사라, 전능하신 하나님이라, 영존하시는 아버지라, 평강의 왕이라 할것임이라",path:"ISA.9.6"},
+ "누가복음 2:11":{text:"오늘날 다윗의 동네에 너희를 위하여 구주가 나셨으니 곧 그리스도 주시니라",path:"LUK.2.11"},
+ "마가복음 8:34":{text:"무리와 제자들을 불러 이르시되 아무든지 나를 따라 오려거든 자기를 부인하고 자기 십자가를 지고 나를 좇을 것이니라",path:"MRK.8.34"},
+ "고린도전서 15:20":{text:"그러나 이제 그리스도께서 죽은 자 가운데서 다시 살아 잠자는 자들의 첫 열매가 되셨도다",path:"1CO.15.20"},
+ "갈라디아서 5:22-23":{text:"오직 성령의 열매는 사랑과 희락과 화평과 오래 참음과 자비와 양선과 충성과 온유와 절제니 이같은 것을 금지할 법이 없느니라",path:"GAL.5.22-23"}
+};
 
 const regions = [
   "전체", "서울", "부산", "대구", "인천", "광주", "대전", "울산", "세종",
@@ -554,7 +562,7 @@ export default function Home() {
   const churchSearchPending=Boolean(hasActiveChurchFilter&&!currentChurchSearch)||churchSearchLoading;
   const churchCountLabel=churchSearchPending?"검색 중…":isUnfilteredChurchDirectory?`전국 ${churchTotal.toLocaleString("ko-KR")}개 교회`:`${churchSearchTotal.toLocaleString("ko-KR")}개 검색 결과`;
   const churchDirectoryMoreLabel=showAllChurches?"검색 결과 12곳만 보기":`검색 결과 더 보기 (${Math.min(48,filteredChurches.length)}곳까지)`;
-  
+
 
   function markDailyStep(step:"bible"|"sermon"|"praise") {
     setDailyCompleted((current)=>{
@@ -744,23 +752,10 @@ export default function Home() {
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
       </section>
 
-      <section className="daily-devotion" aria-label="말씀과 함께하는 오늘">
-      <aside className="search-scripture" aria-label="성경 말씀"><span aria-hidden="true">📖</span><blockquote>수고하고 무거운 짐진 자들아 다 내게로 오라 내가 너희를 쉬게 하리라</blockquote><a href="https://www.bible.com/ko/bible/88/MAT.11.28.KRV" target="_blank" rel="noopener noreferrer">마태복음 11:28 · 개역한글 ↗</a></aside>
-<div className="devotion-context">
-      <section className="daily-journey" aria-labelledby="daily-journey-title">
-        <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 묵상</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<details className="devotion-note"><summary>오늘의 한 줄 기록하기</summary><form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form></details>}</div>
-
-      </section>
-      <section className="season-discovery" aria-labelledby="season-title">
-        <div className="season-symbol" aria-hidden="true"><span>{currentSeason.accent}</span></div>
-        <div className="season-copy"><span className="section-kicker">교회력으로 걷는 오늘</span><h2 id="season-title">{currentSeason.name}</h2><p>{currentSeason.copy}</p><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(currentSeason.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer">이 절기에 묵상할 성경 · {currentSeason.reference} ↗</a></div>
-
-      </section>
-</div>
-      <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
-        <div className="topic-intro"><h2 id="topic-title">성경에서 주제로 찾기</h2><p>주제를 누르면 Bible.com의 성경 검색 결과가 새 창으로 열립니다.</p></div>
-        <div className="topic-grid">{discoveryTopics.map(topic=><a href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(topic.name)}`} target="_blank" rel="noopener noreferrer" key={topic.name} aria-label={`${topic.name} 성경 검색 · 새 창`}><strong>{topic.name} ↗</strong></a>)}</div>
-      </section>
+      <section className="season-scripture" aria-label="교회력과 성경 말씀">
+        <div className="scripture-date"><time>{koreanNow.toLocaleDateString("ko-KR",{timeZone:"UTC",year:"numeric",month:"long",day:"numeric",weekday:"long"})}</time><span>{currentSeason.name} · {currentSeason.accent}</span></div>
+        <blockquote>{seasonScriptures[currentSeason.reference].text}</blockquote>
+        <a href={`https://www.bible.com/ko/bible/88/${seasonScriptures[currentSeason.reference].path}.KRV`} target="_blank" rel="noopener noreferrer">{currentSeason.reference} · 개역한글 ↗</a>
       </section>
 
       <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
