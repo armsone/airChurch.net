@@ -4,6 +4,7 @@ import NewsMark from "./news/news-mark";
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "./site-footer";
 import PortalToday from "./portal-today";
+import CtsDiscovery from "./cts-discovery";
 import "./portal-today.css";
 import EventsBrowser from "./events/events-browser";
 import { NewsSources } from "./news/news-card";
@@ -200,6 +201,9 @@ export default function Home() {
   const [journeyWeek,setJourneyWeek]=useState<JourneyDay[]>([]);
   const [personalStateReady,setPersonalStateReady]=useState(false);
   const [recentSearches,setRecentSearches]=useState<string[]>([]);
+  const [sermonOffset,setSermonOffset]=useState(0);
+  const [rankingRefresh,setRankingRefresh]=useState(0),[rankingBusy,setRankingBusy]=useState(false);
+  const [postRefresh,setPostRefresh]=useState(0),[postBusy,setPostBusy]=useState(false);
   const [expandedRankings,setExpandedRankings]=useState({churches:false,pastors:false});
   const [rankings,setRankings]=useState<{churches:RankingItem[];pastors:RankingItem[]}>({churches:[],pastors:[]});
   async function runPastorBatch(status:"approved"|"removed"|"deleted"){
@@ -237,7 +241,8 @@ export default function Home() {
   useEffect(()=>{if(prefersLowData())return;const controller=new AbortController(),fresh=sessionStorage.getItem("airchurch:church-cache-bust"),params=new URLSearchParams({countOnly:"1"});if(fresh)params.set("adminFresh",fresh);fetch(`/api/churches?${params}`,{cache:fresh?"no-store":"default",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&typeof result?.total==="number")setChurchTotal(result.total);}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const controller=new AbortController();fetch("/api/admin/session",{cache:"no-store",signal:controller.signal}).then((response)=>response.ok?response.json():null).then((session)=>{if(!controller.signal.aborted)setIsAdmin(session?.role==="admin");}).catch(()=>{});return()=>controller.abort();},[]);
   useEffect(()=>{const term=query.trim();if(normalizeSearchText(term).length<2){setSearchSuggestions([]);return;}const controller=new AbortController(),timer=window.setTimeout(()=>{fetchSearchSuggestions(term,controller.signal).then(setSearchSuggestions).catch((error)=>{if(error?.name!=="AbortError")setSearchSuggestions([]);});},180);return()=>{window.clearTimeout(timer);controller.abort();};},[query]);
-  useEffect(()=>{const controller=new AbortController();fetch("/api/rankings",{signal:controller.signal}).then((response)=>response.ok?response.json():null).then((result)=>{if(!controller.signal.aborted&&result)setRankings({churches:Array.isArray(result.churches)?result.churches:[],pastors:Array.isArray(result.pastors)?result.pastors:[]});}).catch(()=>{});return()=>controller.abort();},[]);
+  useEffect(()=>{const controller=new AbortController();setRankingBusy(true);fetch(`/api/rankings?refresh=${rankingRefresh}`,{signal:controller.signal,cache:"no-store"}).then(response=>{if(!response.ok)throw Error();return response.json();}).then(result=>{if(!controller.signal.aborted)setRankings({churches:Array.isArray(result.churches)?result.churches:[],pastors:Array.isArray(result.pastors)?result.pastors:[]});}).catch(()=>{if(!controller.signal.aborted)setNotice("순위를 새로 확인하지 못했습니다. 이전 순위를 유지합니다.");}).finally(()=>{if(!controller.signal.aborted)setRankingBusy(false);});return()=>controller.abort();},[rankingRefresh]);
+  useEffect(()=>{if(!postRefresh)return;const controller=new AbortController();setPostBusy(true);fetch(`/api/posts?refresh=${postRefresh}`,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(8000)]),cache:"no-store"}).then(response=>{if(!response.ok)throw Error();return response.json();}).then(result=>{if(!controller.signal.aborted)setApprovedPosts(result.items||[]);}).catch(()=>{if(!controller.signal.aborted)setNotice("광장 소식을 새로 확인하지 못했습니다. 잠시 후 다시 눌러 주세요.");}).finally(()=>{if(!controller.signal.aborted)setPostBusy(false);});return()=>controller.abort();},[postRefresh]);
   useEffect(()=>{
     const resetPull=()=>{pullToRefreshStartRef.current=null;pullToRefreshDistanceRef.current=0;};
     const onTouchStart=(event:TouchEvent)=>{pullToRefreshStartRef.current=window.scrollY===0&&event.touches.length===1?event.touches[0].clientY:null;pullToRefreshDistanceRef.current=0;};
@@ -330,7 +335,7 @@ export default function Home() {
     window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",refresh);
     const cleanRefresh=()=>{clearInterval(refreshTimer);window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh);};
     const loadSection=(id:string)=>{ if(!loaded.has(id)){ loaded.add(id);loaders[id]?.(); } };
-    ["sermons","church-news","church-directory"].forEach(loadSection);
+    ["sermons","church-news","church-directory","community"].forEach(loadSection);
     if(!("IntersectionObserver" in window)) {
       Object.keys(loaders).forEach(loadSection);
       return()=>{alive=false;controller.abort();cleanRefresh();};
@@ -389,7 +394,8 @@ export default function Home() {
     const haystack = metadataSearchValue(s.church,s.pastor,s.region,s.denomination,`${s.title}${s.verse}`);
     return matchesSearchTerms(haystack,query) && (region === "전체" || s.region.startsWith(region)) && (denomination === "전체 교단" || s.denomination === denomination);
   }), [query, region, denomination, sermonItems]);
-  const visibleSermons = filtered.slice(0,12);
+  const sermonStart=filtered.length?sermonOffset%filtered.length:0;
+  const visibleSermons = [...filtered.slice(sermonStart),...filtered.slice(0,sermonStart)].slice(0,12);
   const sermonChurchCount = useMemo(() => new Set(filtered.map((sermon) => sermon.church)).size, [filtered]);
   const filteredShorts = useMemo(() => shortItems.filter((short) => {
     const haystack = metadataSearchValue(short.church,short.pastor,short.region,short.denomination,short.title);
@@ -722,12 +728,10 @@ export default function Home() {
 
 
       <section className="hero" id="primary-content" tabIndex={-1}>
-        <div className="eyebrow"><span /> 오늘의 말씀 · 교회 · 세상의 소식</div>
-        <h1>말씀을 발견하고 교회와 이어지는 곳</h1>
-        <p>공개된 교회 자료를 가볍고 정돈된 경험으로 만나고,<br className="desktop" /> 믿을 수 있는 지역교회와 선한 나눔으로 이어집니다.</p>
+        <h1 className="sr-only">말씀, 교회, 목회자 통합 검색</h1>
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(normalized){const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}}>
-          <label className="sr-only" htmlFor="site-search">교회, 목회자, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
-          <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setShowAllChurches(false); }} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.isComposing&&event.keyCode!==229){event.preventDefault();event.currentTarget.form?.requestSubmit();}}} placeholder={churchTotal?`교회, 목회자, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목회자, 지역, 교단으로 찾아 보세요."} />
+          <label className="sr-only" htmlFor="site-search">말씀, 교회, 목회자 검색</label><span aria-hidden="true">⌕</span>
+          <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setShowAllChurches(false); }} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.isComposing&&event.keyCode!==229){event.preventDefault();event.currentTarget.form?.requestSubmit();}}} placeholder="말씀, 교회, 목회자를 검색하세요" />
           <span className="sr-only" id="site-search-help" role="status" aria-live="polite">{searchSuggestions.length?`자동완성 ${searchSuggestions.length}개가 있습니다.`:churchTotal?`등록된 ${churchTotal.toLocaleString("ko-KR")}개 교회에서 여러 조건을 함께 검색할 수 있습니다.`:"여러 조건을 함께 검색할 수 있습니다."}</span>
           <datalist id="church-search-suggestions">{searchSuggestions.map((item)=><option value={item.value} key={`${item.value}-${item.label}`}>{item.label}</option>)}</datalist>
           <div className="search-filters">
@@ -737,20 +741,10 @@ export default function Home() {
           </div>
         </form>
         {recentSearches.length>0&&<div className="hero-search-recent"><span>최근 검색</span>{recentSearches.map((item)=><a href={`/search?q=${encodeURIComponent(item)}`} key={item}>{item}</a>)}<button type="button" onClick={()=>{setRecentSearches([]);try{clearRecentSearches();}catch{/* 화면에서는 즉시 지웁니다. */}}}>지우기</button></div>}
-        <div className="trust-note"><span>✓</span> 교단 소속과 공식 채널을 확인한 교회만 소개합니다</div>
-        <div className="hero-principles" aria-label="airChurch 운영 원칙"><span>공개 자료만 수집</span><span>공식 원문으로 연결</span><span>문제 제보 시 즉시 보류 검토</span></div>
       </section>
 
-      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh}>
-      <section className="interest-ranking portal-rankings" id="interest-ranking" aria-labelledby="interest-ranking-title">
-        <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h3 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h3><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><span className="result-count">7일 기준</span></div>
-        <div className="interest-ranking-grid">
-          <div className="interest-ranking-column"><div className="ranking-column-heading"><h4>교회</h4>{rankings.churches.length>3&&<button type="button" aria-expanded={expandedRankings.churches} onClick={()=>setExpandedRankings(current=>({...current,churches:!current.churches}))}>{expandedRankings.churches?"접기":"더 보기"}</button>}</div>{rankings.churches.length?<ol>{rankings.churches.slice(0,expandedRankings.churches?40:3).map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?`말씀 ${item.sermonCount?.toLocaleString("ko-KR")}편 · 새로 소개`: `${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · ${item.views.toLocaleString("ko-KR")}회`}</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
-          <div className="interest-ranking-column"><div className="ranking-column-heading"><h4>목회자</h4>{rankings.pastors.length>3&&<button type="button" aria-expanded={expandedRankings.pastors} onClick={()=>setExpandedRankings(current=>({...current,pastors:!current.pastors}))}>{expandedRankings.pastors?"접기":"더 보기"}</button>}</div>{rankings.pastors.length?<ol>{rankings.pastors.slice(0,expandedRankings.pastors?40:3).map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
-        </div>
-        <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>
-      </section>
-      </PortalToday>
+      <PortalToday news={churchNews} sermons={sermonItems} saved={savedItems} now={portalNow} newsLoading={churchNewsLoading} sermonLoading={sermonLoading} refresh={portalRefresh} rankings={rankings} posts={approvedPosts} region={region} onRankingMore={kind=>setExpandedRankings(current=>({...current,[kind]:true}))}/>
+
 
       <section className="daily-journey" aria-labelledby="daily-journey-title">
         <div className="daily-journey-main"><div className="daily-heading"><span className="section-kicker">{todayGuide.day} · 오늘의 5분</span><span>{dailyProgress}%</span></div><h2 id="daily-journey-title">{todayGuide.theme}</h2><a className={`daily-reference${dailyCompleted.includes("bible")?" is-complete":""}`} href={`https://www.bible.com/ko/search/bible?q=${encodeURIComponent(todayGuide.reference).replace(/%20/g,"+")}`} target="_blank" rel="noopener noreferrer" onClick={()=>markDailyStep("bible")}><strong>{todayGuide.reference}</strong><span>{dailyCompleted.includes("bible")?"오늘 읽음 ✓":"성경에서 읽기 ↗"}</span></a><blockquote>{todayGuide.question}</blockquote>{personalStateReady&&<form className="daily-note" onSubmit={saveDailyNote}><label htmlFor="daily-note-input">오늘의 한 줄</label><div><input id="daily-note-input" value={dailyNote} onChange={(event)=>setDailyNote(event.target.value)} maxLength={240} placeholder="마음에 남은 생각을 짧게 적어보세요"/><button type="submit">저장</button></div><small>이 브라우저에만 보관됩니다</small></form>}<div className="daily-progress" aria-label={`오늘의 5분 ${dailyProgress}% 완료`}><span style={{width:`${dailyProgress}%`}} /></div></div>
@@ -774,13 +768,22 @@ export default function Home() {
         <div className="season-links"><a href="#sermons"><small>01</small><strong>이 절기의 말씀</strong><span>최근 설교에서 발견하기 →</span></a><a href="#praises"><small>02</small><strong>이 절기의 찬양</strong><span>공식 채널에서 듣기 →</span></a><a href="#church-news"><small>03</small><strong>교회의 오늘</strong><span>공식 소식 살펴보기 →</span></a></div>
       </section>
 
+      <section className="interest-ranking content-section" id="interest-ranking" aria-labelledby="interest-ranking-title">
+        <div className="section-heading"><div><span className="section-kicker">ANONYMOUS INTEREST</span><h3 id="interest-ranking-title">이번 주 많이 찾은 교회와 목회자</h3><p>최근 7일의 익명 방문 기록을 기준으로 소개합니다.</p></div><button className="unified-other-button" type="button" disabled={rankingBusy} onClick={()=>setRankingRefresh(value=>value+1)}>{rankingBusy?"확인 중…":"순위 새로고침"}</button></div>
+        <div className="interest-ranking-grid">
+          <div className="interest-ranking-column" id="ranking-churches"><div className="ranking-column-heading"><h4>교회</h4>{rankings.churches.length>3&&<button type="button" aria-expanded={expandedRankings.churches} onClick={()=>setExpandedRankings(current=>({...current,churches:!current.churches}))}>{expandedRankings.churches?"접기":"더 보기"}</button>}</div>{rankings.churches.length?<ol>{rankings.churches.slice(0,expandedRankings.churches?40:3).map((item,index)=><li key={`church-${item.id}`}><b>{index+1}</b><a href={`/church/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?`말씀 ${item.sermonCount?.toLocaleString("ko-KR")}편 · 새로 소개`: `${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문 · ${item.views.toLocaleString("ko-KR")}회`}</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+          <div className="interest-ranking-column" id="ranking-pastors"><div className="ranking-column-heading"><h4>목회자</h4>{rankings.pastors.length>3&&<button type="button" aria-expanded={expandedRankings.pastors} onClick={()=>setExpandedRankings(current=>({...current,pastors:!current.pastors}))}>{expandedRankings.pastors?"접기":"더 보기"}</button>}</div>{rankings.pastors.length?<ol>{rankings.pastors.slice(0,expandedRankings.pastors?40:3).map((item,index)=><li key={`pastor-${item.id}`}><b>{index+1}</b><a href={`/pastors/${item.publicId}`}><strong>{item.name.replace(/\s*목사(?:님)?$/u,"")}</strong><small>{item.churchName||"등록 교회 확인 중"} · {item.uniqueVisitors.toLocaleString("ko-KR")}명 방문</small></a></li>)}</ol>:<p className="interest-ranking-empty">아직 집계할 방문 기록이 없습니다.</p>}</div>
+        </div>
+        <p className="interest-ranking-note">로그인 없이 익명으로 집계하며, 같은 브라우저의 반복 방문은 일정 시간 동안 한 번만 반영합니다.</p>
+      </section>
+
       <section className="topic-discovery" id="topic-discovery" aria-labelledby="topic-title">
         <div className="topic-intro"><span className="section-kicker">마음에서 시작하는 검색</span><h2 id="topic-title">오늘 필요한 말씀은<br/>어떤 주제인가요?</h2><p>정답을 대신 고르지 않습니다. 지금 마음에 가까운 단어를 선택하면 공개된 말씀과 찬양을 함께 찾아드립니다.</p><a href="/search">직접 통합 검색하기 →</a></div>
         <div className="topic-grid">{discoveryTopics.map((topic,index)=><a href={`/search?q=${encodeURIComponent(topic.name)}`} key={topic.name}><span>0{index+1}</span><i>{topic.symbol}</i><strong>{topic.name}</strong><small>{topic.copy}</small><em>말씀·찬양 찾기 →</em></a>)}</div>
       </section>
 
       <section className="content-section" id="sermons">
-        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><a className="unified-other-button" href="/sermons">전체 말씀 보기 →</a></div>
+        <div className="section-heading"><div><span className="section-kicker">매일 새로 만나는</span><h2>오늘의 말씀</h2></div><div className="news-home-actions"><button className="unified-other-button" type="button" disabled={sermonLoading||filtered.length<=12} onClick={()=>setSermonOffset(value=>value+12)}>다른 말씀 보기</button><a className="unified-other-button" href="/sermons">전체 말씀 보기 →</a></div></div>
         <div className="sermon-grid sermon-preview-grid">
           {sermonLoading ? <LoadingCards count={12} /> : visibleSermons.map((sermon, index) => <article className="sermon-card" id={index === visibleSermons.length - 1 ? "sermons-end" : undefined} key={sermon.id}>
               {videoThumbnail({youtubeId:sermon.youtubeId,thumbnailUrl:sermon.thumbnailUrl,tone:sermon.tone,marker:sermon.rank,date:sermon.date,title:sermon.title,church:sermon.church,kind:"설교"})}
@@ -893,6 +896,8 @@ export default function Home() {
       </section>
 
 
+      <CtsDiscovery/>
+
       <section className="content-section church-news-section" id="church-news">
         <div className="section-heading"><div><span className="section-kicker">하나님 자녀들의 오늘</span><h2>교계소식</h2><p>공식 RSS의 제목과 필요한 범위의 짧은 소개만 보여드립니다. 콘텐츠 권리는 원 제공자에게 있으며, 자세한 내용은 원문에서 읽습니다.</p></div><div className="news-home-actions"><button className="church-news-shuffle unified-other-button" type="button" onClick={showDifferentChurchNews} disabled={churchNewsLoading||churchNews.length<=12}>다른 소식 보기</button><a className="unified-other-button" href="/news">전체 소식 보기 →</a></div></div>
         {!churchNewsLoading&&churchNewsSources.length>0&&<NewsSources sources={churchNewsSources}/>}
@@ -911,7 +916,7 @@ export default function Home() {
       </section>
 
       {(approvedPosts.length > 0 || approvedTalents.length > 0) && <section className="approved-section" aria-label="공개된 공동체 이야기와 달란트">
-        {approvedPosts.length > 0 && <div><span className="section-kicker">광장에서 나눈 이야기</span><h2>함께 읽는 마음</h2><div className="approved-list">{approvedPosts.map((post)=><article key={post.id}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p><button className="community-report" type="button" aria-label={`${post.nickname} 글을 운영자에게 신고`} onClick={()=>void reportPost(post)}>원칙에 맞지 않는 글 신고</button></article>)}</div></div>}
+        {approvedPosts.length > 0 && <div><span className="section-kicker">광장에서 나눈 이야기</span><div className="section-heading"><h2>함께 읽는 마음</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"광장 새로고침"}</button></div><div className="approved-list">{approvedPosts.map((post)=><article key={post.id} id={`community-post-${post.id}`}><small>{post.category}</small><h3>{post.nickname}</h3><p>{post.content}</p><button className="community-report" type="button" aria-label={`${post.nickname} 글을 운영자에게 신고`} onClick={()=>void reportPost(post)}>원칙에 맞지 않는 글 신고</button></article>)}</div></div>}
         {approvedTalents.length > 0 && <div><span className="section-kicker">이어진 달란트</span><h2>나눌 수 있는 선물</h2><div className="approved-list">{approvedTalents.map((talent)=><article key={talent.id}><small>{talent.region}</small><h3>{talent.title}</h3><p>{talent.description}</p></article>)}</div></div>}
       </section>}
 

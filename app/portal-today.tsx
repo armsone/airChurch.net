@@ -1,47 +1,42 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import CtsDiscovery from "./cts-discovery";
+import EventsBrowser from "./events/events-browser";
 import { safeHttpUrl } from "./safe-url";
 import type { SavedItem } from "./saved-items";
 
-type Sermon = { youtubeId?:string; title:string; church:string; pastor:string; publishedAt?:string; thumbnailUrl?:string };
-type News = { title:string; url:string; source:string; publishedAt:string };
-type Props = {
-  children?:ReactNode;
-  news:News[]; sermons:Sermon[]; saved:SavedItem[]; now:string;
-  newsLoading:boolean; sermonLoading:boolean;
-  refresh:{sermons:string;news:string;sermonError:boolean;newsError:boolean};
-};
-const jumps = [["오늘의 5분","#daily-journey-title"],["말씀","#sermons"],["쇼츠","#shorts"],["찬양","#praises"],["교회","#church-directory"],["목회자","#pastor-directory"],["행사","#events"],["교계소식","#church-news"],["공동체","#community"],["착한나눔","#goodshare"],["달란트","#talent"],["소개·원칙","#vision"]];
-const normalize=(text:string)=>text.replace(/\s/g,"").toLocaleLowerCase("ko-KR");
-const stamp=(value?:string)=>{const time=Date.parse(value||"");return Number.isFinite(time)?time:0;};
-function dateLabel(value:string){return stamp(value)?new Date(value).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric"}):"날짜 확인 필요";}
-function freshness(value:string,now:string){if(!value)return "최근 확인 기록 없음";return `${dateLabel(value)} 확인${stamp(now)-stamp(value)>86400000?" · 갱신 지연":""}`;}
-
-export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLoading,refresh,children}:Props){
-  const [tab,setTab]=useState<"recent"|"saved">("recent"),[playing,setPlaying]=useState<string|null>(null);
-  const followed=saved.filter(item=>item.kind==="church"||item.kind==="pastor");
-  const recent=useMemo(()=>[...new Map(sermons.filter(item=>/^[\w-]{11}$/.test(item.youtubeId||"")&&stamp(item.publishedAt)>0&&(!now||stamp(item.publishedAt)<=stamp(now))).map(item=>[item.youtubeId,item])).values()].sort((a,b)=>stamp(b.publishedAt)-stamp(a.publishedAt)),[sermons,now]);
-  const matches=(sermon:Sermon)=>followed.some(item=>item.kind==="church"?normalize(item.title)===normalize(sermon.church):normalize(item.pastorName||item.title.replace(/\s*목사(?:님)?$/u,""))===normalize(sermon.pastor.replace(/\s*목사(?:님)?$/u,""))&&(!item.churchNames?.length||item.churchNames.some(name=>normalize(name)===normalize(sermon.church))));
-  const shown=(tab==="saved"?recent.filter(matches):recent).slice(0,3);
-  const headlines=useMemo(()=>[...new Map(news.filter(item=>safeHttpUrl(item.url)&&stamp(item.publishedAt)>0&&(!now||stamp(item.publishedAt)<=stamp(now))).map(item=>[normalize(item.title),item])).values()].sort((a,b)=>stamp(b.publishedAt)-stamp(a.publishedAt)).slice(0,4),[news,now]);
-  return <section className="portal-today" aria-labelledby="portal-today-title">
-    <nav className="portal-jumps" aria-label="첫 화면의 모든 서비스">{jumps.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
-    <div className="portal-heading"><div><span className="section-kicker">{now?new Date(now).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",weekday:"long"}):"오늘"}</span><h2 id="portal-today-title">오늘의 에어처치</h2></div><a href="#continue-title">♡ 나의 이어보기</a></div>
-    <div className="portal-overview">
-      <article className="portal-panel portal-headlines"><div className="portal-panel-heading"><h3>교회의 오늘</h3><a href="#church-news">소식 더 보기 →</a></div>
-        <p className="portal-caption">공개된 교계 소식 · 최근 게시순</p>
-        {newsLoading?<p className="portal-empty" role="status">새 소식을 불러오는 중입니다.</p>:headlines.length?<ol>{headlines.map((item,index)=><li key={item.url}><span aria-hidden="true">{String(index+1).padStart(2,"0")}</span><a href={safeHttpUrl(item.url)!} target="_blank" rel="noopener noreferrer"><strong>{item.title}</strong><small>{item.source} · {dateLabel(item.publishedAt)} ↗</small></a></li>)}</ol>:<p className="portal-empty">소식을 아직 불러오지 못했습니다. 아래 교계소식에서 출처를 확인할 수 있습니다.</p>}
-        <p className="portal-health">{refresh.newsError?"연결 지연 · 마지막으로 받은 소식을 표시합니다":freshness(refresh.news,now)}</p>
-      </article>
-      <article className="portal-panel portal-sermons"><div className="portal-panel-heading"><h3>말씀 이어 듣기</h3><a href="#sermons">말씀 더 보기 →</a></div>
-        <div className="portal-switch" aria-label="말씀 표시 조건"><button type="button" aria-pressed={tab==="recent"} onClick={()=>setTab("recent")}>최근 말씀</button><button type="button" aria-pressed={tab==="saved"} onClick={()=>setTab("saved")}>관심 교회·목회자</button></div>
-        {sermonLoading?<p className="portal-empty" role="status">공식 채널의 말씀을 불러오는 중입니다.</p>:shown.length?<div className="portal-video-list">{shown.map(item=><div className="portal-video" key={item.youtubeId}>{playing===item.youtubeId?<div className="portal-player"><iframe src={`https://www.youtube-nocookie.com/embed/${item.youtubeId}?autoplay=1&rel=0`} title={item.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen/><button type="button" onClick={()=>setPlaying(null)} aria-label="말씀 재생 닫기">×</button></div>:<button className="portal-video-play" type="button" onClick={()=>setPlaying(item.youtubeId!)} aria-label={`${item.title} 재생`}><img src={`https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`} width={160} height={90} alt="" loading="lazy"/><span aria-hidden="true">▶</span></button>}<div><strong>{item.title}</strong><small>{item.church} · {dateLabel(item.publishedAt!)}</small></div></div>)}</div>:<p className="portal-empty">{tab==="saved"?followed.length?"최근 수집된 말씀 중 관심 교회·목회자와 일치하는 항목이 없습니다.":"아래 교회·목회자에서 ♡를 누르면 이곳에 최근 말씀이 모입니다.":"최근 말씀을 아직 불러오지 못했습니다."}</p>}
-        <p className="portal-health">{refresh.sermonError?"연결 지연 · 마지막으로 받은 말씀을 표시합니다":"화면이 열려 있는 동안 새 말씀을 주기적으로 확인합니다"}</p>
-      </article>
-    </div>
-    {children}
-    <CtsDiscovery/>
-  </section>;
+type Video={youtubeId?:string;title:string;church:string;pastor?:string;publishedAt?:string};
+type News={title:string;url:string;source:string;publishedAt:string};
+type Rank={id:number;publicId:number;name:string;churchName?:string|null;uniqueVisitors:number;source?:string};
+type Post={id:number;category:string;nickname:string;content:string};
+type Props={news:News[];sermons:Video[];saved:SavedItem[];now:string;newsLoading:boolean;sermonLoading:boolean;refresh:{sermons:string;news:string;sermonError:boolean;newsError:boolean};rankings:{churches:Rank[];pastors:Rank[]};posts:Post[];region:string;onRankingMore:(kind:"churches"|"pastors")=>void};
+const jumps=[["오늘의 5분","#daily-journey-title"],["쇼츠","#shorts"],["교회 찾기","#church-directory"],["목회자 찾기","#pastor-directory"],["착한나눔","#goodshare"],["달란트","#talent"],["소개·원칙","#vision"]];
+const normalize=(value:string)=>value.replace(/\s/g,"").replace(/목사(?:님)?$/u,"").toLocaleLowerCase("ko-KR");
+function Panel({title,href,children,onMore}:{title:string;href:string;children:ReactNode;onMore?:()=>void}){return <article className="portal-panel"><div className="portal-panel-heading"><h3>{title}</h3><a href={href} onClick={onMore} aria-label={`${title} 더 보기`}>더 보기 →</a></div>{children}</article>;}
+function VideoList({items}:{items:Video[]}){
+ const [playing,setPlaying]=useState<string|null>(null);
+ return <div className="portal-video-list">{items.map(item=><div className="portal-video" key={item.youtubeId}>{playing===item.youtubeId?<div className="portal-player"><iframe src={`https://www.youtube-nocookie.com/embed/${item.youtubeId}?autoplay=1&rel=0`} title={item.title} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen/><button type="button" onClick={()=>setPlaying(null)} aria-label="재생 닫기">×</button></div>:<button className="portal-video-play" type="button" onClick={()=>setPlaying(item.youtubeId!)} aria-label={`${item.title} 재생`}><img src={`https://i.ytimg.com/vi/${item.youtubeId}/mqdefault.jpg`} width={160} height={90} alt="" loading="lazy"/><span aria-hidden="true">▶</span></button>}<div><strong>{item.title}</strong><small>{item.church}</small></div></div>)}</div>;
+}
+export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLoading,refresh,rankings,posts,region,onRankingMore}:Props){
+ const [savedOnly,setSavedOnly]=useState(false),[praises,setPraises]=useState<Video[]>([]),[praiseState,setPraiseState]=useState("loading"),[retry,setRetry]=useState(0);
+ useEffect(()=>{const controller=new AbortController();setPraiseState("loading");fetch("/api/ccm",{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)])}).then(async response=>{if(!response.ok)throw Error();const data=await response.json();if(!controller.signal.aborted){setPraises((data.items||[]).filter((item:{id:string})=>/^[\w-]{11}$/.test(item.id)).slice(0,2).map((item:{id:string;title:string;channel:string})=>({youtubeId:item.id,title:item.title,church:item.channel})));setPraiseState("ready");}}).catch(()=>{if(!controller.signal.aborted)setPraiseState("failed");});return()=>controller.abort();},[retry]);
+ const followed=saved.filter(item=>item.kind==="church"||item.kind==="pastor");
+ const shown=[...new Map(sermons.filter(item=>/^[\w-]{11}$/.test(item.youtubeId||"")&&Number.isFinite(Date.parse(item.publishedAt||""))&&(!now||Date.parse(item.publishedAt!)<=Date.parse(now))).map(item=>[item.youtubeId,item])).values()].sort((a,b)=>Date.parse(b.publishedAt!)-Date.parse(a.publishedAt!)).filter(item=>!savedOnly||followed.some(savedItem=>savedItem.kind==="church"?normalize(savedItem.title)===normalize(item.church):normalize(savedItem.pastorName||savedItem.title)===normalize(item.pastor||"")&&(!savedItem.churchNames?.length||savedItem.churchNames.some(name=>normalize(name)===normalize(item.church))))).slice(0,2);
+ const sortedNews=[...new Map(news.filter(item=>safeHttpUrl(item.url)&&Number.isFinite(Date.parse(item.publishedAt))&&(!now||Date.parse(item.publishedAt)<=Date.parse(now))).map(item=>[item.title,item])).values()].sort((a,b)=>Date.parse(b.publishedAt)-Date.parse(a.publishedAt));
+ const diverse=sortedNews.filter((item,index,all)=>all.findIndex(other=>other.source===item.source)===index);
+ const headlines=[...diverse,...sortedNews.filter(item=>!diverse.includes(item))].slice(0,3);
+ return <section className="portal-today" aria-labelledby="portal-today-title">
+  <div className="portal-heading"><div><span className="section-kicker">{now?new Date(now).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",month:"long",day:"numeric",weekday:"long"}):"오늘"}</span><h2 id="portal-today-title">오늘의 에어처치</h2><p className="portal-caption">추천을 한눈에 보고, 더 궁금한 곳으로 이어가세요.</p></div><a href="#continue-title">♡ 나의 이어보기</a></div>
+  <div className="portal-overview portal-eight">
+   <Panel title="말씀" href="#sermons"><div className="portal-switch"><button type="button" aria-pressed={!savedOnly} onClick={()=>setSavedOnly(false)}>최근 말씀</button><button type="button" aria-pressed={savedOnly} onClick={()=>setSavedOnly(true)}>관심 교회·목회자</button></div>{sermonLoading?<p className="portal-empty">말씀을 불러오는 중입니다.</p>:shown.length?<VideoList items={shown}/>:<p className="portal-empty">{savedOnly?"관심 교회·목회자에 해당하는 최근 말씀이 없습니다.":"말씀을 아직 불러오지 못했습니다."}</p>}{refresh.sermonError&&<p className="portal-health">새 말씀 확인 지연 · 이전 목록 표시</p>}</Panel>
+   <Panel title="찬양" href="#praises"><p className="portal-caption">오늘 함께 듣는 CCM</p>{praises.length?<VideoList items={praises}/>:<p className="portal-empty">{praiseState==="loading"?"찬양을 불러오는 중입니다.":"찬양을 아직 불러오지 못했습니다."}{praiseState==="failed"&&<button type="button" onClick={()=>setRetry(value=>value+1)}>다시 시도</button>}</p>}</Panel>
+   <Panel title="뉴스" href="#church-news"><p className="portal-caption">여러 매체에서 고른 최근 소식</p><ul className="portal-picks">{headlines.map(item=><li key={item.url}><a href={item.url} target="_blank" rel="noopener noreferrer"><strong>{item.title}</strong><small>{item.source} · {new Date(item.publishedAt).toLocaleDateString("ko-KR",{month:"numeric",day:"numeric",timeZone:"Asia/Seoul"})}</small></a></li>)}</ul>{!headlines.length&&<p className="portal-empty">{newsLoading?"소식을 불러오는 중입니다.":"소식을 아직 불러오지 못했습니다."}</p>}{refresh.newsError&&<p className="portal-health">새 소식 확인 지연 · 이전 목록 표시</p>}</Panel>
+   <CtsDiscovery compact/>
+   {(["churches","pastors"] as const).map(kind=><Panel key={kind} title={kind==="churches"?"교회":"목회자"} href={kind==="churches"?"#ranking-churches":"#ranking-pastors"} onMore={()=>onRankingMore(kind)}><p className="portal-caption">이번 주 많이 찾은 {kind==="churches"?"교회":"목회자"}</p><ol className="portal-picks portal-rank-picks">{rankings[kind].slice(0,3).map((item,index)=><li key={item.id}><b>{index+1}</b><a href={`/${kind==="churches"?"church":"pastors"}/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?"새로 소개하는 교회":`${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문`}{item.churchName?` · ${item.churchName}`:""}</small></a></li>)}</ol>{!rankings[kind].length&&<p className="portal-empty">아직 집계된 방문 기록이 없습니다.</p>}</Panel>)}
+   <Panel title="행사" href="#events"><EventsBrowser compact preview portalRegion={region}/></Panel>
+   <Panel title="익명광장" href="#community"><p className="portal-caption">공개된 마음과 기도 나눔</p><ul className="portal-picks">{posts.slice(0,3).map(post=><li key={post.id}><a href={`#community-post-${post.id}`}><strong>{post.content.slice(0,75)}{post.content.length>75?"…":""}</strong><small>{post.category} · {post.nickname}</small></a></li>)}</ul>{!posts.length&&<p className="portal-empty">아직 공개된 이야기가 없습니다. 광장에서 첫 마음을 나눠보세요.</p>}</Panel>
+  </div>
+  <nav className="portal-jumps portal-extras" aria-label="함께 이용하는 서비스">{jumps.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
+ </section>;
 }
