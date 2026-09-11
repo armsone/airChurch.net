@@ -45,7 +45,7 @@ export default function ContestBoard({preview=false}:{preview?:boolean}){
  async function nativeShare(item?:ContestEntry){try{await navigator.share({title:item?`${preview?"[미리보기] ":""}${item.performer} · ${item.title}`:"에이처치 10월 찬양대회",text:shareText(item),url:shareUrl(item?.id??0)});}catch(e){if(!(e instanceof DOMException&&e.name==="AbortError"))setMessage("초대 글 복사를 이용해 주세요.");}}
 
  return <>
- {preview&&<p className="contest-preview-note"><strong>미리보기</strong> 실제 찬양 영상 8개로 체험하는 예시 화면 · 응원 수는 연습용입니다. <a href="/praise-contest">실제 대회 페이지로 돌아가기</a></p>}
+ {preview&&<p className="contest-preview-note"><strong>미리보기</strong> 실제 찬양 영상 8개로 체험하는 예시 화면 · 응원 수는 연습용입니다. <a href="/praise-contest/2026-10-01">실제 대회 페이지로 돌아가기</a></p>}
  <section className="contest-header" id="primary-content" tabIndex={-1}><div><p className="contest-kicker">2026년 10월 · 에이처치 찬양대회</p><h1>찬양으로 만나는<br/>우리의 무대.</h1><p className="contest-intro">여러분의 응원으로 수상작을 정하는 찬양 나눔 대회. 당신의 찬양을 더 많은 사람에게 전해보세요.</p></div><div className="contest-award"><span>총상금</span><strong>100<span>만 원</span></strong><small>10월 19일 수상 확정</small></div></section>
  <section className="contest-prizes" aria-label="순위별 상금">{CONTEST.prizes.slice(0,4).map((amount,i)=><div key={i}><span>{i<3?`${i+1}위`:"장려상 · 2명"}</span><strong>{i===3&&<small>각 </small>}{amount/10000}<small>만 원</small></strong></div>)}</section>
  <p className="contest-sponsor-credit"><span>후원</span><strong>(주)한통</strong><span>찬양으로 이어지는 만남을 함께 응원합니다.</span></p>

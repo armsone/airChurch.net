@@ -732,7 +732,7 @@ export default function Home() {
 
       <div className="scripture-feature-row">
         <SeasonalScripture />
-        <a className="contest-poster-banner" href="/praise-contest" aria-label="찬양대회 안내 보기 · 2026년 10월 1일부터 15일까지 참가 접수">
+        <a className="contest-poster-banner" href="/praise-contest/2026-10-01" aria-label="찬양대회 안내 보기 · 2026년 10월 1일부터 15일까지 참가 접수">
           <img src="/images/praise-contest-2026-square.png" width={1024} height={1024} alt="airchurch 찬양대회 · 2026. 10. 1–15 참가 접수 · 대회 안내 보기" />
         </a>
       </div>
