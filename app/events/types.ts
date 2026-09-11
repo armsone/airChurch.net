@@ -1,4 +1,5 @@
 export type ChurchEvent = {
+  detailUrl?: string;
   id: string; title: string; startDate: string; endDate: string; startTime: string | null;
   venue: string; region: string; attendance: string; organizer: string; audience: string;
   category: string; sourceUrl: string; registrationUrl: string | null; checkedAt: string;

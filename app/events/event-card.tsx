@@ -9,8 +9,8 @@ export function EventCard({ item, compact=false }: { item: ChurchEvent; compact?
   return <article className={`event-card${weekendClass}${compact?" event-card-compact church-news-card":""}`}>
     <time className="event-date" dateTime={item.startDate}>{compact?<><span>{Number(item.startDate.slice(5,7))}월</span><strong>{Number(item.startDate.slice(8))}</strong><span>{new Date(`${item.startDate}T00:00:00+09:00`).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",weekday:"long"})}</span>{item.endDate!==item.startDate&&<span className="event-date-end">~ {Number(item.endDate.slice(5,7))}.{Number(item.endDate.slice(8))}<br/>행사 기간</span>}</>:<>{item.endDate!==item.startDate&&<span>안내된 행사 기간</span>}{dateLabel(item.startDate)}{item.endDate!==item.startDate&&` ~ ${dateLabel(item.endDate)}`}<span>{item.startTime||"시간은 원문 확인"}</span></>}</time>
     <div className="event-card-copy">{compact&&<small className="event-source-label">{item.sourceName}</small>}<div className="event-tags"><span>{item.category}</span>{item.attendance !== "현장" && <span>{item.attendance}</span>}{item.status === "cancelled" && <strong>취소된 행사</strong>}</div>
-      <h3><a href={`/events/${item.id}`}>{item.title}</a></h3><p className="event-venue">{item.venue}{compact&&item.startTime&&` · ${item.startTime}`}</p>
-      <div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{compact?"원문 ↗":`${item.sourceName} ↗`}</a><a href={`/events/${item.id}`}>자세히 →</a><EventSaveButton item={item}/></div>
+      <h3><a href={item.detailUrl||`/events/${item.id}`}>{item.title}</a></h3><p className="event-venue">{item.venue}{compact&&item.startTime&&` · ${item.startTime}`}</p>
+      <div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{compact?"원문 ↗":`${item.sourceName} ↗`}</a><a href={item.detailUrl||`/events/${item.id}`}>자세히 →</a><EventSaveButton item={item}/></div>
     </div>
   </article>;
 }
