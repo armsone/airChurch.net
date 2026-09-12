@@ -27,7 +27,7 @@ export async function GET(request:Request){
     const source=await db.prepare("SELECT id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion FROM event_sources WHERE id=?").bind(sourceId).first<{id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number}>();
     if(!source)return Response.json({error:"출처 상태를 찾을 수 없습니다."},{status:404,headers});
     const [sample,linked]=await Promise.all([
-      db.prepare("SELECT status,url,reason,checked_at AS checkedAt,last_seen_at AS lastSeenAt,event_id AS eventId FROM event_candidates WHERE source_id=? ORDER BY COALESCE(checked_at,''),first_seen_at DESC LIMIT 501").bind(sourceId).all<{status:string;url:string;reason:string|null;checkedAt:string|null;lastSeenAt:string;eventId:string|null}>(),
+      db.prepare("SELECT id,title,status,url,reason,checked_at AS checkedAt,last_seen_at AS lastSeenAt,event_id AS eventId FROM event_candidates WHERE source_id=? ORDER BY COALESCE(checked_at,''),first_seen_at DESC LIMIT 501").bind(sourceId).all<{id:string;title:string;status:string;url:string;reason:string|null;checkedAt:string|null;lastSeenAt:string;eventId:string|null}>(),
       db.prepare("SELECT id,url,status,reason,checked_at AS checkedAt FROM event_candidates WHERE source_id=? AND event_id IS NOT NULL ORDER BY COALESCE(checked_at,''),id LIMIT 50").bind(sourceId).all<{id:string;url:string;status:string;reason:string|null;checkedAt:string|null}>(),
     ]);
     const rows=sample.results.slice(0,500),at=Date.parse(now),byStatus:Record<string,number>={};
@@ -39,7 +39,7 @@ export async function GET(request:Request){
       if(due)recheckDue++;
       if(due&&(row.eventId!==null||Date.parse(row.lastSeenAt)>at-30*86400000))queueEligible++;
     }
-    return Response.json({checkedAt:now,source:{...source,due:source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now)},queue:{sampleLimit:500,sampled:rows.length,truncated:sample.results.length>500,unchecked,recheckDue,queueEligible,byStatus},failureSampleLimit:10,failureSamples:rows.filter(row=>row.status==='failed').slice(0,10).map(({url,reason,checkedAt,lastSeenAt,eventId})=>({url,reason,checkedAt,lastSeenAt,eventId})),linkedCandidateLimit:50,linkedCandidates:linked.results},{headers});
+    return Response.json({checkedAt:now,source:{...source,due:source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now)},queue:{sampleLimit:500,sampled:rows.length,truncated:sample.results.length>500,unchecked,recheckDue,queueEligible,byStatus},reviewSampleLimit:50,reviewSamples:rows.filter(row=>row.status==='checking').slice(0,50).map(({id,title,url,reason,checkedAt})=>({id,title,url,reason,checkedAt})),failureSampleLimit:10,failureSamples:rows.filter(row=>row.status==='failed').slice(0,10).map(({url,reason,checkedAt,lastSeenAt,eventId})=>({url,reason,checkedAt,lastSeenAt,eventId})),linkedCandidateLimit:50,linkedCandidates:linked.results},{headers});
   }catch{return Response.json({error:"출처 진단을 불러오지 못했습니다."},{status:503,headers});}
 }
 
