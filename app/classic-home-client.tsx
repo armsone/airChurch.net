@@ -918,7 +918,7 @@ export default function Home() {
 
 
       <section className="community-section community-reading" id="community">
-        <div className="section-heading"><h2>goodshare · 선한 영향력</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
+        <div className="section-heading"><h2>goodshare · 선한영향력</h2><button className="unified-other-button" type="button" disabled={postBusy} onClick={()=>setPostRefresh(value=>value+1)}>{postBusy?"확인 중…":"새 글 확인"}</button></div>
         <span id="goodshare" className="participation-anchor" /><form id="talent" className="community-form open-participation-form" onSubmit={(e)=>submitInterest(e,"community")}>
           <div className="participation-intro"><h3>작은 마음도 누군가에게 힘이 됩니다</h3><p>따뜻한 이야기, 기도 부탁, 작은 교회 돕기, 은퇴 목회자 동행, 재능 나눔까지. 함께 나누고 싶은 마음을 적어주세요.</p></div>
           <input type="hidden" name="category" value="이야기와 나눔" />

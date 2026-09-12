@@ -26,4 +26,4 @@ export const metadata: Metadata = {
   },
 };
 // Permanent start-date URL for this edition. Preserve its storage ID when adding events.
-export default function OctoberContestPage(){return <><main className="contest-shell"><a className="contest-back" href="/our-events">← 에어처치 이벤트 모아보기</a><ContestBoard/></main></>;}
+export default function OctoberContestPage(){return <><main className="contest-shell"><a className="contest-back" href="/our-events">← 이벤트 모아보기</a><ContestBoard/></main></>;}

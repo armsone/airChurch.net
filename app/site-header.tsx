@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import HomeReloadLink from "./home-reload-link";
 import SavedNavLink from "./saved-nav-link";
 
-const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["교계소식", "/#church-news"], ["교계행사", "/#events"], ["에어처치 이벤트", "/#our-events"], ["선한 영향력", "/#community"], ["소개", "/#vision"]] as const;
+const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["교계소식", "/#church-news"], ["교계행사", "/#events"], ["이벤트", "/#our-events"], ["선한영향력", "/#community"], ["소개", "/#vision"]] as const;
 
 export default function SiteHeader() {
   const pathname = usePathname();

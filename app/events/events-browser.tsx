@@ -72,7 +72,7 @@ export default function EventsBrowser({ compact=false, preview=false, churchId, 
   function changeCategory(value:string){setCategory(eventCategories.includes(value)?value:"");}
   const today=koreaDate();
   const title=churchId?"이 교회의 예정 행사":"교계행사";
-  const ownEvent:ChurchEvent={id:CONTEST.id,title:"에어처치 찬양대회",startDate:CONTEST.startsOn,endDate:koreaDate(new Date(CONTEST.resultsAt)),startTime:null,venue:"온라인 · 에어처치",region:"전국",attendance:"온라인",organizer:"에어처치",audience:"대상 확인 필요",category:"찬양·공연",sourceUrl:CONTEST.path,detailUrl:CONTEST.path,registrationUrl:CONTEST.path,checkedAt:CONTEST.startsOn,status:"confirmed",churchPublicId:null,sourceName:"에어처치 이벤트"};
+  const ownEvent:ChurchEvent={id:CONTEST.id,title:"에어처치 찬양대회",startDate:CONTEST.startsOn,endDate:koreaDate(new Date(CONTEST.resultsAt)),startTime:null,venue:"온라인 · 에어처치",region:"전국",attendance:"온라인",organizer:"에어처치",audience:"대상 확인 필요",category:"찬양·공연",sourceUrl:CONTEST.path,detailUrl:CONTEST.path,registrationUrl:CONTEST.path,checkedAt:CONTEST.startsOn,status:"confirmed",churchPublicId:null,sourceName:"이벤트"};
   const rangeFrom=params.get("from"),rangeTo=params.get("to");
   const ownMatches=!selectedChurch&&ownEvent.endDate>=today&&(!rangeFrom||ownEvent.endDate>=rangeFrom)&&(!rangeTo||ownEvent.startDate<=rangeTo)&&(!category||category===ownEvent.category)&&(!audience||audience===ownEvent.audience);
   const eventItems=[...(ownMatches?[ownEvent]:[]),...(data?.items||[]).filter(item=>item.id!==ownEvent.id)];
