@@ -14,6 +14,31 @@ function field(rows:string[],pattern:RegExp) { const index=rows.findIndex(x=>pat
 function regionOf(venue:string){const aliases:Record<string,string>={충청북도:"충북",충청남도:"충남",전라북도:"전북",전북특별자치도:"전북",전라남도:"전남",경상북도:"경북",경상남도:"경남",춘천:"강원",익산:"전북",일산:"경기",분당:"경기",수지:"경기",성남:"경기",용인:"경기",동대문:"서울",종로:"서울"};return eventRegions.find(x=>venue.includes(x))||Object.entries(aliases).find(([a])=>venue.includes(a))?.[1]||"지역 확인 필요";}
 function meta(html:string,key:string){for(const m of html.matchAll(/<meta\b[^>]*>/gi)){if(m[0].includes(`"${key}"`)||m[0].includes(`'${key}'`))return plain(m[0].match(/content=["']([\s\S]*?)["']/i)?.[1]||"");}return "";}
 export type ExtractedEvent={title:string;startDate:string;endDate:string;startTime:string|null;venue:string;region:string;attendance:string;organizer:string;audience:string;category:string;registrationUrl:string|null;status:string};
+function duranno4197Summary(html:string){
+  const body=html.replace(/<!--[\s\S]*?-->/g,"").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,"");
+  const summaries:Array<{variant:string;startTime:string;endTime:string;venue:string}>=[];
+  for(const opening of body.matchAll(/<div\b[^>]*class=["']info2\s+(pc|mobile)["'][^>]*>/gi)){
+    let depth=1,end=-1;const start=opening.index!+opening[0].length;
+    for(const tag of body.slice(start).matchAll(/<\/?div\b[^>]*>/gi)){
+      depth+=/^<\//.test(tag[0])?-1:1;
+      if(depth===0){end=start+tag.index!;break;}
+    }
+    if(end<0)return null;
+    const paragraphs=[...body.slice(start,end).matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map(match=>plain(match[1]));
+    const clocks=paragraphs.map(value=>value.match(/(?:^|\s)(am|pm)\s+(\d{1,2}):([0-5]\d)\s*[~～–-]\s*(?:(am|pm)\s*)?(\d{1,2}):([0-5]\d)\s*$/i)).filter(value=>value!==null);
+    const venues=paragraphs.filter(value=>/^장소\s*[:：]\s*\S/.test(value)).map(value=>value.replace(/^장소\s*[:：]\s*/,""));
+    if(clocks.length!==1||venues.length!==1||venues[0].length>300)return null;
+    const clock=clocks[0],hour=Number(clock[2]),endHour=Number(clock[5]);
+    if(hour<1||hour>12||endHour>(clock[4]?12:23)||(clock[4]&&endHour<1))return null;
+    const startTime=`${String(hour%12+(clock[1].toLowerCase()==="pm"?12:0)).padStart(2,"0")}:${clock[3]}`;
+    const endTime=`${String(clock[4]?endHour%12+(clock[4].toLowerCase()==="pm"?12:0):endHour).padStart(2,"0")}:${clock[6]}`;
+    if(startTime>=endTime)return null;
+    summaries.push({variant:opening[1].toLowerCase(),startTime,endTime,venue:venues[0]});
+  }
+  if(summaries.length!==2||new Set(summaries.map(value=>value.variant)).size!==2)return null;
+  const [pc,mobile]=summaries;
+  return pc.startTime===mobile.startTime&&pc.endTime===mobile.endTime&&pc.venue===mobile.venue?{startTime:pc.startTime,venue:pc.venue}:null;
+}
 // Annual regional lists contain separate events, not one continuous date range.
 export function extractScheduleEntries(html:string,source:SourceConfig){
   if(source.id==="paidion"){
@@ -191,7 +216,13 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   if(weekly&&ds.length===1&&Number(weekly[1])>=1&&Number(weekly[1])<=52)endDate=new Date(Date.parse(startDate)+(Number(weekly[1])-1)*7*86400000).toISOString().slice(0,10);
   else if(/매주|매월|격주|회차|\d+차\s*[:：]/.test(when))return fail("multiple_sessions_require_explicit_dates");
   if(!validDate(endDate)||endDate<startDate||Date.parse(endDate)-Date.parse(startDate)>366*86400000)return fail("ambiguous_date_range");
-  const venue=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*(?:행사\s*장소|강의\s*장소|공연장|장\s*소)(?=\s|[:：|｜]|$)\s*[:：|｜]?\s*/u)||(source.id==="chungeoram"?field(body,/^진행\s*방식\s*[:：]\s*/):"");
+  let venue=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*(?:행사\s*장소|강의\s*장소|공연장|장\s*소)(?=\s|[:：|｜]|$)\s*[:：|｜]?\s*/u)||(source.id==="chungeoram"?field(body,/^진행\s*방식\s*[:：]\s*/):"");
+  let durannoSummary:ReturnType<typeof duranno4197Summary>=null;
+  if(source.id==="duranno-college"){
+    let target=false;
+    try{const u=new URL(url);target=u.origin==="https://biblecollege.duranno.com"&&!u.username&&!u.password&&!u.port&&u.pathname==="/biblecollege/view/seminar_detail.asp"&&!u.hash&&[...u.searchParams.keys()].every(key=>key==="smrnum")&&u.searchParams.getAll("smrnum").length===1&&u.searchParams.get("smrnum")==="4197";}catch{/* Other source URLs retain the existing parser. */}
+    if(target){durannoSummary=duranno4197Summary(html);if(!durannoSummary)return fail("duranno_summary_confirmation_required");venue=durannoSummary.venue;}
+  }
   const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최(?:\s*\/\s*(?:주\s*관|기획))?\s*[:：|｜]?\s*/u)||"주최 확인 필요";
   if(!venue||/추후\s*(?:공지|안내|공개|확정)|미정|확정\s*예정|TBD|장소\s*협의/i.test(venue))return fail("venue_required");
   if(source.id==="hcm"){
@@ -203,6 +234,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   if(time){let h=Number(time[2]),m=Number(time[3]||0);if(h>=1&&h<=12&&m<60){h=h%12+(time[1]==="오전"?0:12);startTime=`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;}}
   else{const clock=when.match(/(?:^|\s)([01]?\d|2[0-3]):([0-5]\d)/);if(clock)startTime=`${clock[1].padStart(2,"0")}:${clock[2]}`;else{const hours=when.match(/(?:^|\s)([01]?\d|2[0-3])\s*[-~]\s*([01]?\d|2[0-3])\s*시/);if(hours&&Number(hours[1])>=13&&Number(hours[1])<Number(hours[2]))startTime=`${hours[1].padStart(2,"0")}:00`;}}
   if(source.id==="duranno-college"&&!startTime){const intro=body.findIndex(x=>x==="세미나 소개"),clock=body.slice(Math.max(0,di),intro<0?di+15:intro).find(x=>/^([01]?\d|2[0-3]):[0-5]\d\s*[-~]/.test(x));if(clock)startTime=clock.match(/^\d{1,2}:\d{2}/)![0].padStart(5,"0");}
+  if(durannoSummary)startTime=durannoSummary.startTime;
   if(source.id==="melon"&&!startTime){const clock=field(body,/^공연시간\s*[:：]?\s*/).match(/(오전|오후)\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);if(clock&&Number(clock[2])<=12&&Number(clock[2])>0&&Number(clock[3]||0)<60)startTime=`${String(Number(clock[2])%12+(clock[1]==="오후"?12:0)).padStart(2,"0")}:${String(clock[3]||0).padStart(2,"0")}`;}
   const audienceText=field(body,/^(?:[\d.•○●\s-]*)?대\s*상\s*[:：]?\s*/)||(["hcm","ctc"].includes(source.id)?"":title);
   const audience=["어린이","청소년","청년","가정","목회자"].find(x=>audienceText.includes(x))||(/목사/.test(audienceText)?"목회자":"대상 확인 필요");
