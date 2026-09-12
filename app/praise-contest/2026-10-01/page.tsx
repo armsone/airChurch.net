@@ -2,6 +2,29 @@ import type { Metadata } from "next";
 import SiteFooter from "../../site-footer";
 import ContestBoard from "../contest-board";
 import "../contest.css";
-export const metadata:Metadata={title:"2026년 10월 1일 찬양대회 | 에이처치",description:"에이처치 2026년 10월 1일 찬양대회 참가작과 공식 결과를 만나는 공간입니다.",alternates:{canonical:"/praise-contest/2026-10-01"}};
+const title = "2026 에어처치 찬양대회 | 총상금 100만 원";
+const description = "10월 1~15일 접수 · 유튜브 영상으로 참여하세요. 여러분의 좋아요로 수상작이 결정됩니다.";
+const poster = "https://airchurch.net/images/praise-contest-2026-square.png";
+
+export const metadata: Metadata = {
+  title,
+  description,
+  alternates: { canonical: "/praise-contest/2026-10-01" },
+  openGraph: {
+    title,
+    description,
+    url: "https://airchurch.net/praise-contest/2026-10-01",
+    siteName: "에어처치",
+    type: "website",
+    locale: "ko_KR",
+    images: [{ url: poster, width: 1254, height: 1254, alt: "에어처치 찬양대회 포스터 · 2026년 10월 1~15일 참가 접수" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+    images: [poster],
+  },
+};
 // Permanent start-date URL for this edition. Preserve its storage ID when adding events.
 export default function OctoberContestPage(){return <><main className="contest-shell"><a className="contest-back" href="/our-events">← 에어처치 이벤트 모아보기</a><ContestBoard/></main><SiteFooter/></>;}
