@@ -1,0 +1,26 @@
+.making-article > header h1 { font-size: clamp(21.6px, 2.8vw, 28.8px); }
+.making-article > header > p { font-size: 12.8px; }
+.making-article-body { font-size: 80%; }
+.making-article .making-article-body p { font-size: 13.6px; }
+.making-article .making-article-body h2 { font-size: 18.4px; }
+.making-article .making-article-body h3 { font-size: .96rem; }
+.making-article .making-article-body table { font-size: .736rem; }
+.making-article .making-article-body .making-sources li { font-size: 12.8px; }
+.making-adjacent { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 40px 0; }
+.making-adjacent > * { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: #f5f7f0; }
+.making-adjacent > :last-child { text-align: right; }
+.making-adjacent a { color: var(--ink); text-decoration: none; }
+.making-adjacent span { display: block; font-size: 13px; color: var(--muted); }
+.making-adjacent strong { display: block; margin-top: 8px; font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; }
+.making-adjacent a:hover { border-color: #98b4a4; background: #edf3e8; }
+.making-bottom-list ul { list-style: none; padding: 0; border-top: 1px solid var(--line); }
+.making-bottom-list li { border-bottom: 1px solid var(--line); }
+.making-bottom-list a { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 16px 12px; color: var(--ink); font-size: 14px; text-decoration: none; line-height: 1.65; }
+.making-bottom-list a:hover, .making-bottom-list a[aria-current="page"] { background: #edf3e8; }
+.making-bottom-list time { flex-shrink: 0; font-size: 12px; color: var(--muted); }
+.making-bottom-list em { display: inline-block; font-style: normal; font-size: 11px; margin-right: 8px; padding: 2px 6px; border-radius: 6px; color: white; background: #385a48; }
+@media (max-width: 650px) {
+  .making-article .making-article-body p { font-size: 12.8px; }
+  .making-adjacent { grid-template-columns: minmax(0, 1fr); }
+  .making-bottom-list a { align-items: flex-start; flex-direction: column; gap: 4px; }
+}
