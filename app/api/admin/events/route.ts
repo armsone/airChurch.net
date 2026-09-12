@@ -39,7 +39,7 @@ export async function GET(request:Request){
       if(due)recheckDue++;
       if(due&&(row.eventId!==null||Date.parse(row.lastSeenAt)>at-30*86400000))queueEligible++;
     }
-    return Response.json({checkedAt:now,source:{...source,due:source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now)},queue:{sampleLimit:500,sampled:rows.length,truncated:sample.results.length>500,unchecked,recheckDue,queueEligible,byStatus},failureSampleLimit:10,failureSamples:rows.filter(row=>row.status==='failed').slice(0,10).map(({url,reason,checkedAt})=>({url,reason,checkedAt})),linkedCandidateLimit:50,linkedCandidates:linked.results},{headers});
+    return Response.json({checkedAt:now,source:{...source,due:source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now)},queue:{sampleLimit:500,sampled:rows.length,truncated:sample.results.length>500,unchecked,recheckDue,queueEligible,byStatus},failureSampleLimit:10,failureSamples:rows.filter(row=>row.status==='failed').slice(0,10).map(({url,reason,checkedAt,lastSeenAt,eventId})=>({url,reason,checkedAt,lastSeenAt,eventId})),linkedCandidateLimit:50,linkedCandidates:linked.results},{headers});
   }catch{return Response.json({error:"출처 진단을 불러오지 못했습니다."},{status:503,headers});}
 }
 
