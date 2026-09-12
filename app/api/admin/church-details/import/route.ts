@@ -6,6 +6,7 @@ import { isValidPastorName } from "../../../../pastor-name";
 type Operation={action?:unknown;key?:unknown;values?:Record<string,unknown>};
 const SENSITIVE=/(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:헌금|후원|입금)\s*계좌|(?:휴대폰|핸드폰)\s*[:：]?\s*01[016789][\d-]{7,})/i;
 const iso=(value:string)=>/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value);
+const validDays=(value:string)=>{try{const days=JSON.parse(value);return Array.isArray(days)&&days.length>0&&days.length<=7&&new Set(days).size===days.length&&days.every(day=>typeof day==="string"&&["MON","TUE","WED","THU","FRI","SAT","SUN"].includes(day));}catch{return false;}};
 const dateLike=(value:string)=>/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)?$/.test(value);
 const ROLE_CATEGORIES=new Set(["current_primary","associate","education","cooperating","emeritus","retired"]);
 const ROLE_TITLES=new Set(["담임목사","위임목사","대표목사","수석부목사","부목사","행정목사","목양목사","교육목사","강도사","전임전도사","교육전도사","전도사","협동목사","원로목사","은퇴목사"]);
@@ -17,7 +18,10 @@ export async function POST(request:Request){
   const body=await readLimitedJson(request,524_288);if(body.tooLarge)return Response.json({error:"가져오기 파일이 너무 큽니다."},{status:413});
   const plan=body.data.plan as {metadata?:Record<string,unknown>;operations?:Operation[]}|undefined,confirmedDigest=clean(body.data.confirmedDigest,64);
   const operations=plan?.operations,metadata=plan?.metadata;
+  if(body.data.preserveExisting!==undefined&&typeof body.data.preserveExisting!=="boolean")return Response.json({error:"기존 자료 보존 여부는 true 또는 false로 지정해 주세요."},{status:400});
+  const preserveExisting=body.data.preserveExisting===true;
   if(!Array.isArray(operations)||operations.length<1||operations.length>100)return Response.json({error:"한 번에 1~100건만 반영할 수 있습니다."},{status:400});
+  if(preserveExisting&&operations.some(operation=>operation.action!=="upsert_reviewed_worship_schedule"))return Response.json({error:"기존 자료 보존 모드에서는 예배시간만 신규 등록할 수 있습니다."},{status:400});
   const calculated=await digest(operations),declared=clean(metadata?.sha256,64);
   if(metadata?.reviewComplete!==true||metadata?.approvalVerified!==true||metadata?.requires_separate_apply_authorization!==true||!/^[0-9a-f]{64}$/.test(declared)||declared!==calculated||confirmedDigest!==declared)return Response.json({error:"전체 검토와 승인 해시를 다시 확인해 주세요."},{status:409});
   const parsed:Array<{action:"schedule"|"profile"|"minister"|"appearance";churchId:number;values:Record<string,string|null>}>=[];
@@ -26,7 +30,7 @@ export async function POST(request:Request){
     if(!Number.isInteger(churchId)||churchId<1||!sourceUrl||reviewStatus!=="approved"||!iso(reviewedAt))return Response.json({error:"승인된 출처와 교회 ID를 확인해 주세요."},{status:400});
     if(operation.action==="upsert_reviewed_worship_schedule"){
       const recordId=clean(values.record_id,80),serviceType=clean(values.service_type,100),days=clean(values.day_of_week,80),startTime=clean(values.start_time,5),venue=clean(values.venue_audience,200)||null,sourceText=clean(values.source_text,1000),collectedAt=clean(values.collected_at,40),confidence=clean(values.confidence,20);
-      if(!/^[0-9a-f]{24}$/.test(recordId)||!serviceType||!/^\[(?:"(?:MON|TUE|WED|THU|FRI|SAT|SUN)"(?:,)*)+\]$/.test(days)||!/^\d{2}:\d{2}$/.test(startTime)||!iso(collectedAt)||!confidence||SENSITIVE.test(sourceText)||SENSITIVE.test(venue??""))return Response.json({error:"예배시간 항목의 형식 또는 공개 범위를 확인해 주세요."},{status:400});
+      if(!/^[0-9a-f]{24}$/.test(recordId)||!serviceType||!validDays(days)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime)||!iso(collectedAt)||!confidence||SENSITIVE.test(sourceText)||SENSITIVE.test(venue??""))return Response.json({error:"예배시간 항목의 형식 또는 공개 범위를 확인해 주세요."},{status:400});
       parsed.push({action:"schedule",churchId,values:{recordId,serviceType,days,startTime,venue,sourceText,sourceUrl,collectedAt,confidence,reviewedAt}});
     }else if(operation.action==="upsert_reviewed_church_profile"){
       const slogan=clean(values.slogan,200)||null,vision=clean(values.vision,600)||null,summary=clean(values.summary,1000)||null,address=clean(values.address,300)||null,collectedAt=clean(values.collected_at,40);
@@ -46,6 +50,16 @@ export async function POST(request:Request){
   const churchIds=[...new Set(parsed.map((item)=>item.churchId))],placeholders=churchIds.map(()=>"?").join(",");
   const approved=await db.prepare(`SELECT id FROM churches WHERE review_status='approved' AND id IN (${placeholders})`).bind(...churchIds).all<{id:number}>();
   if(new Set(approved.results.map((item)=>item.id)).size!==churchIds.length)return Response.json({error:"보류되었거나 등록되지 않은 교회가 포함되어 있습니다."},{status:409});
+  if(preserveExisting){
+    const recordIds=parsed.map(item=>item.values.recordId!);
+    if(new Set(recordIds).size!==recordIds.length)return Response.json({error:"중복된 예배 기록이 있어 반영하지 않았습니다."},{status:409});
+    const existing=await db.prepare(`SELECT record_id FROM worship_schedules WHERE record_id IN (${recordIds.map(()=>"?").join(",")})`).bind(...recordIds).all<{record_id:string}>();
+    if(existing.results.length)return Response.json({error:"이미 있는 예배 기록은 덮어쓰지 않았습니다. 상태 변경은 개별 검토로 진행해 주세요.",conflictingRecordIds:existing.results.map(row=>row.record_id),insertedRecordIds:[]},{status:409,headers:{"cache-control":"no-store"}});
+    const results=await db.batch<{record_id:string}>(parsed.map(item=>db.prepare("INSERT INTO worship_schedules (record_id,church_id,service_type,day_of_week,start_time,venue_audience,source_text,source_url,collected_at,confidence,review_status,reviewed_at) SELECT ?,?,?,?,?,?,?,?,?,?,'approved',? WHERE EXISTS (SELECT 1 FROM churches WHERE id=? AND review_status='approved') ON CONFLICT(record_id) DO NOTHING RETURNING record_id").bind(item.values.recordId,item.churchId,item.values.serviceType,item.values.days,item.values.startTime,item.values.venue,item.values.sourceText,item.values.sourceUrl,item.values.collectedAt,item.values.confidence,item.values.reviewedAt,item.churchId)));
+    const insertedRecordIds=results.flatMap(result=>result.results.map(row=>row.record_id)),inserted=new Set(insertedRecordIds),skippedRecordIds=recordIds.filter(id=>!inserted.has(id));
+    if(skippedRecordIds.length)return Response.json({error:"등록 중 자료나 교회 상태가 변경되었습니다. 기존 기록은 보존했으며 신규 반영 결과를 확인해 주세요.",insertedRecordIds,skippedRecordIds,schedules:insertedRecordIds.length},{status:409,headers:{"cache-control":"no-store"}});
+    return Response.json({ok:true,digest:calculated,operations:parsed.length,schedules:insertedRecordIds.length,profiles:0,ministers:0,appearances:0,insertedRecordIds},{headers:{"cache-control":"no-store"}});
+  }
   let schedules=0,profiles=0,ministers=0,appearances=0;
   for(let offset=0;offset<parsed.length;offset+=50){const statements=parsed.slice(offset,offset+50).map((item)=>{
     if(item.action==="schedule"){schedules++;return db.prepare("INSERT INTO worship_schedules (record_id,church_id,service_type,day_of_week,start_time,venue_audience,source_text,source_url,collected_at,confidence,review_status,reviewed_at) VALUES (?,?,?,?,?,?,?,?,?,?,'approved',?) ON CONFLICT(record_id) DO UPDATE SET church_id=excluded.church_id,service_type=excluded.service_type,day_of_week=excluded.day_of_week,start_time=excluded.start_time,venue_audience=excluded.venue_audience,source_text=excluded.source_text,source_url=excluded.source_url,collected_at=excluded.collected_at,confidence=excluded.confidence,review_status='approved',reviewed_at=excluded.reviewed_at,updated_at=CURRENT_TIMESTAMP").bind(item.values.recordId,item.churchId,item.values.serviceType,item.values.days,item.values.startTime,item.values.venue,item.values.sourceText,item.values.sourceUrl,item.values.collectedAt,item.values.confidence,item.values.reviewedAt);}
