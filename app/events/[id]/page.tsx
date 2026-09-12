@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import SiteFooter from "../../site-footer";
 import { readEvent,withDeadline } from "../data";
 import { dateLabel,koreaDate } from "../types";
 import EventSaveButton from "../event-save-button";
@@ -22,5 +21,5 @@ export default async function EventPage({params}:{params:Promise<{id:string}>}){
       <div><dt>{item.participation.registrationClosesOn?"신청 기간":"신청 마감"}</dt><dd>{item.participation.registrationDeadline||"신청 마감일은 예약 페이지에서 확인해 주세요."}</dd></div>
       {item.participation.preparation&&<div><dt>준비·유의 사항</dt><dd style={{whiteSpace:"pre-line"}}>{item.participation.preparation}</dd></div>}
     </dl><p>예약 화면의 행사명·장소·날짜를 이 안내와 대조한 뒤 신청해 주세요. 잔여석과 현재 접수 가능 여부는 예약 페이지에서 확인해야 합니다.</p></section>}
-    <p>기간으로 안내된 행사는 실제 진행일·회차가 다를 수 있습니다. 참가비, 신청 마감과 참여 조건은 공식 안내에서 확인해 주세요.</p><div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">공식 행사 안내 ↗</a>{!unavailable&&item.registrationUrl&&<a href={item.registrationUrl} target="_blank" rel="noopener noreferrer">신청 안내 ↗</a>}{item.churchPublicId&&<a href={`/church/${item.churchPublicId}`}>주최 교회 보기 →</a>}<a href={`/contact?category=${encodeURIComponent("정보 수정 요청")}&event=${id}`}>일정 오류 알려주기</a></div></article><SiteFooter/></main>;
+    <p>기간으로 안내된 행사는 실제 진행일·회차가 다를 수 있습니다. 참가비, 신청 마감과 참여 조건은 공식 안내에서 확인해 주세요.</p><div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">공식 행사 안내 ↗</a>{!unavailable&&item.registrationUrl&&<a href={item.registrationUrl} target="_blank" rel="noopener noreferrer">신청 안내 ↗</a>}{item.churchPublicId&&<a href={`/church/${item.churchPublicId}`}>주최 교회 보기 →</a>}<a href={`/contact?category=${encodeURIComponent("정보 수정 요청")}&event=${id}`}>일정 오류 알려주기</a></div></article></main>;
 }

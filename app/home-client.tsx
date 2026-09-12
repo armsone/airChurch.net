@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import SiteFooter from "./site-footer";
 import { matchesSearchTerms, metadataSearchValue, normalizeSearchValue } from "./search-domain";
 import { fetchSearchSuggestions, SearchSuggestion } from "./search-suggestions-client";
 import { hasSavedItemNewSermon, readSavedItems, SavedItem, writeSavedItems } from "./saved-items";
@@ -835,7 +834,6 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
       <section className="portal-about" id="about"><span className="section-kicker">소개</span><h2>말씀과 교회를 정직하게 연결합니다</h2><p>airChurch는 공개된 자료를 바탕으로 말씀, 교회와 목사님, 교계소식과 나눔을 한곳에 모읍니다.</p><div><a href="/about">운영 안내</a><a href="/contact">문의</a><a href="/privacy">개인정보</a><a href="/terms">이용약관</a></div></section>
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-logo" href="#sermons" aria-label="오늘의 말씀으로 이동" title="오늘의 말씀" /><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
-      <SiteFooter />
     </main>
   );
 }

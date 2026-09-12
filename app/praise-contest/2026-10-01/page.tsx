@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import SiteFooter from "../../site-footer";
 import ContestBoard from "../contest-board";
 import "../contest.css";
 const title = "2026 에어처치 찬양대회 | 총상금 100만 원";
@@ -27,4 +26,4 @@ export const metadata: Metadata = {
   },
 };
 // Permanent start-date URL for this edition. Preserve its storage ID when adding events.
-export default function OctoberContestPage(){return <><main className="contest-shell"><a className="contest-back" href="/our-events">← 에어처치 이벤트 모아보기</a><ContestBoard/></main><SiteFooter/></>;}
+export default function OctoberContestPage(){return <><main className="contest-shell"><a className="contest-back" href="/our-events">← 에어처치 이벤트 모아보기</a><ContestBoard/></main></>;}

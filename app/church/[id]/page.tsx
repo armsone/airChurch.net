@@ -21,7 +21,6 @@ import AdminSearchCard from "../../search/admin-search-card";
 import {ChurchControls} from "../../admin/admin-controls";
 import PastorDirectoryCard from "../../pastor-directory-card";
 import ChurchDetailHero from "./church-detail-hero";
-import SiteFooter from "../../site-footer";
 import EventsBrowser from "../../events/events-browser";
 
 export const dynamic="force-dynamic";
@@ -106,6 +105,6 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
     <section className="church-information-help"><div><strong>이 교회의 정보가 더 있나요?</strong><p>공식 출처가 확인되는 교역자와 예배시간을 알려주시면 검토 후 반영합니다.</p></div><MinistrySuggestionForm churchId={church.public_id} churchName={church.name}/><a href={`/contact?church=${encodeURIComponent(church.name)}&category=예배시간`}>예배시간 알려주기</a></section>
     <EncouragementBoard churchId={id} targetType="church" title={`${church.name} 응원하기`} initialItems={encouragements.results}/>
     {related.results.length>0&&<section className="church-detail-content church-related"><div className="section-heading"><div><span className="section-kicker">다음 발견</span><h2>가까운 교회와 같은 교단</h2></div><a href="/#church-directory">전체 교회 찾기 →</a></div><div className="church-related-grid">{related.results.map((item)=>{const reasons=[item.region.split(/\s+/)[0]===church.region.split(/\s+/)[0]?"같은 지역":null,item.denomination===church.denomination?"같은 교단":null].filter(Boolean);return <AdminSearchCard admin={isAdmin} linksOnly href={`/church/${item.id}`} label={item.name} className="shared-church-card" key={item.id} controls={isAdmin?<ChurchControls id={item.id} name={item.name} pastor={item.pastor} region={item.region} denomination={item.denomination} status="approved" holdReason={null} holdNote={null} heldAt={null} priorityWeight={item.priority_weight}/>:undefined}><ChurchCardContent id={item.id} name={item.name} pastor={item.pastor} region={item.region} denomination={item.denomination} homepageUrl={safeHttpUrl(item.homepage_url)} youtubeChannelId={item.youtube_channel_id} channelImageUrl={safeHttpUrl(item.channel_image_url)} saveAction={<ChurchSaveButton id={item.id} name={item.name} pastor={item.pastor} region={item.region} compact/>} detail={<small className="church-related-reason">{reasons.join(" · ")}</small>}/></AdminSearchCard>})}</div></section>}
-    <SiteFooter /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(churchJsonLd).replace(/</g,"\\u003c")}} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(churchJsonLd).replace(/</g,"\\u003c")}} />
   </main>;
 }

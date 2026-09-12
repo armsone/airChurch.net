@@ -3,6 +3,7 @@ import "./globals.css";
 import VisitorTracker from "./visitor-tracker";
 import AdminBulkBar from "./admin-bulk-selection";
 import SiteHeader from "./site-header";
+import SiteFooter from "./site-footer";
 import SkipLink from "./skip-link";
 
 export const metadata: Metadata = {
@@ -67,6 +68,6 @@ export default function RootLayout({
     },
   ];
   return (
-    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
+    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><SiteFooter/><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></body></html>
   );
 }

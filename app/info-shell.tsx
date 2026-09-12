@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import SiteFooter from "./site-footer";
 
 const infoLinks = [
   ["운영 안내", "/about"],
@@ -18,6 +17,5 @@ export default function InfoShell({ kicker, title, intro, children }: { kicker: 
       <aside aria-label="안내 문서">{infoLinks.map(([label,href])=><a href={href} key={href}>{label}</a>)}</aside>
       <article className="info-content">{children}</article>
     </div>
-    <SiteFooter />
   </main>;
 }

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import MakingNav from "../making/making-nav";
-import SiteFooter from "../site-footer";
 
 export const metadata: Metadata = {
   title: "테크 | airChurch",
@@ -107,6 +106,5 @@ export default function TechPage() {
       <ol><li><b>1</b><div><strong>먼저 공개 기준을 적으세요</strong><span>무엇을 모으고, 무엇은 보류할지 서비스 첫날부터 정합니다.</span></div></li><li><b>2</b><div><strong>반복되는 일만 자동화하세요</strong><span>출처 확인과 목록 갱신은 기계가 돕고, 사람에 대한 판단은 사람에게 남겨 둡니다.</span></div></li><li><b>3</b><div><strong>개인정보는 기능보다 먼저 보호하세요</strong><span>정말 필요한 정보만 받고, 공개·비공개·삭제 시점을 분리합니다.</span></div></li></ol>
       <div className="tech-reuse-links"><a href="/about">운영 안내</a><a href="/privacy">개인정보처리방침</a><a href="/copyright">저작권 원칙</a><a href="/contact">함께 이야기하기</a></div>
     </section>
-    <SiteFooter />
   </main>;
 }
