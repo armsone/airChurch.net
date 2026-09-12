@@ -14,13 +14,14 @@ async function addColumnIfMissing(db:D1Database,columns:{name:string}[],name:str
   try { await db.prepare(sql).run(); }
   catch(error) { if(!String(error).toLowerCase().includes("duplicate column")) throw error; }
 }
-// These ensure* functions are idempotent DDL only. They are memoized per isolate so that
-// hot request paths (homepage sermons/churches/etc.) don't re-run PRAGMA/CREATE TABLE round trips on every request.
+// Cache only completed initialization. Pending D1 I/O belongs to the originating
+// Worker request and can remain unsettled if that request is canceled.
 function memoizeEnsure(run:(db:D1Database)=>Promise<void>) {
-  let pending:Promise<void>|null=null;
-  return (db:D1Database)=>{
-    if(!pending) pending=run(db).catch((error)=>{pending=null;throw error;});
-    return pending;
+  let completed=false;
+  return async(db:D1Database)=>{
+    if(completed)return;
+    await run(db);
+    completed=true;
   };
 }
 const ensureMaintenanceState=memoizeEnsure(async(db:D1Database)=>{
