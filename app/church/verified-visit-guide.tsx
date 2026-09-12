@@ -7,6 +7,33 @@ type LocalGuide = {
 };
 const localGuides: LocalGuide[] = [
   {
+    "publicId": 10069,
+    "region": "강원원주",
+    "denomination": "기독교대한감리회",
+    "name": "원주제일교회",
+    "address": "강원도 원주시 일산로 40 (일산동)",
+    "phone": "033-742-2170",
+    "telephone": "033-742-2170",
+    "directions": "https://wjmc.or.kr/about_church/contact-to-us/"
+  },
+  {
+    "publicId": 11557,
+    "region": "부산동래",
+    "denomination": "대한예수교장로회통합",
+    "name": "안락교회",
+    "address": "부산광역시 동래구 충렬대로 367(안락동)",
+    "phone": "051-521-8800~2",
+    "telephone": "051-521-8800",
+    "directions": "https://www.allak.or.kr/Page/Index/33",
+    "transit": [
+      "지하철 4호선 충렬사역 2번 출구"
+    ],
+    "newcomers": {
+      "url": "https://www.allak.or.kr/Page/Index/80",
+      "description": "새가족 만남반은 4주 교육과정과 바나바 사역으로 안내합니다."
+    }
+  },
+  {
     publicId: 11418, region: "서울성동", denomination: "대한예수교장로회통합", name: "무학교회",
     address: "서울특별시 성동구 행당로 123", phone: "02-2292-2993", telephone: "02-2292-2993",
     directions: "http://www.moohak.org/Page/Index/23",
