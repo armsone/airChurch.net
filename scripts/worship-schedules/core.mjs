@@ -7,6 +7,8 @@ import { extractDonghaeSchedules } from "./donghae.mjs";
 import { extractWonjuSchedules } from "./wonju.mjs";
 import { extractChangsinSchedules } from "./changsin.mjs";
 import { extractHakikSchedules } from "./hakik.mjs";
+import { extractOnnuriSchedules } from "./onnuri.mjs";
+import { extractMoohakSchedules } from "./moohak.mjs";
 
 export const DAYS = Object.freeze({
   "월": "MON", "화": "TUE", "수": "WED", "목": "THU", "금": "FRI", "토": "SAT", "주일": "SUN", "일": "SUN",
@@ -111,6 +113,10 @@ export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt
   if (changsin !== null) return changsin;
   const hakik = extractHakikSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
   if (hakik !== null) return hakik;
+  const onnuri = extractOnnuriSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (onnuri !== null) return onnuri;
+  const moohak = extractMoohakSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (moohak !== null) return moohak;
   const lines = visibleLines(html);
   const records = [];
   let section = "";
