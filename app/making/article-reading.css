@@ -1,4 +1,4 @@
-.making-article > header, .making-article-body { width: 90%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+.making-article > header, .making-article-body { width: 95%; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 .making-adjacent { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 40px 0; }
 .making-adjacent > * { padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: #f5f7f0; }
 .making-adjacent > :last-child { text-align: right; }
