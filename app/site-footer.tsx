@@ -1,9 +1,9 @@
 import HomeReloadLink from "./home-reload-link";
 import FooterVisitorCounts from "./footer-visitor-counts";
 
-const linkGroups = [
-  { title: "에어처치 안내", links: [["운영 안내", "/about"], ["에어처치 만들기", "/making"], ["이벤트", "/our-events"], ["문의", "/contact"]] },
-  { title: "이용 원칙", links: [["공동체 안전", "/community-guidelines"], ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"], ["저작권 원칙", "/copyright"]] },
+const footerLinks = [
+  ["운영 안내", "/about"], ["만들기", "/making"], ["문의", "/contact"],
+  ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"],
 ] as const;
 
 export default function SiteFooter() {
@@ -14,10 +14,9 @@ export default function SiteFooter() {
         <p>사람과 교회를 잇는 크리스천 포털</p>
       </div>
       <div className="site-footer-groups">
-        {linkGroups.map(group => <nav key={group.title} aria-label={group.title}>
-          <h2 className="sr-only">{group.title}</h2>
-          <ul>{group.links.map(([label, href]) => <li key={href}><a href={href}>{label}</a></li>)}</ul>
-        </nav>)}
+        <nav aria-label="사이트 안내">
+          <ul>{footerLinks.map(([label, href]) => <li key={href}><a href={href}>{label}</a></li>)}</ul>
+        </nav>
       </div>
     </div>
     <div className="site-footer-bottom">
