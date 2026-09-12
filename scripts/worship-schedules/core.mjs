@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 import { extractJiguchonSchedules } from "./jiguchon.mjs";
 import { extractYeondongSchedules } from "./yeondong.mjs";
 import { extractAhyeonSchedules } from "./ahyeon.mjs";
+import { extractAllakSchedules } from "./allak.mjs";
+import { extractDonghaeSchedules } from "./donghae.mjs";
+import { extractWonjuSchedules } from "./wonju.mjs";
 
 export const DAYS = Object.freeze({
   "월": "MON", "화": "TUE", "수": "WED", "목": "THU", "금": "FRI", "토": "SAT", "주일": "SUN", "일": "SUN",
@@ -96,6 +99,12 @@ export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt
   if (yeondong !== null) return yeondong;
   const ahyeon = extractAhyeonSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
   if (ahyeon !== null) return ahyeon;
+  const allak = extractAllakSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (allak !== null) return allak;
+  const donghae = extractDonghaeSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (donghae !== null) return donghae;
+  const wonju = extractWonjuSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (wonju !== null) return wonju;
   const lines = visibleLines(html);
   const records = [];
   let section = "";
