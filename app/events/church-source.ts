@@ -7,9 +7,10 @@ import type { SourceConfig } from "./sources";
 // Source: https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02&wr_id=1167
 // Source: https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02&wr_id=1170
 // Source: https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02&wr_id=1171
-// The three verified posts above may lack a literal organizer field; only
-// these posts accept the extractor's unknown value. Seven other live G02
-// events remain unverified and do not receive that exception.
+// Further official bodies verified 2026-09-12: 1157/1164 (education),
+// 1161 (family ministry), 1166 (domestic missions), 1165 (education).
+// The foundation (1152) and lifelong education institute (1162) retain
+// their separate organizer identities. Church identity does not certify dates.
 // This is a public church ID; resolve its internal database ID before storing.
 export function verifiedEventChurchPublicId(source:SourceConfig,candidateUrl:string,organizer:string):number|null {
   if(source.kind!=="official"||source.id!=="jiguchon"||source.churchPublicId!==10017||source.churchName!=="지구촌교회"||source.name!=="지구촌교회")return null;
@@ -19,7 +20,7 @@ export function verifiedEventChurchPublicId(source:SourceConfig,candidateUrl:str
     if(homepage.pathname!=="/"||listing.pathname!=="/bbs/board.php"||candidate.pathname!=="/bbs/board.php")return null;
     if([listing,candidate].some(url=>url.searchParams.getAll("bo_table").length!==1||url.searchParams.get("bo_table")!=="G02"))return null;
     if(candidate.searchParams.getAll("wr_id").length!==1||!/^\d+$/.test(candidate.searchParams.get("wr_id")||""))return null;
-    const verifiedNotice=["1167","1170","1171"].includes(candidate.searchParams.get("wr_id")||"");
+    const verifiedNotice=["1157","1164","1161","1166","1165","1167","1170","1171"].includes(candidate.searchParams.get("wr_id")||"");
     if(organizer.replace(/\s/g,"")!==source.churchName&&!(organizer==="주최 확인 필요"&&verifiedNotice))return null;
     return source.churchPublicId;
   }catch{return null;}

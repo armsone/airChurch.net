@@ -1,3 +1,4 @@
+import { sourceDateReviewReason } from "./source-date-review";
 import { extractParticipation } from "./participation";
 import { verifiedEventChurchPublicId } from "./church-source";
 import { boundedFetch as fetchSource, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
@@ -7,7 +8,7 @@ import { officialEventSources, additionalDiscoverySources, type SourceConfig } f
 import { eventWords, eventPriority, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const COLLECTOR_VERSION=14;
+const COLLECTOR_VERSION=15;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -53,9 +54,9 @@ async function processSource(source:SourceConfig){
     // Oldest checked candidates first: subsequent batches cover the queue, not just the latest few posts.
     const queue=await db.prepare("SELECT id,url,title,event_id AS eventId,checked_at AS checkedAt FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END) AND (last_seen_at>? OR event_id IS NOT NULL) ORDER BY COALESCE(checked_at,''),first_seen_at DESC LIMIT 500").bind(source.id,after(-168),after(-4),after(-24*30)).all<{id:string;url:string;title:string;eventId:string|null;checkedAt:string|null}>();
     const position=new Map(found.map((item,index)=>[item.url,index]));
-    const score=(candidate:typeof queue.results[number])=>candidate.eventId?-1000000:(3-eventPriority(candidate.title))*1000+(position.get(candidate.url)??500);
+    const score=(candidate:typeof queue.results[number])=>candidate.eventId&&source.id==="jiguchon"&&new URL(candidate.url).searchParams.get("wr_id")==="1164"?-2000000:candidate.eventId?-1000000:(3-eventPriority(candidate.title))*1000+(position.get(candidate.url)??500);
     queue.results.sort((a,b)=>score(a)-score(b)||(a.checkedAt||"").localeCompare(b.checkedAt||""));
-    let failed=0,blocked=0,processed=0,fetched=0;
+    let failed=0,blocked=0,processed=0,fetched=0,parseIssues=0;
     let articleRobots=robots.text;
     if(source.kind==="rss"&&host(source.homepage)!==host(source.url)){
       const rules=await boundedFetch(new URL("/robots.txt",source.homepage).href,source,pace);
@@ -76,7 +77,7 @@ async function processSource(source:SourceConfig){
       if(processed>=20||Date.now()-started>22_000||(!documentCache.has(canonical.href)&&fetched>=(delay>5000?1:5)))break;
       if(source.kind==="official"&&!isDetail(source,candidate.url)){await db.prepare("UPDATE event_candidates SET status='ignored',reason='outside_event_board',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       processed++;
-      if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason='robots_disallowed',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
+      if(!robotsAllowed(articleRobots,candidate.url)){blocked++;await db.prepare("UPDATE event_candidates SET status='blocked',reason=CASE WHEN reason LIKE 'event_parse_review:%' OR reason='official_date_conflict' THEN reason ELSE 'robots_disallowed' END,checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       let doc;try{
         // This is the same public fragment loaded by the notice viewer. Both
         // the permalink above and this fetch must pass the source's robots rules.
@@ -85,7 +86,7 @@ async function processSource(source:SourceConfig){
         requestUrl.hash="";
         doc=documentCache.get(requestUrl.href);if(!doc){fetched++;doc=await boundedFetch(requestUrl.href,source,pace,articleRobots);}if(doc.status!==200)throw Error(`detail_http_${doc.status}`);
         documentCache.set(requestUrl.href,doc);
-      }catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=?,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
+      }catch(error){failed++;await db.prepare("UPDATE event_candidates SET status='failed',reason=CASE WHEN reason LIKE 'event_parse_review:%' OR reason='official_date_conflict' THEN reason ELSE ? END,checked_at=? WHERE id=?").bind(String(error).slice(0,180),now,candidate.id).run();continue;}
       if(source.kind==="rss"){
         for(const official of officialEventSources){const references=links(doc.text,candidate.url).filter(x=>isDetail(official,x.url));if(references.length)await enqueue(official,references,now);}
         await db.prepare("UPDATE event_candidates SET status='discovery_only',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;
@@ -102,14 +103,19 @@ async function processSource(source:SourceConfig){
         queue.results.splice(queue.results.indexOf(candidate)+1,0,...fresh);continue;
       }
       const extracted=occurrence?(entries.find(entry=>entry.key===occurrence)||{event:null,title:candidate.title,evidence:"",reason:"occurrence_removed_or_changed"}):extractEvent(doc.text,candidate.url,source,candidate.title);
-      const value=extracted.event?{...extracted.event,participation:extractParticipation(doc.text,source.id)}:null;
+      const value=extracted.event?{...extracted.event,participation:extractParticipation(doc.text,source.id,candidate.url)}:null;
       const verifiedPublicId=value?verifiedEventChurchPublicId(source,candidate.url,value.organizer):null;
       if(value&&verifiedPublicId&&value.organizer==="주최 확인 필요")value.organizer=source.churchName!;
+      const reviewedConflict=sourceDateReviewReason(doc.text,source.id,candidate.url);
+      if(reviewedConflict)parseIssues++;
       const hash=await digest(JSON.stringify(value??extracted.evidence));
       const notice=noticeStatus(`${extracted.title}\n${extracted.evidence}`);
       if(notice&&candidate.eventId)await db.prepare("UPDATE events SET status=?,updated_at=?,checked_at=? WHERE id=? AND source_url=?").bind(notice,now,now,candidate.eventId,candidate.url).run();
-      if(!value){await db.batch([
-        db.prepare("UPDATE event_candidates SET evidence=?,content_hash=?,status=?,reason=?,checked_at=? WHERE id=?").bind(extracted.evidence,hash,extracted.reason==="not_an_upcoming_event"?"ignored":"checking",extracted.reason,now,candidate.id),
+      if(!value){
+        const requiresReview=Boolean(candidate.eventId&&!notice&&extracted.reason!=="not_an_upcoming_event");
+        if(requiresReview)parseIssues++;
+        await db.batch([
+        db.prepare("UPDATE event_candidates SET evidence=?,content_hash=?,status=?,reason=?,checked_at=? WHERE id=?").bind(extracted.evidence,hash,extracted.reason==="not_an_upcoming_event"?"ignored":"checking",requiresReview?`event_parse_review:${extracted.reason}`:extracted.reason,now,candidate.id),
         db.prepare("UPDATE events SET status='checking',updated_at=? WHERE id=? AND source_url=? AND status!='cancelled'").bind(now,candidate.eventId,candidate.url),
       ]);continue;}
       if(value.startDate>koreaDate(new Date(Date.now()+366*86400000))){await db.prepare("UPDATE event_candidates SET status='checking',reason='outside_collection_window',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
@@ -121,15 +127,18 @@ async function processSource(source:SourceConfig){
       // A secondary source never rewrites the primary source's facts or provenance.
       if(existing&&existing.url!==candidate.url){const conflict=existing.hash!==hash;await db.prepare("UPDATE event_candidates SET event_id=?,evidence=?,content_hash=?,payload=?,status=?,reason=?,checked_at=? WHERE id=?").bind(eventId,extracted.evidence,hash,JSON.stringify(value),conflict?"checking":"corroborated",conflict?"conflicting_official_sources":null,now,candidate.id).run();if(conflict)await db.prepare("UPDATE events SET status='checking',updated_at=? WHERE id=? AND status!='cancelled'").bind(now,eventId).run();continue;}
       const conflict=await db.prepare("SELECT id FROM event_candidates WHERE event_id=? AND id!=? AND reason='conflicting_official_sources' AND content_hash!=? LIMIT 1").bind(eventId,candidate.id,hash).first();
-      const status=value.status==="cancelled"?"cancelled":conflict?"checking":value.endDate<koreaDate()?"ended":value.status;
+      const status=value.status==="cancelled"?"cancelled":value.status==="checking"||conflict||reviewedConflict?"checking":value.endDate<koreaDate()?"ended":value.status;
       if(!existing&&status!=="published"){await db.prepare("UPDATE event_candidates SET evidence=?,content_hash=?,payload=?,status=?,reason='not_public',checked_at=? WHERE id=?").bind(extracted.evidence,hash,JSON.stringify(value),status,now,candidate.id).run();continue;}
       await db.batch([
         db.prepare("INSERT INTO events(id,source_id,church_id,title,start_date,end_date,start_time,venue,region,attendance,organizer,audience,category,source_url,registration_url,status,checked_at,valid_until,content_hash,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET church_id=excluded.church_id,title=excluded.title,start_date=excluded.start_date,end_date=excluded.end_date,start_time=excluded.start_time,venue=excluded.venue,region=excluded.region,attendance=excluded.attendance,organizer=excluded.organizer,audience=excluded.audience,category=excluded.category,registration_url=excluded.registration_url,status=excluded.status,checked_at=excluded.checked_at,valid_until=excluded.valid_until,content_hash=excluded.content_hash,updated_at=excluded.updated_at").bind(eventId,source.id,churchId,value.title,value.startDate,value.endDate,value.startTime,value.venue,value.region,value.attendance,value.organizer,value.audience,value.category,candidate.url,value.registrationUrl,status,now,after(24),hash,now),
-        db.prepare("UPDATE event_candidates SET event_id=?,title=?,evidence=?,content_hash=?,payload=?,status=?,reason=?,checked_at=? WHERE id=?").bind(eventId,value.title,extracted.evidence,hash,JSON.stringify(value),status,conflict?"conflicting_official_sources":null,now,candidate.id),
+        db.prepare("UPDATE event_candidates SET event_id=?,title=?,evidence=?,content_hash=?,payload=?,status=?,reason=?,checked_at=? WHERE id=?").bind(eventId,value.title,extracted.evidence,hash,JSON.stringify(value),status,reviewedConflict||(conflict?"conflicting_official_sources":null),now,candidate.id),
       ]);
     }
+    // A later healthy batch must not erase unresolved findings from an earlier one.
+    const unresolved=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND event_id IS NOT NULL AND status IN ('checking','failed','blocked') AND (reason LIKE 'event_parse_review:%' OR reason='official_date_conflict')").bind(source.id).first<{n:number}>();
+    parseIssues=Math.max(parseIssues,Number(unresolved?.n||0));
     const remaining=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END)").bind(source.id,after(-168),after(-4)).first<{n:number}>();
-    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"empty",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":!found.length&&source.kind==="official"?`listing_no_matches:${listingChecks.join(";")}`.slice(0,180):null,nextScan,source.id,token).run();
+    await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":parseIssues?"checking":found.length||source.kind==="rss"?"ok":"empty",failed+blocked+parseIssues,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":parseIssues?"event_details_require_review":!found.length&&source.kind==="official"?`listing_no_matches:${listingChecks.join(";")}`.slice(0,180):null,nextScan,source.id,token).run();
   }catch(error){console.warn("event_source_failed",source.id,String(error).slice(0,180));const state=await db.prepare("SELECT failures FROM event_sources WHERE id=?").bind(source.id).first<{failures:number}>();await db.prepare("UPDATE event_sources SET status=?,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=failures+1,last_error=? WHERE id=? AND lease_token=?").bind(/robots_disallowed|access_challenge/.test(String(error))?"blocked":"failed",after(Math.min(24,2**Math.min(5,(state?.failures||0)+1))),String(error).slice(0,180),source.id,token).run();}
 }
 export async function syncEvents(requestedSource?:string){
@@ -141,12 +150,13 @@ export async function syncEvents(requestedSource?:string){
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='jiguchon' AND event_id IS NOT NULL AND source_id IN (SELECT id FROM event_sources WHERE collector_version<15 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN ('sorrygom','jiguchon') AND event_id IS NOT NULL AND source_id IN (SELECT id FROM event_sources WHERE collector_version<14 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='worldteach' AND reason='venue_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<13 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='paidion' AND reason='explicit_event_date_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<12 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='uofnjeju' AND reason='outside_event_board' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<8 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') OR (collector_version<14 AND id IN ('sorrygom','jiguchon')) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') OR (collector_version<14 AND id IN ('sorrygom','jiguchon')) OR (collector_version<15 AND id='jiguchon') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(requestedSource?[requestedSource]:collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});

@@ -38,16 +38,19 @@ export async function readEvent(id:string){
   if(!/^[a-f0-9]{32}$/.test(id))return null;
   const row=await database().prepare(`SELECT ${columns},e.valid_until AS validUntil,(SELECT ec.payload FROM event_candidates ec WHERE ec.event_id=e.id AND ec.source_id=e.source_id AND ec.url=e.source_url AND ec.content_hash=e.content_hash AND ec.status=e.status ORDER BY ec.checked_at DESC LIMIT 1) AS participationPayload ${joins} WHERE e.id=? AND ${visible} LIMIT 1`).bind(id).first<ChurchEvent&{validUntil:string;participationPayload:string|null}>();
   if(!row)return null;
-  const {participationPayload,...item}=row;let participation:EventParticipation|null=null;
+  const {participationPayload,...item}=row;let participation:EventParticipation|null=null,scheduleChanged=false;
   try{
-    const value=JSON.parse(participationPayload||"null")?.participation;
+    const payload=JSON.parse(participationPayload||"null");
+    scheduleChanged=payload?.status==="checking";
+    const value=payload?.participation;
     if(value&&typeof value==="object"&&!Array.isArray(value)){
       const parsed:EventParticipation={};
       for(const key of ["audienceText","cost","registrationInstructions","preparation","registrationDeadline"] as const){
         if(typeof value[key]==="string"&&value[key].trim()&&value[key].length<=2000)parsed[key]=value[key];
       }
+      if(typeof value.registrationClosesOn==="string"&&validDate(value.registrationClosesOn))parsed.registrationClosesOn=value.registrationClosesOn;
       if(Object.keys(parsed).length)participation=parsed;
     }
   }catch{/* Unavailable source details remain absent. */}
-  return {...item,participation};
+  return {...item,participation,scheduleChanged};
 }
