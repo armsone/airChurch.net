@@ -35,6 +35,31 @@ function single(values: string[]) {
 // Only the explicitly labelled sections of this source have been inspected.
 // Missing or ambiguous sections stay absent instead of inheriting old details.
 export function extractParticipation(html: string, sourceId: string, sourceUrl?: string): EventParticipation | null {
+  if (sourceId === "duranno-college") {
+    try {
+      const url = new URL(sourceUrl || "");
+      if (url.origin !== "https://biblecollege.duranno.com" || url.username || url.password || url.port || url.pathname !== "/biblecollege/view/seminar_detail.asp" || url.hash || [...url.searchParams.keys()].some(key => key !== "smrnum") || url.searchParams.getAll("smrnum").length !== 1 || url.searchParams.get("smrnum") !== "4197") return null;
+    } catch { return null; }
+    const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<(head|script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+    const result: EventParticipation = {};
+    const audience = single([...body.matchAll(/<span\b[^>]*class=["']people-info["'][^>]*>([\s\S]*?)<\/span>/gi)].map(match => text(match[1])));
+    if (audience) result.audienceText = audience;
+    const guidance = section(body, "수강안내");
+    // This notice uses literal <<<...>>> around its payment terms. Protect
+    // those characters only here before the shared tag-to-text conversion.
+    const instructions = text(guidance.replace(/<<<([\s\S]*?)>>>/g, (_, value: string) => `&lt;&lt;&lt;${value}&gt;&gt;&gt;`));
+    const price = single([...body.matchAll(/<p\b[^>]*class=["']price["'][^>]*>([\s\S]*?)<\/p>/gi)].map(match => text(match[1])).filter(value => /^₩[\d,]+$/.test(value)));
+    const couple = single([...instructions.matchAll(/커플\s+([\d,]+)\s*만원/g)].map(match => match[1]));
+    if (price && couple) {
+      const amount = Number(price.slice(1).replace(/,/g, "")), coupleAmount = Number(couple.replace(/,/g, "")) * 10000;
+      if (Number.isSafeInteger(amount) && amount > 0 && amount === coupleAmount) result.cost = `커플 ${amount.toLocaleString("ko-KR")}원`;
+    }
+    const registration = single([...instructions.matchAll(/(?:^|\s)02\.\s*홈페이지\s*등록[_\s]*([\s\S]*?)(?=\s04\.)/g)].map(match => match[1].replace(/<<<|>>>/g, "").trim()));
+    if (registration) result.registrationInstructions = registration;
+    const deadline = single([...body.matchAll(/<p\b[^>]*class=["']wait-table["'][^>]*>([\s\S]*?)<\/p>/gi)].map(match => text(match[1]).replace(/^사전신청\s*[:：]\s*/, "")).filter(value => /선착순\s*마감/.test(value)));
+    if (deadline) result.registrationDeadline = deadline;
+    return Object.keys(result).length ? result : null;
+  }
   if (sourceId === "jiguchon") {
     try {
       const url = new URL(sourceUrl || "");
