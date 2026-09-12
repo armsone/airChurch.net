@@ -3,9 +3,17 @@ type Props = { publicId: number; region: string; denomination: string };
 type LocalGuide = {
   publicId: number; region: string; denomination: string; name: string;
   address: string; phone: string; telephone: string; directions: string;
-  transit?: string[]; newcomers?: { url: string; description: string };
+  transit?: string[]; parking?: string[]; newcomers?: { url: string; description: string };
 };
 const localGuides: LocalGuide[] = [
+  {
+    publicId: 10109, region: "서울종로", denomination: "대한예수교장로회통합", name: "연동교회",
+    address: "서울 종로구 김상옥로 37", phone: "02-763-7244", telephone: "02-763-7244",
+    directions: "https://ydpc.org/Page/Index/161",
+    transit: ["1호선 종로5가역 2번 출구에서 대학로 방향으로 200m"],
+    parking: ["평일: 교회 지하주차장", "주일: 교회 지하주차장·광장주차장", "주일예배 참석 시 주차 봉사요원의 안내를 따라 주세요."],
+    newcomers: { url: "https://ydpc.org/Page/Index/162", description: "예배 시작 전 본당 입구 새가족 등록처에서 도우미 안내를 받습니다. 새가족 과정은 6주간입니다." },
+  },
   {
     publicId: 11737, region: "서울서대문", denomination: "기독교대한감리회", name: "아현중앙교회",
     address: "서울특별시 서대문구 신촌로29길 11", phone: "02-363-1452~4", telephone: "02-363-1452",
@@ -49,6 +57,7 @@ export default function VerifiedVisitGuide({ publicId, region, denomination }: P
         <div><dt>대표전화</dt><dd><a href={`tel:${local.telephone}`}>{local.phone}</a></dd></div>
         <div><dt>오시는 길</dt><dd><a href={local.directions} target="_blank" rel="noopener noreferrer">공식 오시는 길·지도 안내 ↗</a></dd></div>
         {local.transit && <div><dt>대중교통</dt><dd>{local.transit.map(line => <p key={line}>{line}</p>)}</dd></div>}
+        {local.parking && <div><dt>주차</dt><dd>{local.parking.map(line => <p key={line}>{line}</p>)}</dd></div>}
         {local.newcomers && <div><dt>새가족</dt><dd>{local.newcomers.description}{" "}<a href={local.newcomers.url} target="_blank" rel="noopener noreferrer">공식 새가족 안내 ↗</a></dd></div>}
       </dl>
     </div></article></div>
