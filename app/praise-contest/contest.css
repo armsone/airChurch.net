@@ -99,7 +99,11 @@ button.contest-sample{width:100%;font:inherit;text-align:left;cursor:pointer}.co
 .contest-social .contest-social-result{color:#254a3b;font-weight:650;margin-bottom:14px}
 .contest-social small{max-width:690px;margin:auto;color:#52675a;font-size:14px;word-break:keep-all;overflow-wrap:break-word}
 .contest-social>div{margin:24px 0 18px}
-.contest-social a{display:inline-flex;align-items:center;justify-content:center;min-height:48px;font-size:16px}
+.contest-social a{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:48px;font-size:16px}
+.contest-channel-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 34px;border-radius:9px}
+.contest-channel-icon svg{display:block}
+.contest-channel-youtube{background:#fff}
+.contest-channel-instagram{color:#fff;background:radial-gradient(circle at 25% 105%,#ffd776 0%,#f79538 22%,#e1306c 48%,#b52bc0 72%,#6944c7 100%)}
 .contest-sponsor{padding:28px 32px;gap:40px;background:#f5f7f2}
 .contest-sponsor-name span{font-size:14px;color:#53685a}
 .contest-sponsor p{font-size:17px;word-break:keep-all;overflow-wrap:break-word}
