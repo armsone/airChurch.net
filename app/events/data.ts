@@ -1,3 +1,4 @@
+import { excludedEventIds } from "./scope";
 import type { EventParticipation } from "./participation";
 import { database } from "../api/_shared";
 import { sources as newsSources } from "../api/church-news/route";
@@ -8,11 +9,11 @@ import { validDate } from "./extract";
 const columns="e.id,e.title,e.start_date AS startDate,e.end_date AS endDate,e.start_time AS startTime,e.venue,e.region,e.attendance,e.organizer,e.audience,e.category,e.source_url AS sourceUrl,e.registration_url AS registrationUrl,e.checked_at AS checkedAt,e.status,c.public_id AS churchPublicId,s.name AS sourceName";
 const participationColumn="(SELECT ec.payload FROM event_candidates ec WHERE ec.event_id=e.id AND ec.source_id=e.source_id AND ec.url=e.source_url AND ec.content_hash=e.content_hash AND ec.status=e.status ORDER BY ec.checked_at DESC LIMIT 1) AS participationPayload";
 const joins="FROM events e JOIN event_sources s ON s.id=e.source_id LEFT JOIN churches c ON c.id=e.church_id";
-const visible="s.id!='acts' AND s.enabled=1 AND (e.church_id IS NULL OR c.review_status='approved')";
+const visible=`s.id!='acts' AND e.id NOT IN (${excludedEventIds.map(id=>`'${id}'`).join(",")}) AND s.enabled=1 AND (e.church_id IS NULL OR c.review_status='approved')`;
 export async function withDeadline<T>(work:Promise<T>,ms=4500){let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([work,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(Error("database_timeout")),ms);})]);}finally{clearTimeout(timer);}}
 export async function readEventSources():Promise<EventSource[]>{
   const configs=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss"})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
-  const rows=await database().prepare("SELECT s.id,s.enabled,s.last_checked_at AS lastCheckedAt,s.last_success_at AS lastSuccessAt,s.status,s.candidate_count AS candidateCount,(SELECT COUNT(*) FROM events e LEFT JOIN churches c ON c.id=e.church_id WHERE e.source_id=s.id AND (e.church_id IS NULL OR c.review_status='approved') AND e.status='published' AND e.end_date>=? AND e.valid_until>?) AS eventCount FROM event_sources s").bind(koreaDate(),new Date().toISOString()).all<EventSource&{enabled:number}>();
+  const rows=await database().prepare(`SELECT s.id,s.enabled,s.last_checked_at AS lastCheckedAt,s.last_success_at AS lastSuccessAt,s.status,s.candidate_count AS candidateCount,(SELECT COUNT(*) FROM events e LEFT JOIN churches c ON c.id=e.church_id WHERE e.source_id=s.id AND (e.church_id IS NULL OR c.review_status='approved') AND e.status='published' AND e.end_date>=? AND e.valid_until>? AND ${visible}) AS eventCount FROM event_sources s`).bind(koreaDate(),new Date().toISOString()).all<EventSource&{enabled:number}>();
   return [...configs.filter(s=>rows.results.find(r=>r.id===s.id)?.enabled!==0).map(s=>{const row=rows.results.find(r=>r.id===s.id);return {...s,lastCheckedAt:null,lastSuccessAt:null,status:"pending",candidateCount:0,eventCount:0,...row,...(row?.lastCheckedAt&&Date.now()-Date.parse(row.lastCheckedAt)>12*3600000?{status:"stale"}:{})};}),...eventSourceCandidates.map((s,i)=>({...s,id:`candidate-${i}`,homepage:s.url,kind:"candidate",lastCheckedAt:null,lastSuccessAt:null,status:"candidate",candidateCount:0,eventCount:0}))];
 }
 export async function readEvents(params:URLSearchParams){

@@ -235,9 +235,9 @@ export function extractParticipation(html: string, sourceId: string, sourceUrl?:
     }
     const content = html.match(/<div\b[^>]*id=["']bo_v_con["'][^>]*>([\s\S]*?)<!--\s*}\s*본문 내용 끝\s*-->/i)?.[1] || "";
     const rows = content.replace(/<br\b[^>]*>|<\/(?:p|div)>/gi, "\n").split("\n").map(text).filter(Boolean);
-    const cost = single(rows.filter(value => /^등\s*록\s*비\s*[:：]\s*\S/.test(value)).map(value => value.replace(/^등\s*록\s*비\s*[:：]\s*/, "")));
+    const cost = single(rows.filter(value => /^등\s*록\s*비(?:\s*[:：]\s*|\s+)\S/.test(value)).map(value => value.replace(/^등\s*록\s*비(?:\s*[:：]\s*|\s+)/, "")));
     if (cost) result.cost = cost;
-    const audience = single(rows.filter(value => /^등록조건\s*[:：]\s*\S/.test(value)).map(value => value.replace(/^등록조건\s*[:：]\s*/, "")));
+    const audience = single(rows.filter(value => /^등록조건(?:\s*[:：]\s*|\s+)\S/.test(value)).map(value => value.replace(/^등록조건(?:\s*[:：]\s*|\s+)/, "")));
     if (audience) result.audienceText = audience;
     else if (!rows.some(value => /^등록조건\s*[:：]/.test(value)) && verifiedFamilySource(sourceId, sourceUrl || "") === "jiguchon") {
       const invitation = single(rows.filter(value => /^성서적 비전으로\s+가정을\s+세우기\s+원하는\s+.*부부.*관심과\s+참여/.test(value)));
