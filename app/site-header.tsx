@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import HomeReloadLink from "./home-reload-link";
 import SavedNavLink from "./saved-nav-link";
 
-const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["이벤트", "/#our-events"], ["교계행사", "/#events"], ["교계소식", "/#church-news"], ["선한영향력", "/#community"], ["소개", "/#vision"]] as const;
+const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["교계소식", "/#church-news"], ["교계행사", "/#events"], ["에어처치 이벤트", "/#our-events"], ["선한 영향력", "/#community"], ["소개", "/#vision"]] as const;
 
 export default function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const header = useRef<HTMLElement>(null), button = useRef<HTMLButtonElement>(null), panel = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null), button = useRef<HTMLButtonElement>(null), panel = useRef<HTMLElement>(null);
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     if (pathname !== "/") return;
@@ -56,10 +56,10 @@ export default function SiteHeader() {
   return <header className="site-header shared-site-header" ref={header}>
     <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink>
     <nav className="shared-primary-nav" aria-label="주요 메뉴">{navigation}</nav>
-    <nav className="header-admin-links" aria-label="운영 메뉴"><SavedNavLink/><a href="/about">운영 안내</a><a href="/contact">문의</a></nav>
+    <nav className="header-admin-links" aria-label="개인 메뉴와 도움말"><SavedNavLink/><a href="/contact">문의</a></nav>
     <button ref={button} className="mobile-menu-button" type="button" aria-expanded={open} aria-controls="mobile-site-menu" onClick={() => setOpen(value => !value)}><span aria-hidden="true">{open ? "×" : "☰"}</span>{open ? "닫기" : "메뉴"}</button>
-    <div ref={panel} id="mobile-site-menu" className={`mobile-menu-panel${open ? " is-open" : ""}`} hidden={!open}>
-      {navigation}<div className="mobile-menu-admin" onClick={() => setOpen(false)}><SavedNavLink/><a href="/about">운영 안내</a><a href="/contact">문의</a></div>
-    </div>
+    <nav aria-label="모바일 전체 메뉴" ref={panel} id="mobile-site-menu" className={`mobile-menu-panel${open ? " is-open" : ""}`} hidden={!open}>
+      {navigation}<div className="mobile-menu-admin" onClick={() => setOpen(false)}><SavedNavLink/><a href="/contact">문의</a></div>
+    </nav>
   </header>;
 }
