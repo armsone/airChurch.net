@@ -7,6 +7,18 @@ type LocalGuide = {
 };
 const localGuides: LocalGuide[] = [
   {
+    publicId: 10421, region: "서울종로", denomination: "대한예수교장로회합동", name: "창신제일교회",
+    address: "서울특별시 종로구 창신7길 7", phone: "02-3676-0012", telephone: "02-3676-0012",
+    directions: "https://www.csjch.or.kr/Page/Index/11",
+    newcomers: { url: "https://www.csjch.or.kr/Page/Index/612", description: "주일예배 후 2층 대예배실 로비에서 새가족부 등록 담당자의 도움으로 등록카드를 작성합니다. 등록 다음 주부터 4주간, 주일 오전 10시 새가족실에서 교육합니다." },
+  },
+  {
+    publicId: 10442, region: "인천남", denomination: "대한예수교장로회합동", name: "학익교회",
+    address: "인천광역시 미추홀구 재넘이길123번길 45", phone: "032-868-8475", telephone: "032-868-8475",
+    directions: "https://www.hakik.net/bbs/content.php?co_id=map",
+    newcomers: { url: "https://www.hakik.net/bbs/content.php?co_id=yang", description: "새가족반은 5주 과정이며, 수료 후 구역에 배치합니다." },
+  },
+  {
     "publicId": 10069,
     "region": "강원원주",
     "denomination": "기독교대한감리회",

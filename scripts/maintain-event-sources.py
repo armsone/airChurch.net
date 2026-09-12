@@ -53,7 +53,7 @@ def retryable(source):
     error = source.get('lastError') or ''
     return (source.get('refreshAllowed') is True and source.get('due') is True
         and source.get('status') == 'failed'
-        and ('TimeoutError' in error or error == 'detail_fetch_failed')
+        and 'TimeoutError' in error
         and not any(x in error.lower() for x in ('robots', 'challenge', 'forbidden', 'disallow')))
 
 before, after = {}, {}

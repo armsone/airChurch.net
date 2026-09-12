@@ -133,6 +133,26 @@ export function verifiedParticipationAudience(sourceId: string, sourceUrl: strin
 // Only the explicitly labelled sections of this source have been inspected.
 // Missing or ambiguous sections stay absent instead of inheriting old details.
 export function extractParticipation(html: string, sourceId: string, sourceUrl?: string): EventParticipation | null {
+  if (sourceId === "onnuri") {
+    // This exact official notice explicitly separates registration from event dates.
+    if (sourceUrl !== "https://www.onnuri.org/festival/140%EA%B8%B0-%ED%95%98%EB%82%98%EB%8B%98%EC%9D%98%EA%B0%80%EC%A0%95%ED%9B%88%EB%A0%A8%ED%95%99%EA%B5%90/") return null;
+    const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+    const headings = [...body.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map(match => text(match[1]));
+    const boxes = [...body.matchAll(/<div\b[^>]*class=["']info-box["'][^>]*>([\s\S]*?)<\/div>/gi)];
+    if (headings.filter(value => value === "140기 하나님의가정훈련학교").length !== 1 || boxes.length !== 1) return null;
+    const periods = [...boxes[0][1].matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)].map(match => text(match[1])).filter(value => /^신청기간\s*[:：]/.test(value));
+    if (periods.length !== 1) return null;
+    const period = periods[0].replace(/^신청기간\s*[:：]\s*/, "");
+    const dates = period.match(/^(\d{4})\.(\d{2})\.(\d{2})\s*~\s*(\d{4})\.(\d{2})\.(\d{2})$/);
+    if (!dates) return null;
+    const from = `${dates[1]}-${dates[2]}-${dates[3]}`, to = `${dates[4]}-${dates[5]}-${dates[6]}`;
+    const valid = (value: string) => { const date = new Date(`${value}T00:00:00Z`); return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10) === value; };
+    if (!valid(from) || !valid(to) || from > to) return null;
+    const result: EventParticipation = { registrationDeadline: period, registrationClosesOn: to };
+    const content = body.match(/<div\b[^>]*class=["']left-side["'][^>]*>([\s\S]*?)<div\b[^>]*class=["']pagenavi-box["']/i)?.[1] || "";
+    if ([...content.matchAll(/<a\b[^>]*href=["']https:\/\/buly\.kr\/6MuJGZa["'][^>]*>([\s\S]*?)<\/a>/gi)].filter(match => text(match[1]) === "신청가기").length === 1) result.registrationInstructions = "온누리교회 공식 행사 안내의 ‘신청가기’ 버튼에서 신청 조건과 접수 가능 여부를 확인해 주세요.";
+    return result;
+  }
   if (sourceId === "gwangya") return gwangyaParticipation(html, sourceUrl || "");
   if (sourceId === "melon") return melonParticipation(html, sourceUrl || "");
   if (sourceId === "duranno-college") {

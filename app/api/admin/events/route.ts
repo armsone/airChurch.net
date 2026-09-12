@@ -2,7 +2,7 @@ import { accessSession } from "../../../admin-access";
 import { syncEvents } from "../../../events/collection";
 import { database, readLimitedJson } from "../../_shared";
 
-const refreshableSources=["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion","ncck","acts"];
+const refreshableSources=["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion","ncck","acts","onnuri"];
 type SourceHealth={id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number};
 const healthColumns="id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion";
 const isDue=(source:SourceHealth,now:string)=>source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now);
@@ -21,7 +21,7 @@ export async function GET(request:Request){
     }catch{return Response.json({error:"출처 상태를 불러오지 못했습니다."},{status:503,headers});}
   }
   const sourceId=url.searchParams.get("sourceId");
-  if(url.searchParams.getAll("sourceId").length!==1||!sourceId||!["sorrygom","jiguchon","duranno-college","gwangya","melon","ncck","paidion","acts"].includes(sourceId))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400,headers});
+  if(url.searchParams.getAll("sourceId").length!==1||!sourceId||!["sorrygom","jiguchon","duranno-college","gwangya","melon","ncck","paidion","acts","onnuri"].includes(sourceId))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400,headers});
   try{
     const db=database(),now=new Date().toISOString();
     const source=await db.prepare("SELECT id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion FROM event_sources WHERE id=?").bind(sourceId).first<{id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number}>();
