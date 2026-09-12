@@ -117,7 +117,7 @@ export default async function AdminPage() {
   return <main className="admin-shell">
     <AdminLiveRefresh />
     <div className="admin-header page-utility-bar">
-      <div className="admin-utility-nav"><span>관리자</span><a href="#church-management">교회 관리</a><a href="#pastor-management">목회자 관리</a><a href="/admin/pastor-photos">사진 검토</a><a href="/admin/pastor-identities">동일인 검토</a><a href="/pastor">협동 목사 화면</a><form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div>
+      <div className="admin-utility-nav"><span>관리자</span><a href="/admin/making">에어처치 만들기</a><a href="#church-management">교회 관리</a><a href="#pastor-management">목회자 관리</a><a href="/admin/pastor-photos">사진 검토</a><a href="/admin/pastor-identities">동일인 검토</a><a href="/pastor">협동 목사 화면</a><form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div>
     </div>
     <section className="admin-title"><div><span>ADMIN ACTION CENTER</span><h1>오늘 처리할 운영 업무</h1><p>목회자가 확인을 요청한 교회부터 결정하고, 나머지 운영 현황은 아래에서 확인하세요.</p></div>
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>

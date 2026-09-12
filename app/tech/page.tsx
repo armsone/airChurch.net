@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import MakingNav from "../making/making-nav";
 import SiteFooter from "../site-footer";
 
 export const metadata: Metadata = {
@@ -23,7 +24,7 @@ const dataGroups = [
 ];
 
 export default function TechPage() {
-  return <main className="tech-page">
+  return <main className="tech-page"><div className="making-section-nav"><a href="/making">에어처치 만들기</a><MakingNav current="tech" /></div>
     <section className="tech-hero" id="primary-content" tabIndex={-1}>
       <span>OPEN TECH FOR CHRISTIAN COMMUNITIES</span>
       <h1>더 많은 교회가<br />더 쉽게 연결되도록</h1>

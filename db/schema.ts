@@ -101,3 +101,15 @@ export const praiseContestDecisions = sqliteTable("praise_contest_decisions", {c
 export const praiseContestVoteEvents=sqliteTable("praise_contest_vote_events",{id:integer("id").primaryKey({autoIncrement:true}),contestId:text("contest_id").notNull(),entryId:integer("entry_id").notNull(),browserHash:text("browser_hash").notNull(),voteDay:text("vote_day").notNull(),delta:integer("delta").notNull(),occurredAt:text("occurred_at").notNull()},t=>[index("idx_contest_vote_events").on(t.contestId,t.entryId)]);
 
 export const praiseContestPayments=sqliteTable("praise_contest_payments",{contestId:text("contest_id").notNull(),entryId:integer("entry_id").notNull(),rank:integer("rank").notNull(),amount:integer("amount").notNull(),attemptId:text("attempt_id").notNull().default(""),status:text("status").notNull(),reference:text("reference"),note:text("note").notNull(),updatedAt:text("updated_at").notNull()},t=>[uniqueIndex("idx_contest_payment_entry").on(t.contestId,t.entryId),uniqueIndex("idx_contest_payment_rank").on(t.contestId,t.rank),uniqueIndex("idx_contest_payment_reference").on(t.reference)]);
+
+export const makingPosts = sqliteTable("making_posts", {
+  slug: text("slug").primaryKey(), title: text("title").notNull(), summary: text("summary").notNull(),
+  category: text("category").notNull(), body: text("body").notNull(), sources: text("sources").notNull(),
+  status: text("status").notNull().default("published"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+export const makingComments = sqliteTable("making_comments", {
+  id: integer("id").primaryKey({autoIncrement:true}), postSlug: text("post_slug").notNull(), nickname: text("nickname").notNull(),
+  content: text("content").notNull(), status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, table => [index("idx_making_comments_post_status").on(table.postSlug,table.status,table.id), index("idx_making_comments_status").on(table.status,table.id)]);

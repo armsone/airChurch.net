@@ -2,6 +2,7 @@
 import NewsMark from "./news/news-mark";
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import MakingHomeSection from "./making/home-section";
 import SiteFooter from "./site-footer";
 import PortalToday from "./portal-today";
 import SeasonalScripture from "./seasonal-scripture";
@@ -943,6 +944,7 @@ export default function Home() {
       <section className="safety-section" id="principles"><div><span className="section-kicker">건강한 신앙 생태계</span><h2>열린 문에는<br />분명한 기준이 필요합니다</h2><a className="safety-more" href="/about">운영 주체와 전체 기준 보기 →</a></div><div className="safety-steps"><article><b>1</b><div><h3>소속 확인</h3><p>교단·노회·공식 홈페이지와 공식 영상 채널을 교차 확인합니다.</p></div></article><article><b>2</b><div><h3>복수 검토</h3><p>운영팀과 참여 목회자가 공개된 기준에 따라 확인하고, 최종 공개 여부는 관리자가 결정합니다.</p></div></article><article><b>3</b><div><h3>상시 보호</h3><p>신고, 재검토, 이의제기 절차를 두고 문제가 확인되면 노출을 즉시 중단합니다.</p></div></article><p className="safety-note">‘이단’이라는 표현은 자의적으로 붙이지 않으며, 참여 제한의 근거와 이의제기 절차를 투명하게 공개합니다.</p></div></section>
 
       <div className="page-jumps" aria-label="페이지 빠른 이동"><a href="#top" aria-label="맨 위로 이동" title="맨 위로">↑</a><a className="jump-overview" href="#portal-today-title" aria-label="투데이로 이동" title="투데이">모음</a><a className="jump-praise" href="#praises" aria-label="CCM과 찬양으로 이동" title="CCM 듣기">♫</a><a href="#page-bottom" aria-label="맨 아래로 이동" title="맨 아래로">↓</a></div>
+      <MakingHomeSection />
       <SiteFooter />
     </main>
   );
