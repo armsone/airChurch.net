@@ -48,10 +48,14 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    const canonicalHosts = new Set(["goodshare.net", "www.goodshare.net", "linechurch.net", "www.linechurch.net", "www.airchurch.net"]);
-    if (canonicalHosts.has(url.hostname)) {
-      return Response.redirect(`https://airchurch.net${url.pathname}${url.search}`, 301);
+    const wwwHosts = new Set(["www.airchurch.net", "www.goodshare.net", "www.linechurch.net"]);
+    if (wwwHosts.has(url.hostname)) {
+      return Response.redirect(`https://${url.hostname.slice(4)}${url.pathname}${url.search}`, 301);
     }
+    // Derive branding from the actual incoming hostname, including RSC navigation.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-site-brand-host", url.hostname);
+    request = new Request(request, { headers: requestHeaders });
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import HomeReloadLink from "./home-reload-link";
 import SavedNavLink from "./saved-nav-link";
+import { useSiteIdentity } from "./site-identity-context";
 
 const menuItems = [["말씀", "/#sermons"], ["찬양", "/#praises"], ["교회", "/#church-directory"], ["목회자", "/#pastor-directory"], ["교계소식", "/#church-news"], ["교계행사", "/#events"], ["이벤트", "/#our-events"], ["선한영향력", "/#community"], ["소개", "/#vision"]] as const;
 
 export default function SiteHeader() {
+  const identity = useSiteIdentity();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const header = useRef<HTMLElement>(null), button = useRef<HTMLButtonElement>(null), panel = useRef<HTMLElement>(null);
@@ -54,7 +56,7 @@ export default function SiteHeader() {
   const hrefFor = (href: string) => pathname === "/" && href.startsWith("/#") ? href.slice(1) : href;
   const navigation = menuItems.map(([label, href]) => <a key={href} href={hrefFor(href)} onClick={() => setOpen(false)}>{label}</a>);
   return <header className="site-header shared-site-header" ref={header}>
-    <HomeReloadLink className="brand" ariaLabel="에어처치 첫 화면 새로 불러오기"><span className="brand-mark" aria-hidden="true"/><span>airchurch</span></HomeReloadLink>
+    <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면 새로 불러오기`}><span className="brand-mark" aria-hidden="true"/><span>{identity.wordmark}</span></HomeReloadLink>
     <nav className="shared-primary-nav" aria-label="주요 메뉴">{navigation}</nav>
     <nav className="header-admin-links" aria-label="개인 메뉴와 도움말"><SavedNavLink/><a href="/contact">문의</a></nav>
     <button ref={button} className="mobile-menu-button" type="button" aria-expanded={open} aria-controls="mobile-site-menu" onClick={() => setOpen(value => !value)}><span aria-hidden="true">{open ? "×" : "☰"}</span>{open ? "닫기" : "메뉴"}</button>

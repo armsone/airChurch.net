@@ -899,3 +899,6 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
   .site-footer-bottom{justify-content:flex-start;margin-top:10px;padding-top:10px;gap:4px 16px}
   .site-footer .site-footer-bottom>p{flex-basis:100%}
 }
+
+.site-footer .site-domain-links a{display:inline-flex;align-items:center;min-height:32px;text-decoration:underline;text-underline-offset:3px}
+.site-footer .site-domain-links a[aria-current=true]{color:#e1e8e3}

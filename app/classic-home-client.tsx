@@ -1,4 +1,6 @@
 "use client";
+
+import { useSiteIdentity } from "./site-identity-context";
 import NewsMark from "./news/news-mark";
 
 import { FormEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -108,6 +110,7 @@ function LoadingCards({ count = 3 }: { count?: number }) {
 }
 
 export default function Home() {
+  const identity = useSiteIdentity();
   const koreanNow=new Date(Date.now()+9*60*60*1000);
   const todayGuide=dailyGuides[koreanNow.getUTCDay()];
   const todayKey=koreanNow.toISOString().slice(0,10);
@@ -714,7 +717,7 @@ export default function Home() {
 
 
       <section className="hero" id="primary-content" tabIndex={-1}>
-        <div className="hero-welcome"><h1>말씀을 발견하고 <span>교회와 이어지는 곳</span></h1><img className="welcome-art" src="/images/welcome-olive-dove.png" width={1536} height={1024} alt="" aria-hidden="true" /></div>
+        <div className="hero-welcome"><h1>{identity.headline} <span>{identity.tagline}</span></h1><img className="welcome-art" src="/images/welcome-olive-dove.png" width={1536} height={1024} alt="" aria-hidden="true" /></div>
         <form className="search" role="search" action="/search" method="get" onSubmit={()=>{const term=query.trim(),normalized=normalizeSearchValue(term);if(normalized){const next=[term,...recentSearches.filter((item)=>normalizeSearchValue(item)!==normalized)].slice(0,5);setRecentSearches(next);try{writeRecentSearches(next);}catch{/* 저장이 제한된 브라우저에서도 검색은 계속합니다. */}}}}>
           <label className="sr-only" htmlFor="site-search">말씀, 교회, 목회자 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setShowAllChurches(false); }} onKeyDown={(event)=>{if(event.key==="Enter"&&!event.isComposing&&event.keyCode!==229){event.preventDefault();event.currentTarget.form?.requestSubmit();}}} placeholder="말씀, 교회, 목회자를 검색하세요" />
