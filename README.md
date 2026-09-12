@@ -105,3 +105,7 @@ The pastor-history workflow is intentionally disconnected from the production da
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## 빠방 CCM 집계 연동
+
+빠방에서 가져온 CCM 플레이어가 보일 때 `/api/ccm/counters`로 방문을 보내고, YouTube의 실제 PLAYING 상태 누적 10초마다 재생 건당 한 번 전송합니다. 일시정지·버퍼링·오류에서는 타이머를 멈춥니다. 교회 찬양·바이블뮤직은 제외합니다. 서버는 고정된 빠방 `/api/counters`에 `source: "airchurch"`, `event`, 무작위 `id`만 전달합니다. 쿠키·계정·영상 정보·사용자 IP 헤더는 전달하지 않습니다. 추적 금지를 따르고 저장소 차단 시 방문을 생략합니다. 같은 ID로 한 번 재시도하며, 방문·재생 ID는 서로 독립적입니다. 한국 시간 일별 중복 제거와 30일 합산은 빠방 서버가 담당합니다. 공개 참고용 집계이며 출처 필드는 인증 수단이 아닙니다.

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { loadYouTubeApi, type YouTubePlayer } from "./youtube-api";
+import { countCcmVisit, createCcmPlaybackCounter } from "./ccm-counter";
 
 export type Track={id:string;title:string;channel:string;duration:number};
 type CuratedCollection={title:string;intro:string;sourceUrl:string;sourceLabel:string;endpoint:string};
@@ -34,6 +35,14 @@ export default function CcmPlayer({visible,interrupted,onPlay,church,curated}:{v
   const index=items.findIndex(item=>item.id===selected);
   const current=items[index];
   const itemsRef=useRef(items);itemsRef.current=items;
+
+  useEffect(()=>{
+    if(!visible||isChurch||curated)return;
+    countCcmVisit();
+    const timer=setInterval(countCcmVisit,60000);
+    document.addEventListener("visibilitychange",countCcmVisit);
+    return()=>{clearInterval(timer);document.removeEventListener("visibilitychange",countCcmVisit);};
+  },[visible,isChurch,curated]);
 
   useEffect(()=>{
     if(isChurch||curated)return;
@@ -84,6 +93,7 @@ export default function CcmPlayer({visible,interrupted,onPlay,church,curated}:{v
   useEffect(()=>{
     if(!playing||loading||!selected||!frame.current)return;
     let cancelled=false;
+    const counter=!isChurch&&!curated?createCcmPlaybackCounter():null;
     let player:YouTubePlayer|undefined;
     const host=frame.current;
     const element=document.createElement("iframe");
@@ -100,6 +110,7 @@ export default function CcmPlayer({visible,interrupted,onPlay,church,curated}:{v
         onReady:event=>{clearTimeout(timeout);if(!cancelled)event.target.playVideo();},
         onStateChange:event=>{
           if(cancelled)return;
+          counter?.playing(event.data===1);
           if(event.data===1){setNotice("");onPlayRef.current();}
           if(event.data===0){
             const list=itemsRef.current;
@@ -110,10 +121,10 @@ export default function CcmPlayer({visible,interrupted,onPlay,church,curated}:{v
             else {setPlaying(false);setNotice("준비된 찬양을 모두 들었어요. 다시 듣거나 다른 곡을 골라 보세요.");}
           }
         },
-        onError:()=>{if(!cancelled)setNotice("이 영상은 여기서 재생할 수 없어요. 다음 곡을 선택하거나 YouTube에서 들어 주세요.");},
+        onError:()=>{counter?.playing(false);if(!cancelled)setNotice("이 영상은 여기서 재생할 수 없어요. 다음 곡을 선택하거나 YouTube에서 들어 주세요.");},
       }});
     });
-    return()=>{cancelled=true;clearTimeout(timeout);player?.destroy();host.replaceChildren();};
+    return()=>{cancelled=true;counter?.dispose();clearTimeout(timeout);player?.destroy();host.replaceChildren();};
   },[playing,selected,loading,curatedCursor]);
 
   function choose(id:string) {nextAfterRef.current=null;setSelected(id);setPlaying(true);setNotice("");onPlayRef.current();}
