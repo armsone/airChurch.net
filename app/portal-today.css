@@ -275,3 +275,102 @@
 .home-event-feature strong{font-size:13px}.home-event-feature:hover{border-color:#91a998}
 .home-event-feature:focus-visible{outline:3px solid var(--orange);outline-offset:3px}
 @media(max-width:600px){.home-event-feature{grid-template-columns:100px minmax(0,1fr);gap:14px;padding:14px;align-items:start}.home-event-feature>img{width:100px;height:100px}.home-event-feature h3{font-size:18px}.home-event-feature p{font-size:12px}.home-event-feature dl{display:grid;gap:5px}.home-event-feature dl>div{display:block}}
+
+
+/* A welcoming reading space: warm paper, generous pauses, and soft color. */
+.integrated-portal .hero{padding:36px 24px 44px;background:transparent;overflow:visible}
+.integrated-portal .hero::before,.integrated-portal .hero::after{content:none}
+.hero-welcome{position:relative;max-width:1040px;margin:0 auto 24px;min-height:96px;display:flex;align-items:center;justify-content:center}
+.integrated-portal .hero h1{position:relative;margin:0;font-size:clamp(26px,2.7vw,36px);font-weight:500;line-height:1.55;letter-spacing:-.04em}
+.hero-welcome h1 span{display:inline-block}
+.integrated-portal .hero .search{margin-top:0;min-height:66px;border-color:#d5ddd1;border-radius:22px;box-shadow:0 10px 28px #36513e09}
+.integrated-portal .hero .search:focus-within{border-color:#64846b;box-shadow:0 0 0 3px #64846b1c}
+.integrated-portal .hero .search button{background:#315943;border-radius:16px}
+.integrated-portal .scripture-feature-row{margin-bottom:36px;gap:20px}
+.integrated-portal .season-scripture{border-color:#e3e3d4;border-radius:24px;box-shadow:0 8px 24px #42543506}
+.integrated-portal .scripture-context{background:linear-gradient(145deg,#294f3b,#3f674c);padding:28px 24px}
+.integrated-portal .scripture-context time{font-size:13px;color:#e0e8d8}
+.integrated-portal .scripture-context h2{margin-top:12px;font-size:22px}
+.integrated-portal .scripture-context>a{margin-top:24px;padding-top:18px}
+.integrated-portal .scripture-reading{background:#fffdf7;padding:28px 32px}
+.integrated-portal .scripture-reading blockquote{font-size:clamp(21px,2vw,25px);line-height:1.8}
+.integrated-portal .scripture-reading>small{font-size:12px;color:#747b6e}
+.integrated-portal .contest-poster-banner{border-radius:22px;box-shadow:0 8px 24px #42543510}
+.integrated-portal .portal-heading{border-bottom:0;align-items:center;margin-bottom:24px;padding:8px 0 12px}
+.integrated-portal .portal-heading h2{position:relative;font-size:30px;font-weight:750;letter-spacing:-.04em;isolation:isolate}
+.integrated-portal .portal-heading h2::after{content:"";position:absolute;z-index:-1;left:-3px;right:-8px;bottom:1px;height:12px;border-radius:8px;background:#f4d7a5}
+.integrated-portal .portal-heading>a{padding:10px 16px;background:#fff;border:1px solid #e7e4d8;border-radius:999px;font-size:13px;color:#536447}
+@media(max-width:760px){
+ .integrated-portal .hero{padding:24px 16px 32px}
+ .hero-welcome{min-height:72px;margin-bottom:20px}
+ .integrated-portal .hero h1{font-size:25px;line-height:1.6}
+ .integrated-portal .scripture-feature-row{margin-bottom:28px;gap:18px}
+ .integrated-portal .season-scripture{border-radius:20px}
+ .integrated-portal .scripture-context{padding:20px}
+ .integrated-portal .scripture-context h2{margin:0;font-size:20px}
+ .integrated-portal .scripture-context>a{margin:0;padding:0}
+ .integrated-portal .scripture-reading{padding:24px}
+ .integrated-portal .portal-heading h2{font-size:27px}
+}
+
+.hero-welcome{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:20px;max-width:860px;text-align:left}
+.hero-welcome h1 span{display:block}
+.welcome-art{display:block;width:240px;max-width:none;height:auto;margin-left:-60px;mix-blend-mode:multiply;pointer-events:none}
+.integrated-portal .portal-eight{gap:20px}
+.integrated-portal .portal-eight>.portal-panel{padding:20px 20px 12px;border:1px solid #e9e9de;border-radius:22px;background:linear-gradient(180deg,var(--panel-tint) 0,white 120px);box-shadow:0 6px 22px #3d503b04}
+.integrated-portal .portal-eight .portal-panel-heading{padding-bottom:14px;border-bottom:0;gap:10px}
+.integrated-portal .portal-eight .portal-panel-heading h3{font-size:18px}
+.integrated-portal .portal-title-icon{width:34px;height:34px;border-radius:12px;background:#ffffffb3;font-size:20px}
+.integrated-portal .portal-eight .portal-panel-heading>a{font-size:12px;color:#5e6d61}
+.integrated-portal .portal-eight .portal-caption,.integrated-portal .portal-eight .portal-switch{height:auto;min-height:42px;margin:0 0 8px;font-size:12px;line-height:1.6}
+.integrated-portal .portal-eight .portal-switch{gap:10px;flex-wrap:wrap}
+.integrated-portal .portal-eight .portal-switch button{font-size:12px;min-height:38px;padding:8px 0}
+.integrated-portal .portal-eight .portal-video,.integrated-portal .portal-eight .portal-picks li{height:auto;min-height:90px;padding:14px 0;border-color:#eff0e9}
+.integrated-portal .portal-eight .portal-video strong,.integrated-portal .portal-eight .portal-picks strong{font-size:14px;line-height:1.6}
+.integrated-portal .portal-eight .portal-video small,.integrated-portal .portal-eight .portal-picks small{font-size:12px;line-height:1.5;color:#6b766c}
+.integrated-portal .portal-eight .portal-video-play{border-radius:10px}
+.integrated-portal .portal-eight .portal-rank-picks li>b{width:29px;height:29px;border-radius:50%;background:var(--panel-tint);color:var(--panel-tone)}
+.integrated-portal .portal-eight .portal-rank-picks li:first-child>b{background:var(--panel-tone);color:#fff}
+.integrated-portal .portal-extras{gap:10px;padding:24px 0 12px;border:0;justify-content:center}
+.integrated-portal .portal-extras a{padding:10px 16px;background:#f1f1e5;border:0;font-size:13px;font-weight:600;color:#52664b}
+.integrated-portal .portal-extras a:hover{background:#e3ead7;color:#284b35}
+.integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:52px;padding-bottom:44px;border-top:0}
+.integrated-portal .section-heading,.integrated-portal>.cts-discovery>.portal-panel-heading{border-left:0;padding:0;margin-bottom:26px;gap:16px}
+.integrated-portal .section-heading .section-kicker{display:inline-block;margin-bottom:10px;padding:5px 10px;background:#eef0df;border-radius:6px;font-size:12px;letter-spacing:.025em;font-weight:600}
+.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:28px;letter-spacing:-.035em;line-height:1.45}
+.integrated-portal .news-home-actions>.unified-other-button{font-size:13px;padding:10px 14px;border-color:#e0e3d7;border-radius:999px;background:#ffffffa8;font-weight:500}
+.integrated-portal .news-home-actions>.unified-other-button:hover:not(:disabled){background:#edf1e5;border-color:#b8c7ad}
+.integrated-portal .sermon-card{border-color:#e8e9de;border-radius:20px;box-shadow:0 4px 18px #3d503b05}
+.integrated-portal .sermon-copy{padding:20px}
+.integrated-portal .sermon-copy h3{font-size:16px;line-height:1.65}
+.integrated-portal .sermon-copy :is(p,small){font-size:12px;line-height:1.65}
+.integrated-portal :is(.praise-tabs,.cts-switch) button{border-radius:999px;font-size:14px;padding:9px 16px;background:#fffdf9}
+.integrated-portal>.faith-home{width:calc(100% - 48px);max-width:1132px;margin:24px auto;background:#f4efdf;border-radius:28px;padding:32px}
+.integrated-portal>.faith-home>.portal-caption{font-size:14px;line-height:1.75;margin:0 0 22px;color:#68725f}
+.faith-home .faith-video-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 20px}
+.faith-home .faith-video-title{font-size:15px;line-height:1.6;font-weight:600}
+.faith-home .faith-video-source{font-size:12px;line-height:1.5;flex-wrap:wrap}
+.integrated-portal .home-event-feature{background:#fcf1df;border-color:#eddfc4;border-radius:24px;padding:24px}
+.integrated-portal .community-reading>.approved-list article{background:#fffaf5;border-color:#eedfda;border-radius:20px;padding:24px}
+.integrated-portal .community-reading>.approved-list p{font-size:16px;line-height:1.85}
+.integrated-portal .open-participation-form{border-radius:20px;background:#f0f3e8;border-color:#dce4ce;padding:24px}
+.integrated-portal .vision-quote{border-radius:24px}
+@media(max-width:1199px) and (min-width:761px){.integrated-portal .portal-eight{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.faith-home .faith-video-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.faith-home .faith-video-card:nth-child(n+7){display:none}}
+@media(max-width:760px){
+ .hero-welcome{grid-template-columns:minmax(0,1fr) 100px;gap:10px}
+ .integrated-portal .hero h1{font-size:clamp(21px,4.8vw,25px)}
+ .welcome-art{width:150px;margin-left:-50px}
+ .integrated-portal .portal-eight{gap:18px}
+ .integrated-portal .portal-eight>.portal-panel{padding:20px 20px 12px}
+ .integrated-portal .portal-heading{margin-bottom:20px;gap:10px}
+ .integrated-portal .portal-heading>a{font-size:12px;padding:9px 12px}
+ .integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:36px;padding-bottom:30px}
+ .integrated-portal .section-heading,.integrated-portal>.cts-discovery>.portal-panel-heading{flex-wrap:wrap;gap:14px;align-items:flex-start}
+ .integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:25px}
+ .integrated-portal>.faith-home{width:calc(100% - 32px);padding:24px 16px;border-radius:22px;margin:16px auto}
+ .faith-home .faith-video-grid{gap:24px 14px}
+ .faith-home .faith-video-title{font-size:14px}
+ .integrated-portal .portal-extras{justify-content:flex-start}
+}
+@media(prefers-reduced-motion:reduce){.integrated-portal .sermon-card{transition:none}.integrated-portal .sermon-card:hover{transform:none}}

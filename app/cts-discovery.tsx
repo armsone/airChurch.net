@@ -15,6 +15,14 @@ export default function CtsDiscovery({compact=false,dedicated=false}:{compact?:b
   const [category,setCategory]=useState("추천"),[playing,setPlaying]=useState<Video|null>(null);
   const [items,setItems]=useState<Video[]>(catalog.items as Video[]),[feedDelayed,setFeedDelayed]=useState(false);
   const [videoOffset,setVideoOffset]=useState(0),[query,setQuery]=useState(""),[limit,setLimit]=useState(12);
+  const [homePageSize,setHomePageSize]=useState(6);
+  useEffect(()=>{
+    if(compact||dedicated)return;
+    const narrow=window.matchMedia("(max-width: 900px)");
+    const update=()=>setHomePageSize(narrow.matches?6:12);
+    update();narrow.addEventListener("change",update);
+    return()=>narrow.removeEventListener("change",update);
+  },[compact,dedicated]);
   const [refreshing,setRefreshing]=useState(false),[checkedAt,setCheckedAt]=useState("");
   const request=useRef<AbortController|null>(null);
   const refresh=useCallback(async(manual=false)=>{
@@ -32,12 +40,12 @@ export default function CtsDiscovery({compact=false,dedicated=false}:{compact?:b
   useEffect(()=>{void refresh();const interval=setInterval(()=>void refresh(),15*60000);return()=>{request.current?.abort();request.current=null;clearInterval(interval);};},[refresh]);
   const filtered=mixFaithVideos(category==="추천"?items:items.filter(video=>video.category===category)).filter(video=>!query.trim()||`${video.title} ${video.source}`.toLocaleLowerCase("ko-KR").includes(query.trim().toLocaleLowerCase("ko-KR")));
   const start=filtered.length?videoOffset%filtered.length:0;
-  const visible=[...filtered.slice(start),...filtered.slice(0,start)].slice(0,compact?4:dedicated?limit:12);
+  const visible=[...filtered.slice(start),...filtered.slice(0,start)].slice(0,compact?4:dedicated?limit:homePageSize);
 
   const player=useRef<HTMLDivElement>(null);
   const play=(video:Video)=>{setPlaying(video);requestAnimationFrame(()=>player.current?.scrollIntoView({block:"nearest",behavior:"auto"}));};
-  return <section className={compact?"portal-panel faith-preview portal-tone-story":"cts-discovery"} id={compact?undefined:"faith-stories"} aria-labelledby={compact?"faith-preview-title":"cts-discovery-title"}>
-    <div className="portal-panel-heading"><div><h3 id={compact?"faith-preview-title":"cts-discovery-title"}>{compact?<a href="#faith-stories"><span className="portal-title-icon" aria-hidden="true">🌿</span>신앙이야기</a>:"신앙이야기"}</h3></div>{compact?<a href="#faith-stories">더 보기 →</a>:dedicated?<button className="faith-refresh" type="button" disabled={refreshing} onClick={()=>void refresh(true)}>{refreshing?"확인 중…":"새 영상 확인"}</button>:<div className="news-home-actions"><button className="unified-other-button" type="button" disabled={filtered.length<=12} onClick={()=>setVideoOffset(value=>value+12)}>다른 이야기 보기</button><a className="unified-other-button" href="/faith-stories">전체 이야기 보기 →</a></div>}</div>
+  return <section className={compact?"portal-panel faith-preview portal-tone-story":dedicated?"cts-discovery":"cts-discovery faith-home"} id={compact?undefined:"faith-stories"} aria-labelledby={compact?"faith-preview-title":"cts-discovery-title"}>
+    <div className="portal-panel-heading"><div><h3 id={compact?"faith-preview-title":"cts-discovery-title"}>{compact?<a href="#faith-stories"><span className="portal-title-icon" aria-hidden="true">🌿</span>신앙이야기</a>:"신앙이야기"}</h3></div>{compact?<a href="#faith-stories">더 보기 →</a>:dedicated?<button className="faith-refresh" type="button" disabled={refreshing} onClick={()=>void refresh(true)}>{refreshing?"확인 중…":"새 영상 확인"}</button>:<div className="news-home-actions"><button className="unified-other-button" type="button" disabled={filtered.length<=homePageSize} onClick={()=>setVideoOffset(value=>value+homePageSize)}>다른 이야기 보기</button><a className="unified-other-button" href="/faith-stories">전체 이야기 보기 →</a></div>}</div>
     <p className="portal-caption">{compact?"간증과 삶 · 청년의 질문 · 성경 이야기":"삶의 고백, 청년의 질문, 성경 속 이야기. 마음에 닿는 영상부터 만나보세요."}</p>
     {!compact&&<div className="portal-switch cts-switch" aria-label="신앙 영상 주제">{categories.map(name=><button key={name} type="button" aria-pressed={category===name} onClick={()=>{setCategory(name);setPlaying(null);setLimit(12);setVideoOffset(0);}}>{name}</button>)}</div>}
     {dedicated&&<div className="cts-search"><label htmlFor="faith-query">이야기 검색</label><div><input id="faith-query" type="search" value={query} onChange={event=>{setQuery(event.target.value);setLimit(12);}} placeholder="제목이나 영상 제공 채널로 검색하세요"/></div></div>}
