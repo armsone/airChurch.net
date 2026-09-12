@@ -2,11 +2,24 @@ import { accessSession } from "../../../admin-access";
 import { syncEvents } from "../../../events/collection";
 import { database, readLimitedJson } from "../../_shared";
 
+const refreshableSources=["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion","ncck","acts"];
+type SourceHealth={id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number};
+const healthColumns="id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion";
+const isDue=(source:SourceHealth,now:string)=>source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now);
+
 export async function GET(request:Request){
   const headers={"cache-control":"no-store"};
   const url=new URL(request.url),origin=request.headers.get("origin");
   if((origin!==null&&origin!==url.origin)||request.headers.get("sec-fetch-site")==="cross-site")return Response.json({error:"접근할 수 없습니다."},{status:403,headers});
   if((await accessSession(request))?.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403,headers});
+  if(url.searchParams.get("view")==="health"){
+    if(url.searchParams.getAll("view").length!==1||url.searchParams.has("sourceId"))return Response.json({error:"조회 조건을 확인해 주세요."},{status:400,headers});
+    try{
+      const now=new Date().toISOString();
+      const rows=await database().prepare(`SELECT ${healthColumns} FROM event_sources WHERE enabled=1 ORDER BY id LIMIT 201`).all<SourceHealth>();
+      return Response.json({checkedAt:now,limit:200,truncated:rows.results.length>200,sources:rows.results.slice(0,200).map(source=>({...source,due:isDue(source,now),refreshAllowed:refreshableSources.includes(source.id)}))},{headers});
+    }catch{return Response.json({error:"출처 상태를 불러오지 못했습니다."},{status:503,headers});}
+  }
   const sourceId=url.searchParams.get("sourceId");
   if(url.searchParams.getAll("sourceId").length!==1||!sourceId||!["sorrygom","jiguchon","duranno-college","gwangya","melon","ncck","paidion","acts"].includes(sourceId))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400,headers});
   try{
@@ -36,7 +49,7 @@ export async function POST(request:Request){
   if(session?.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403});
   const body=await readLimitedJson(request);
   if(body.tooLarge)return Response.json({error:"요청이 너무 큽니다."},{status:413});
-  if(!["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion"].includes(String(body.data.sourceId)))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400});
+  if(!refreshableSources.includes(String(body.data.sourceId)))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400});
   try{return Response.json(await syncEvents(String(body.data.sourceId)),{headers:{"cache-control":"no-store"}});}
   catch{return Response.json({error:"출처 확인을 마치지 못했습니다."},{status:503,headers:{"cache-control":"no-store"}});}
 }
