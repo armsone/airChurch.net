@@ -39,6 +39,6 @@ export default function FooterVisitorCounts() {
   return <span className="footer-visitor-counts" aria-label="방문 통계">
     <span title="최근 5분 이내 활동한 방문자">Now({formatCount(counts?.now)})</span>{", "}
     <span title="오늘 방문자 · 한국 시간 기준">Today({formatCount(counts?.today)})</span>{", "}
-    <span title="최근 90일 조회수 · 같은 방문자의 같은 페이지는 30분마다 1회 집계">Views({formatCount(counts?.views)})</span>
+    <span title="오늘 조회수 · 한국 시간 기준 · 같은 방문자의 같은 페이지는 30분마다 1회 집계">Views({formatCount(counts?.views)})</span>
   </span>;
 }
