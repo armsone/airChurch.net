@@ -241,16 +241,16 @@ export async function PATCH(request: Request) {
     if(data.roleId!==undefined&&data.status==="removed"){
       const roleId=Number(data.roleId),expectedName=clean(data.expectedName,80),expectedSource=clean(data.expectedSource,500),expectedUpdatedAt=clean(data.expectedUpdatedAt,40);
       if(!Number.isSafeInteger(roleId)||roleId<1||!expectedName||!expectedSource||!expectedUpdatedAt)return Response.json({error:"보류할 사역 관계의 확인 근거가 필요합니다."},{status:400});
-      const result=await db.prepare("UPDATE pastor_church_roles SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id=? AND pastor_id=? AND source_url=? AND updated_at=? AND review_status='approved' AND EXISTS (SELECT 1 FROM pastor_people p WHERE p.id=pastor_id AND p.name=?)").bind(roleId,id,expectedSource,expectedUpdatedAt,expectedName).run();
-      if(Number(result.meta?.changes??0)!==1)return Response.json({error:"확인 이후 자료가 변경되어 보류하지 않았습니다."},{status:409});
+      const result=await db.prepare("UPDATE pastor_church_roles SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id=? AND pastor_id=? AND source_url=? AND updated_at=? AND review_status='approved' AND EXISTS (SELECT 1 FROM pastor_people p WHERE p.id=pastor_church_roles.pastor_id AND p.name=?) RETURNING id").bind(roleId,id,expectedSource,expectedUpdatedAt,expectedName).all<{id:number}>();
+      if(result.results.length!==1)return Response.json({error:"확인 이후 자료가 변경되어 보류하지 않았습니다."},{status:409});
       await rebuildPastorAdminBuckets(db);
       return Response.json({ok:true,roleId},{headers:{"cache-control":"no-store"}});
     }
     if(data.status==="removed"&&data.expectedUpdatedAt!==undefined){
       const expectedName=clean(data.expectedName,80),expectedUpdatedAt=clean(data.expectedUpdatedAt,40);
       if(!expectedName||!expectedUpdatedAt)return Response.json({error:"인물 확인 근거가 필요합니다."},{status:400});
-      const result=await db.prepare("UPDATE pastor_people SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id=? AND name=? AND updated_at=? AND review_status='approved' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id AND r.review_status='approved')").bind(id,expectedName,expectedUpdatedAt).run();
-      if(Number(result.meta?.changes??0)!==1)return Response.json({error:"자료가 변경되었거나 공개 사역 관계가 남아 있어 인물을 보류하지 않았습니다."},{status:409});
+      const result=await db.prepare("UPDATE pastor_people SET review_status='removed',updated_at=CURRENT_TIMESTAMP WHERE id=? AND name=? AND updated_at=? AND review_status='approved' AND NOT EXISTS (SELECT 1 FROM pastor_church_roles r WHERE r.pastor_id=pastor_people.id AND r.review_status='approved') RETURNING id").bind(id,expectedName,expectedUpdatedAt).all<{id:number}>();
+      if(result.results.length!==1)return Response.json({error:"자료가 변경되었거나 공개 사역 관계가 남아 있어 인물을 보류하지 않았습니다."},{status:409});
       await rebuildPastorAdminBuckets(db);
       return Response.json({ok:true,id},{headers:{"cache-control":"no-store"}});
     }
