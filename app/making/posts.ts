@@ -1,4 +1,7 @@
+import { historicalPosts } from "./historical-posts";
+
 export const posts = [
+  ...historicalPosts,
   {
     slug: "why-we-keep-notes", date: "2026-09-12", category: "기록", title: "에어처치를 만들며 나누는 고민을 기록합니다",
     summary: "조사한 자료와 선택의 이유, 아직 답을 찾지 못한 질문을 한곳에 남깁니다.",
