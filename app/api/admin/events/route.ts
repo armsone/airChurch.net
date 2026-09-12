@@ -8,7 +8,7 @@ export async function GET(request:Request){
   if((origin!==null&&origin!==url.origin)||request.headers.get("sec-fetch-site")==="cross-site")return Response.json({error:"접근할 수 없습니다."},{status:403,headers});
   if((await accessSession(request))?.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403,headers});
   const sourceId=url.searchParams.get("sourceId");
-  if(url.searchParams.getAll("sourceId").length!==1||!sourceId||!["sorrygom","jiguchon","duranno-college","gwangya","melon"].includes(sourceId))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400,headers});
+  if(url.searchParams.getAll("sourceId").length!==1||!sourceId||!["sorrygom","jiguchon","duranno-college","gwangya","melon","ncck","paidion","acts"].includes(sourceId))return Response.json({error:"확인할 출처를 선택해 주세요."},{status:400,headers});
   try{
     const db=database(),now=new Date().toISOString();
     const source=await db.prepare("SELECT id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion FROM event_sources WHERE id=?").bind(sourceId).first<{id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number}>();
