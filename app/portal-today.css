@@ -210,7 +210,7 @@
 .integrated-portal .vision-quote blockquote{font-family:inherit;font-size:22px;line-height:1.6}
 .integrated-portal :is(.impact-grid,.goal-grid) article{border-radius:10px;padding:20px;box-shadow:none}
 .integrated-portal :is(.impact-grid,.goal-grid) h3{font-family:inherit;font-size:18px}
-.integrated-portal .page-jumps .jump-overview{font-size:10px;font-weight:400}
+
 #daily-scripture,#portal-today-title{scroll-margin-top:90px}
 @media(max-width:760px){
  .integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:24px;padding-bottom:24px}
