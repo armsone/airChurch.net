@@ -16,9 +16,10 @@ export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Prom
     if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
     if(!r.ok){void r.body?.cancel();return {text:"",status:r.status,finalUrl:url};}
     if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status,finalUrl:url};
-    if(Number(r.headers.get("content-length")||0)>1500000){void r.body?.cancel();throw Error("response_too_large");}
+    const declaredSize=Number(r.headers.get("content-length")||0);
+    if(declaredSize>1500000){void r.body?.cancel();throw Error(`response_too_large:declared=${declaredSize}`);}
     const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status,finalUrl:url};const chunks:Uint8Array[]=[];let size=0;
-    while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error("response_too_large");}chunks.push(value);}
+    while(true){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>1500000){void reader.cancel();throw Error(`response_too_large:received=${size};declared=${declaredSize}`);}chunks.push(value);}
     const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
     const charset=r.headers.get("content-type")?.match(/charset=([^;,\s]+)/i)?.[1]?.replace(/["']/g,"")||source.charset||"utf-8";
     const text=new TextDecoder(charset).decode(bytes);assertSourceDocument(text);

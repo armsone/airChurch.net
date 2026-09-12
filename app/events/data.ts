@@ -34,7 +34,10 @@ export async function readEvents(params:URLSearchParams){
   const [rows,sources]=await Promise.all([database().prepare(`SELECT ${columns},${participationColumn} ${joins} WHERE ${filters.join(" AND ")} ORDER BY ${order} LIMIT ?`).bind(...values,...(preview?[today]:[]),limit+1).all<ChurchEvent&{participationPayload:string|null}>(),readEventSources()]);
   const items=rows.results.slice(0,limit).map(({participationPayload,...item})=>{
     const {participation}=readParticipationPayload(participationPayload);
-    return {...item,...(participation?.registrationClosesOn?{participation:{registrationClosesOn:participation.registrationClosesOn}}:{})};
+    const cardParticipation:EventParticipation={};
+    if(participation?.registrationClosesOn)cardParticipation.registrationClosesOn=participation.registrationClosesOn;
+    if(participation?.audienceText)cardParticipation.audienceText=participation.audienceText;
+    return {...item,...(Object.keys(cardParticipation).length?{participation:cardParticipation}:{})};
   }),last=items.at(-1);
   return {items,sources,nextCursor:!preview&&rows.results.length>limit&&last?`${last.startDate}|${last.startTime||"99:99"}|${last.id}`:null};
 }
