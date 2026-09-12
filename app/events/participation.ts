@@ -74,6 +74,46 @@ function gwangyaParticipation(html: string, sourceUrl: string): EventParticipati
   return Object.keys(result).length ? result : null;
 }
 
+function melonParticipation(html: string, sourceUrl: string): EventParticipation | null {
+  // One inspected product only; literal equality excludes duplicate parameters,
+  // credentials, explicit ports, fragments and other ticket sales stages.
+  if (sourceUrl !== "https://ticket.melon.com/performance/index.htm?prodId=213769") return null;
+  const attr = (tag: string, name: string) => tag.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] || "";
+  const hidden = (tag: string) => /\shidden(?:\s|=|>)/i.test(tag) || attr(tag, "aria-hidden").toLowerCase() === "true" || /(?:^|\s)(?:hidden|hide|d-none)(?:\s|$)/.test(attr(tag, "class")) || /display\s*:\s*none|visibility\s*:\s*hidden/i.test(attr(tag, "style"));
+  const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<(head|script|style|nav|header|footer|template)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  const wanted = ["box_consert_info", "box_bace_price", "box_ticke_notice"], blocks = new Map<string, string[]>();
+  const stack: { start: number; key?: string; hidden: boolean }[] = [];
+  for (const match of body.matchAll(/<\/?div\b[^>]*>/gi)) {
+    const tag = match[0];
+    if (/^<\//.test(tag)) {
+      const frame = stack.pop();
+      if (!frame?.key || frame.hidden) continue;
+      const content = body.slice(frame.start, match.index);
+      if ([...content.matchAll(/<[a-z][^>]*>/gi)].some(item => hidden(item[0]))) continue;
+      blocks.set(frame.key, [...(blocks.get(frame.key) || []), content]);
+    } else stack.push({ start: match.index! + tag.length, key: wanted.find(key => attr(tag, "class").split(/\s+/).includes(key)), hidden: Boolean(stack.at(-1)?.hidden) || hidden(tag) });
+  }
+  const block = (key: string) => { const values = blocks.get(key); return values?.length === 1 ? values[0] : ""; };
+  const result: EventParticipation = {};
+  const ratings = [...block("box_consert_info").matchAll(/<dt\b[^>]*>([\s\S]*?)<\/dt>\s*<dd\b[^>]*>([\s\S]*?)<\/dd>/gi)].filter(row => text(row[1]) === "관람등급").map(row => text(row[2]));
+  if (ratings.length === 1 && ratings[0] && ratings[0].length <= 100 && !/미정|추후|확인\s*필요/.test(ratings[0])) result.audienceText = ratings[0];
+  const priceLists = [...block("box_bace_price").matchAll(/<ul\b[^>]*class=["']list_seat["'][^>]*>([\s\S]*?)<\/ul>/gi)];
+  if (priceLists.length === 1) {
+    const tickets = [...priceLists[0][1].matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)];
+    if (tickets.length === 1) {
+      const labels = [...tickets[0][1].matchAll(/<span\b[^>]*class=["']seat_name["'][^>]*>([\s\S]*?)<\/span>/gi)].map(value => text(value[1]));
+      const prices = [...tickets[0][1].matchAll(/<span\b[^>]*class=["']price["'][^>]*>([\s\S]*?)<\/span>/gi)].map(value => text(value[1]));
+      if (labels.length === 1 && /^슈퍼얼리버드\s+2일권$/.test(labels[0]) && prices.length === 1 && /^(?:\d{1,3}(?:,\d{3})+|\d+)원$/.test(prices[0])) result.cost = `${labels[0]} ${prices[0]}`;
+    }
+  }
+  const paragraphs = [...block("box_ticke_notice").matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map(value => text(value[1])).filter(Boolean);
+  const entry = paragraphs.filter(value => /^※?\s*본 공연은 모바일티켓으로만 입장이 가능합니다\.$/.test(value));
+  const app = paragraphs.filter(value => /^모바일티켓은 멜론티켓 App에서만 확인 가능하니 사전에 App을 준비해주세요\.$/.test(value));
+  const path = paragraphs.filter(value => /^\[\s*멜론티켓\s+App\s*[〉>]\s*마이티켓\s*[〉>]\s*예매내역\s*[〉>]\s*모바일티켓\s*\]$/.test(value));
+  if (entry.length === 1 && app.length === 1 && path.length === 1) result.preparation = [entry[0], app[0], path[0]].join("\n");
+  return Object.keys(result).length ? result : null;
+}
+
 function verifiedFamilySource(sourceId: string, sourceUrl: string) {
   try {
     const url = new URL(sourceUrl);
@@ -94,6 +134,7 @@ export function verifiedParticipationAudience(sourceId: string, sourceUrl: strin
 // Missing or ambiguous sections stay absent instead of inheriting old details.
 export function extractParticipation(html: string, sourceId: string, sourceUrl?: string): EventParticipation | null {
   if (sourceId === "gwangya") return gwangyaParticipation(html, sourceUrl || "");
+  if (sourceId === "melon") return melonParticipation(html, sourceUrl || "");
   if (sourceId === "duranno-college") {
     try {
       const url = new URL(sourceUrl || "");
