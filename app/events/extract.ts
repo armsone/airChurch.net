@@ -223,7 +223,7 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
     try{const u=new URL(url);target=u.origin==="https://biblecollege.duranno.com"&&!u.username&&!u.password&&!u.port&&u.pathname==="/biblecollege/view/seminar_detail.asp"&&!u.hash&&[...u.searchParams.keys()].every(key=>key==="smrnum")&&u.searchParams.getAll("smrnum").length===1&&u.searchParams.get("smrnum")==="4197";}catch{/* Other source URLs retain the existing parser. */}
     if(target){durannoSummary=duranno4197Summary(html);if(!durannoSummary)return fail("duranno_summary_confirmation_required");venue=durannoSummary.venue;}
   }
-  const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최(?:\s*\/\s*(?:주\s*관|기획))?\s*[:：|｜]?\s*/u)||"주최 확인 필요";
+  const organizer=field(body,/^[\d\s\p{P}\p{S}\uFE0F]*주\s*최(?:\s*\/\s*(?:주\s*관|기획))?\s*[:：|｜]?\s*/u)||(source.id==="cemk"&&url==="https://cemk.org/46091/"&&body.filter(row=>row==="기후정의주간을 맞아 기후위기기독교비상행동에서 영화제를 개최합니다.").length===1?"기후위기기독교비상행동":"주최 확인 필요");
   if(!venue||/추후\s*(?:공지|안내|공개|확정)|미정|확정\s*예정|TBD|장소\s*협의/i.test(venue))return fail("venue_required");
   if(source.id==="hcm"){
     const city=hcmTitle?.match(/\[(서울|부산|인천|대구|대전|울산|광주|세종|제주|경기|경남|경북|강원|충북|충남|전북|전남|안양|양주|전주|구미|천안|아산|보령|수원|용인|성남|화성|고양|남양주|김포|파주|부천|안산|시흥|평택|이천|포천|의정부|청주|충주|춘천|원주|강릉|동해|속초|순천|여수|목포|광양|익산|군산|창원|김해|양산|진주|거제|포항|경주|경산)(?=\s|\/)/)?.[1];

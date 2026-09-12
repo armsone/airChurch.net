@@ -114,6 +114,40 @@ function melonParticipation(html: string, sourceUrl: string): EventParticipation
   return Object.keys(result).length ? result : null;
 }
 
+function cemkParticipation(html: string, sourceUrl: string): EventParticipation | null {
+  if (sourceUrl !== "https://cemk.org/46091/") return null;
+  const attr = (tag: string, name: string) => tag.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] || "";
+  const hidden = (tag: string) => /\shidden(?:\s|=|>)/i.test(tag) || attr(tag, "aria-hidden").toLowerCase() === "true" || /(?:^|\s)(?:hidden|hide|d-none)(?:\s|$)/.test(attr(tag, "class")) || /display\s*:\s*none|visibility\s*:\s*hidden/i.test(attr(tag, "style"));
+  const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<(head|script|style|nav|header|footer|template)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  const stack: { name: string; start: number; content: boolean; hidden: boolean }[] = [];
+  const blocks: { html: string; hidden: boolean }[] = [];
+  for (const match of body.matchAll(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi)) {
+    const tag = match[0], name = match[1].toLowerCase();
+    if (/^<\//.test(tag)) {
+      const frame = stack.at(-1);
+      if (frame?.name !== name) return null;
+      stack.pop();
+      if (frame.content) blocks.push({ html: body.slice(frame.start, match.index), hidden: frame.hidden });
+    } else if (!/^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/.test(name) && !/\/\s*>$/.test(tag)) {
+      stack.push({ name, start: match.index! + tag.length, content: name === "div" && attr(tag, "class").split(/\s+/).includes("post-content"), hidden: Boolean(stack.at(-1)?.hidden) || hidden(tag) });
+    }
+  }
+  // Reject duplicate article bodies and hidden descendants rather than mixing
+  // metadata, share dialogs, related posts or uncertain versions of the notice.
+  if (stack.length || blocks.length !== 1 || blocks[0].hidden || [...blocks[0].html.matchAll(/<[a-z][^>]*>/gi)].some(match => hidden(match[0]))) return null;
+  const content = blocks[0].html, result: EventParticipation = {};
+  const rows = content.replace(/<br\b[^>]*>|<\/p>/gi, "\n").split("\n").map(text);
+  const prices = rows.filter(value => /관람비/.test(value));
+  if (prices.length === 1) {
+    const price = prices[0].match(/^(?:🍿\s*)?관람비\s*[:：]\s*((?:\d{1,3}(?:,\d{3})+|\d+)원)$/)?.[1];
+    if (price) result.cost = price;
+  }
+  const buttons = [...content.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)].filter(match => text(match[1]) === "기후정의영화제 참여하기(영화 예매)");
+  const bookingUrl = "https://www.ohmycine.com/product/%EB%82%98%EB%AC%B4%EC%9D%98-%EB%85%B8%EB%9E%98-cgv%EB%8F%99%EB%8C%80%EB%AC%B8/303/category/117/display/1/";
+  if (buttons.length === 1 && attr(buttons[0][0].slice(0, buttons[0][0].indexOf(">") + 1), "href") === bookingUrl) result.registrationInstructions = "기독교윤리실천운동 공식 안내의 ‘기후정의영화제 참여하기(영화 예매)’ 버튼에서 예매 조건과 현재 접수 가능 여부를 확인해 주세요.";
+  return Object.keys(result).length ? result : null;
+}
+
 function verifiedFamilySource(sourceId: string, sourceUrl: string) {
   try {
     const url = new URL(sourceUrl);
@@ -155,6 +189,7 @@ export function extractParticipation(html: string, sourceId: string, sourceUrl?:
   }
   if (sourceId === "gwangya") return gwangyaParticipation(html, sourceUrl || "");
   if (sourceId === "melon") return melonParticipation(html, sourceUrl || "");
+  if (sourceId === "cemk") return cemkParticipation(html, sourceUrl || "");
   if (sourceId === "duranno-college") {
     try {
       const url = new URL(sourceUrl || "");

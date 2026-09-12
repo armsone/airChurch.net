@@ -17,7 +17,10 @@ import urllib.error
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', required=True)
 parser.add_argument('--refresh-due', action='store_true')
+parser.add_argument('--source', choices=('acts', 'melon'), help='Retry this unresolved source once through the normal server guard, only when due; requires --refresh-due')
 args = parser.parse_args()
+if args.source and not args.refresh_due:
+    parser.error('--source requires --refresh-due')
 username = os.environ.get('AIRCHURCH_ADMIN_USERNAME')
 password = os.environ.get('AIRCHURCH_ADMIN_PASSWORD')
 if not username or not password:
@@ -61,7 +64,12 @@ try:
     if request('/api/admin/unlock', {'username': username, 'password': password}).get('role') != 'admin':
         raise RuntimeError('Administrator session unavailable.')
     before = health('before')
+    if args.source:
+        (out / 'source-before.json').write_text(json.dumps(request('/api/admin/events?sourceId=' + args.source), ensure_ascii=False, indent=2) + '\n')
     selected = sorted((s for s in before['sources'] if retryable(s)), key=lambda s: s['nextCheckAt'])[:3]
+    if args.source:
+        selected = [s for s in before['sources'] if s['id'] == args.source
+            and s.get('refreshAllowed') is True and s.get('due') is True]
     if args.refresh_due:
         for source in selected:
             # The server rechecks due time and lease when it claims this source.
@@ -72,6 +80,8 @@ try:
                 errors.append({'source': source['id'], 'error': type(exc).__name__, 'outcome': 'uncertain; read back before any retry'})
                 break
     after = health('after') if actions or errors else before
+    if args.source and (actions or errors):
+        (out / 'source-after.json').write_text(json.dumps(request('/api/admin/events?sourceId=' + args.source), ensure_ascii=False, indent=2) + '\n')
 except Exception as exc:
     errors.append({'error': type(exc).__name__, 'message': str(exc)[:160]})
 finally:
