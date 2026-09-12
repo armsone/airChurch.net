@@ -2,6 +2,7 @@
 
 import {mkdir,readFile,writeFile} from "node:fs/promises";
 import path from "node:path";
+import { needsPersonEvidence, mismatchedChurchSource } from "./pastor-source-evidence.mjs";
 
 const approvalFlag="--owner-approved";
 if(!process.argv.includes(approvalFlag))throw new Error(`Refusing publication without ${approvalFlag}`);
@@ -16,6 +17,8 @@ if(plan.metadata?.automaticApproval!==false||plan.metadata?.privateDataIncluded!
 const people=Array.isArray(plan.people)?plan.people:[];
 const roles=Array.isArray(plan.roles)?plan.roles:[];
 if(!people.length||!roles.length)throw new Error("Pastor import plan is empty");
+// Recheck old plans too; --owner-approved is not evidence that a menu is a person.
+if(people.some((person)=>needsPersonEvidence(person.name))||roles.some((role)=>mismatchedChurchSource(role,role.sourceUrl)))throw new Error("Pastor source evidence requires review; no publication files written");
 const roleGroups=new Map();
 for(const role of roles){const group=roleGroups.get(role.personDirectoryId)??[];group.push(role);roleGroups.set(role.personDirectoryId,group);}
 

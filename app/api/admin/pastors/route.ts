@@ -9,6 +9,15 @@ type PastorRow={id:number;public_id:number;role_id:number|null;church_id:number|
 export async function GET(request:Request){
   const session=await accessSession(request);
   if(session?.role!=="admin")return Response.json({error:"관리자 권한이 필요합니다."},{status:403,headers:{"cache-control":"no-store"}});
+  const personId=new URL(request.url).searchParams.get("personId");
+  if(personId!==null){
+    if(!/^[1-9]\d*$/.test(personId)||!Number.isSafeInteger(Number(personId)))return Response.json({error:"인물 번호를 확인해 주세요."},{status:400});
+    const db=database();await ensureAdminTables(db);
+    const person=await db.prepare("SELECT id,public_id,directory_id,name,review_status,updated_at FROM pastor_people WHERE id=?").bind(Number(personId)).first();
+    if(!person)return Response.json({error:"인물을 찾을 수 없습니다."},{status:404});
+    const roles=await db.prepare("SELECT id,pastor_id,church_id,church_name,denomination,region,role_title,role_category,role_status,source_url,review_status,updated_at FROM pastor_church_roles WHERE pastor_id=? ORDER BY id").bind(Number(personId)).all();
+    return Response.json({person,roles:roles.results},{headers:{"cache-control":"no-store"}});
+  }
   const url=new URL(request.url),query=(url.searchParams.get("q")??"").trim().slice(0,100),groups=tokenizeSearchQuery(query).map(expandSearchTerm);
   if(query&&!groups.length)return Response.json({items:[],total:0,page:1,pageSize:24},{headers:{"cache-control":"no-store"}});
   const requestedPage=Number(url.searchParams.get("page")||1),page=Number.isInteger(requestedPage)?Math.min(200,Math.max(1,requestedPage)):1,pageSize=24,offset=(page-1)*pageSize,bucket=Math.min(49,Math.max(0,Number(url.searchParams.get("bucket")??Math.floor(Math.random()*50))||0));

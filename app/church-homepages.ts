@@ -32,7 +32,6 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "선한목자교회": "https://www.gsmch.org/",
   "남서울교회": "https://www.namseoul.org/",
   "주안교회": "https://juan.or.kr/",
-  "지구촌교회": "https://www.jiguchon.or.kr/",
   "할렐루야교회": "https://www.hallelujah.or.kr/",
   "제자광성교회": "https://www.jejaks.org/",
   "한소망교회": "https://www.hansomang.or.kr/",
@@ -113,3 +112,13 @@ export const churchHomepageUrls: Readonly<Record<string,string>> = {
   "광양제일교회": "http://www.gyjeil.net/",
   "제천제일감리교회": "https://www.jcfirst.or.kr/"
 } as const;
+
+// This homepage belongs to the Seongnam Baptist church, not every namesake.
+export function churchHomepageUrl(name:string, publicId:number|null|undefined, fallback?:string|null) {
+  if (Number(publicId) === 10017) return "https://www.jiguchon.or.kr/";
+  if (name === "지구촌교회") {
+    try { if (new URL(fallback ?? "").hostname.replace(/^www\./, "") === "jiguchon.or.kr") return null; } catch {}
+    return fallback ?? null;
+  }
+  return churchHomepageUrls[name] || fallback || null;
+}

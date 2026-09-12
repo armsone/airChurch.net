@@ -13,11 +13,16 @@ if (!input || !output) throw new Error("usage: input existing-plan output");
 const [collection, existing] = await Promise.all([input, existingFile].map((file) => readFile(file, "utf8").then(JSON.parse)));
 const normalize = (value) => String(value ?? "").normalize("NFKC").toLowerCase().replace(/[^0-9a-z가-힣]/g, "");
 const existingPeople = new Map((existing.people ?? []).map((person) => [person.directoryId, person]));
+const churchKey = (role) => role.directoryChurchId
+  ? `directory:${role.directoryChurchId}`
+  : role.churchName && role.denomination && role.region
+    ? [role.churchName, role.denomination, role.region].map(normalize).join("|") : null;
 const candidates = new Map();
 for (const role of existing.roles ?? []) {
   const person = existingPeople.get(role.personDirectoryId);
   if (!person?.name || !role.churchName) continue;
-  const key = `${normalize(person.name)}|${normalize(role.churchName)}`;
+  const church = churchKey(role); if (!church) continue;
+  const key = `${normalize(person.name)}|${church}`;
   const scores = candidates.get(key) ?? new Map();
   scores.set(role.personDirectoryId, (scores.get(role.personDirectoryId) ?? 0) + 1);
   candidates.set(key, scores);
@@ -29,7 +34,8 @@ for (const [key, scores] of candidates) {
 const remap = new Map();
 for (const role of collection.ministryRelationships ?? []) {
   const person = (collection.people ?? []).find((item) => item.directoryPersonId === role.directoryPersonId);
-  const existingId = canonical.get(`${normalize(person?.name)}|${normalize(role.churchName)}`);
+  const church = churchKey(role);
+  const existingId = church ? canonical.get(`${normalize(person?.name)}|${church}`) : null;
   if (existingId) remap.set(role.directoryPersonId, existingId);
 }
 const people = [...new Map((collection.people ?? []).map((person) => {

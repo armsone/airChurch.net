@@ -1,7 +1,7 @@
 import DirectoryImage from "../../directory-image";
 import type { Metadata } from "next";
 import { cache } from "react";
-import { churchHomepageUrls } from "../../church-homepages";
+import { churchHomepageUrl } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { database, ensureMediaTables } from "../../api/_shared";
 import { ensureChurchDetailTables,ensureEncouragementTables,ensureMinistryProfileTables,ensurePastorPeopleTables } from "../../api/_shared";
@@ -74,7 +74,7 @@ export default async function ChurchPage({params}:{params:Promise<{id:string}>})
   ]);
   const session=await accessSession(),isAdmin=session?.role==="admin";
   const privateContacts=session?(await ensurePrivateContactTables(db),await readChurchPrivateContacts(db,churchId,session)):[];
-  const homepage=safeHttpUrl(churchHomepageUrls[church.name]||church.homepage_url);const image=safeHttpUrl(churchImageUrls[church.name]||church.channel_image_url);
+  const homepage=safeHttpUrl(churchHomepageUrl(church.name,church.public_id,church.homepage_url));const image=safeHttpUrl(churchImageUrls[church.name]||church.channel_image_url);
   const normalized=(value:string)=>value.normalize("NFKC").replace(/\s+/g,"").replace(/목사(?:님)?$/u,"").toLocaleLowerCase("ko-KR"),independentKeys=new Set(personMinistries.results.map((item)=>`${normalized(item.name)}|${normalized(item.role_title)}`)),ministryCards=[...personMinistries.results.map((item)=>({...item,href:`/pastors/${item.public_id}`})),...ministries.results.filter((item)=>!independentKeys.has(`${normalized(item.name)}|${normalized(item.role_title)}`)).map((item)=>({...item,href:`/church/${church.public_id}`}))],primaryPerson=personMinistries.results.find((item)=>item.role_category==="current_primary"&&normalized(item.name)===normalized(church.pastor))??personMinistries.results.find((item)=>item.role_category==="current_primary");
   const hasSchedules=schedules.results.length>0;
   const churchJsonLd={"@context":"https://schema.org","@type":"Church",name:church.name,url:`https://airchurch.net/church/${church.public_id}`,address:{"@type":"PostalAddress",addressRegion:church.region,addressCountry:"KR"},member:{"@type":"Person",name:church.pastor},sameAs:[homepage,church.youtube_channel_id?`https://www.youtube.com/channel/${church.youtube_channel_id}`:null].filter(Boolean)};

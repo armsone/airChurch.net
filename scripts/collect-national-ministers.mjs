@@ -3,10 +3,11 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { clergyContentHtml, needsPersonEvidence, mismatchedChurchSource } from "./pastor-source-evidence.mjs";
 
 const DEFAULT_INPUT = "out/pastor-history/nationwide-directory.json";
 const DEFAULT_DIR = "out/pastor-history/national-collection";
-const COLLECTOR_VERSION = 4;
+const COLLECTOR_VERSION = 5;
 const USER_AGENT = "airChurch-public-directory/1.0 (+https://airchurch.net)";
 const ROLE_PATTERN = "초대담임목사|역대담임목사|수석부목사|부담임목사|교육부목사|행정부목사|목양부목사|담임목사|위임목사|대표목사|담당목사|설립목사|창립목사|개척목사|초대목사|부목사|부교역자|교육목사|행정목사|목양목사|선교목사|찬양목사|협동목사|명예목사|공로목사|원로목사|은퇴목사|강도사|전임전도사|교육전도사|전도사|목사";
 const ROLE_RE = new RegExp(`(?:(?<![가-힣])(${ROLE_PATTERN})\\s*[:：·|/\\-]?\\s*([가-힣]{2,5})(?![가-힣])|(?<![가-힣])([가-힣]{2,5})\\s*(?:\\([^)]{0,30}\\)\\s*)?(${ROLE_PATTERN})(?![가-힣]))`, "gu");
@@ -131,7 +132,7 @@ function historicalMinistryPage(html, sourceUrl) {
 }
 
 function extractMinisters(html, church, sourceUrl, checkedAt) {
-  const text = htmlText(html);
+  const text = htmlText(clergyContentHtml(html));
   const allowGenericPastor = genericPastorRoster(html);
   const forceFormer = historicalMinistryPage(html, sourceUrl);
   const people = [];
@@ -139,7 +140,7 @@ function extractMinisters(html, church, sourceUrl, checkedAt) {
     const role = clean(match[1] ?? match[4]);
     const name = clean(match[2] ?? match[3]);
     if (role === "목사" && !allowGenericPastor) continue;
-    if (!validName(name)) continue;
+    if (!validName(name) || needsPersonEvidence(name) || mismatchedChurchSource(church, sourceUrl)) continue;
     const normalized = normalizeRole(role);
     const at = match.index ?? 0;
     const evidence = clean(text.slice(Math.max(0, at - 36), Math.min(text.length, at + match[0].length + 36)));
@@ -421,6 +422,7 @@ async function main() {
   }
   let churches = baseline.churches.filter((church) => {
     if (!church.homepageUrl) return false;
+    if (mismatchedChurchSource(church, church.homepageUrl)) return false;
     if (!options.sourceHost) return true;
     try { return new URL(church.homepageUrl).hostname.toLowerCase() === options.sourceHost; }
     catch { return false; }
@@ -445,8 +447,9 @@ async function main() {
   checkpoint.completedAt = nowIso();
   await atomicJson(checkpointPath, checkpoint);
   const rawResults = Object.values(checkpoint.results);
-  const parserRejectedNonPerson = rawResults.reduce((sum, result) => sum + (result.ministers ?? []).filter((person) => !validName(person.name)).length, 0);
-  const results = rawResults.map((result) => ({ ...result, ministers: (result.ministers ?? []).filter((person) => validName(person.name)) }));
+  const supported = (person) => validName(person.name) && !needsPersonEvidence(person.name) && !mismatchedChurchSource(person, person.sourceUrl);
+  const parserRejectedNonPerson = rawResults.reduce((sum, result) => sum + (result.ministers ?? []).filter((person) => !supported(person)).length, 0);
+  const results = rawResults.map((result) => ({ ...result, ministers: (result.ministers ?? []).filter(supported) }));
   const report = summarize(results, baseline, registered, checkpoint.startedAt);
   report.parserRejectedNonPerson = parserRejectedNonPerson;
   const candidates = [...new Map(results.flatMap((result) => result.ministers).map((person) => [person.discoveryId, person])).values()];

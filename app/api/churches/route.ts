@@ -1,5 +1,5 @@
 import { database, ensurePastorPeopleTables, ensureSermonTables } from "../_shared";
-import { churchHomepageUrls } from "../../church-homepages";
+import { churchHomepageUrl } from "../../church-homepages";
 import { churchImageUrls } from "../../church-images";
 import { expandSearchTerm as expand, sqlMetadataSearchValue, sqlRelevance, tokenizeSearchQuery } from "../../search-domain";
 import { safeHttpUrl } from "../../safe-url";
@@ -38,7 +38,7 @@ export async function GET(request:Request) {
   const result=await db.prepare(selectSql).bind(...bindings,...(searchGroups.length?relevance.bindings:[])).all<ChurchRow>();
   const count=result.results.length<limit?{total:result.results.length}:await db.prepare(`SELECT COUNT(*) AS total FROM churches WHERE ${where}`).bind(...bindings).first<CountRow>();
   const items=result.results.map((church)=>{
-    const homepageUrl=safeHttpUrl(churchHomepageUrls[church.name]||church.homepageUrl);
+    const homepageUrl=safeHttpUrl(churchHomepageUrl(church.name,church.id,church.homepageUrl));
     const channelImageUrl=safeHttpUrl(churchImageUrls[church.name]||church.channelImageUrl);
     return {...church,homepageUrl,channelImageUrl};
   });

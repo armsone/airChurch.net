@@ -2,6 +2,7 @@
 
 import {mkdir,readFile,rename,writeFile} from "node:fs/promises";
 import path from "node:path";
+import { needsPersonEvidence, mismatchedChurchSource } from "./pastor-source-evidence.mjs";
 
 const input=process.argv[2]??"out/pastor-history/national-collection-v2/candidates.json";
 const churchPlanFile=process.argv[3]??"out/pastor-history/nationwide-import-plan.json";
@@ -21,6 +22,8 @@ const validPeople=new Set(people.map((person)=>person.directoryId));
 for(const relationship of collected.ministryRelationships??[]){const issues=[],sourceUrl=normalize(relationship.sourceUrl),checkedAt=normalize(relationship.checkedAt),roleKey=[relationship.directoryPersonId,relationship.directoryChurchId,relationship.roleTitle,relationship.roleStatus].map(normalize).join("|");if(seenRoles.has(roleKey)){duplicates++;continue;}seenRoles.add(roleKey);
   if(!validPeople.has(relationship.directoryPersonId)||!peopleById.has(relationship.directoryPersonId))issues.push("missing_person");if(!/^church-[a-f0-9]{20}$/.test(relationship.directoryChurchId??""))issues.push("invalid_church_id");if(!normalize(relationship.churchName))issues.push("missing_church_name");if(!normalize(relationship.roleTitle))issues.push("missing_role_title");if(!allowedCategories.has(relationship.roleCategory))issues.push("unknown_role_category");if(!allowedStatuses.has(relationship.roleStatus))issues.push("unknown_role_status");if(!validUrl(sourceUrl))issues.push("invalid_official_source");if(Number.isNaN(Date.parse(checkedAt)))issues.push("invalid_checked_at");if(Object.keys(relationship).some((key)=>sensitiveKey.test(key)))issues.push("sensitive_field_present");
   const candidate={directoryId:relationship.discoveryId,personDirectoryId:relationship.directoryPersonId,existingChurchId:existingChurchIds.get(relationship.directoryChurchId)??registeredChurchIds.get(churchKey(relationship.churchName,relationship.denomination,relationship.region))??null,directoryChurchId:relationship.directoryChurchId,churchName:normalize(relationship.churchName),denomination:normalize(relationship.denomination),region:normalize(relationship.region),roleTitle:normalize(relationship.roleTitle),roleCategory:normalize(relationship.roleCategory),roleStatus:normalize(relationship.roleStatus),startDate:null,endDate:null,sourceUrl:validUrl(sourceUrl)?sourceUrl:null,sourceCheckedAt:checkedAt,reviewStatus:"pending"};
+  if(needsPersonEvidence(peopleById.get(relationship.directoryPersonId)?.name))issues.push("navigation_label_requires_person_evidence");
+  if(mismatchedChurchSource(candidate,sourceUrl))issues.push("church_source_identity_mismatch");
   if(issues.length)review.push({kind:"relationship",id:relationship.discoveryId,name:relationship.name,issues,candidate});else roles.push(candidate);
 }
 const continuityGroups=new Map();
