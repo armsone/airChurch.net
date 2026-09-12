@@ -7,6 +7,14 @@ type LocalGuide = {
 };
 const localGuides: LocalGuide[] = [
   {
+    publicId: 11418, region: "서울성동", denomination: "대한예수교장로회통합", name: "무학교회",
+    address: "서울특별시 성동구 행당로 123", phone: "02-2292-2993", telephone: "02-2292-2993",
+    directions: "http://www.moohak.org/Page/Index/23",
+    transit: ["왕십리역 10번 출구에서 도보 5분", "5호선 행당역 2번 출구에서 도보 5분(400m)"],
+    parking: ["교회 공식 안내: 교회주차장 월~주일 06:00~23:00 무료", "교회 공식 안내: 무학중학교 주일 06:00~19:00 무료", "교회 공식 안내: 성동구청 주일 09:00~17:00 무료", "새가족 전용 주차는 안내 담당자(바나바)에게 문의해 주세요."],
+    newcomers: { url: "http://www.moohak.org/Page/Index/864", description: "주일 예배 시 교회 2층 본당 앞 새가족 등록처에서 등록카드를 작성합니다. 새가족 교육은 총 6주입니다." },
+  },
+  {
     publicId: 10109, region: "서울종로", denomination: "대한예수교장로회통합", name: "연동교회",
     address: "서울 종로구 김상옥로 37", phone: "02-763-7244", telephone: "02-763-7244",
     directions: "https://ydpc.org/Page/Index/161",

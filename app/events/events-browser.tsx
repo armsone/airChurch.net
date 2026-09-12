@@ -7,6 +7,9 @@ import { dateLabel, eventAudiences, eventCategories, eventRegions, koreaDate, ty
 type EventRange="upcoming"|"month"|"week"|"weekend";
 function nearbyBounds(today:string,range:"week"|"weekend") { const start=new Date(`${today}T00:00:00Z`),weekday=start.getUTCDay(),offset=range==="week"||weekday===0?0:(6-weekday+7)%7; const date=(days:number)=>new Date(start.getTime()+days*86400000).toISOString().slice(0,10); return {from:date(offset),to:date(range==="week"?6:offset+(weekday===0?0:1))}; }
 function bounds(month:string) { const [y,m]=month.split("-").map(Number); return { from:`${month}-01`,to:new Date(Date.UTC(y,m,0)).toISOString().slice(0,10) }; }
+function validMonth(value:string){return /^[1-9]\d{3}-(0[1-9]|1[0-2])$/.test(value);}
+function validDay(value:string){if(!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value))return false;const parsed=new Date(`${value}T00:00:00Z`);return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;}
+function singleParam(search:URLSearchParams,key:string){const values=search.getAll(key);return values.length===1?values[0]:"";}
 export default function EventsBrowser({ compact=false, preview=false, churchId, portalRegion, onPortalRegionChange }: { compact?:boolean; preview?:boolean; churchId?:number; portalRegion?:string; onPortalRegionChange?:(value:string)=>void }) {
   const [range,setRange]=useState<EventRange>("upcoming");
   const [homeRange,setHomeRange]=useState<"all"|"week">("all"),[clock,setClock]=useState("");
@@ -16,7 +19,33 @@ export default function EventsBrowser({ compact=false, preview=false, churchId, 
   const [queryChurch,setQueryChurch]=useState<number|undefined>();const activeQuery=useRef("");const [ready,setReady]=useState(false);
   const container=useRef<HTMLDivElement>(null);const [visible,setVisible]=useState(!compact);
   useEffect(()=>{if(!compact||!container.current)return;const observer=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"350px"});observer.observe(container.current);return()=>observer.disconnect();},[compact]);
-  useEffect(()=>{const search=new URLSearchParams(window.location.search),id=Number(search.get("church")),initialCategory=search.get("category");if(Number.isInteger(id)&&id>0)setQueryChurch(id);if(!compact&&initialCategory&&eventCategories.includes(initialCategory))setCategory(initialCategory);setReady(true);},[compact]);
+  useEffect(()=>{
+    const restore=()=>{
+      const search=new URLSearchParams(window.location.search),church=singleParam(search,"church"),id=Number(church);
+      setQueryChurch(/^\d+$/.test(church)&&Number.isSafeInteger(id)&&id>0?id:undefined);
+      if(!compact){
+        const initialCategory=singleParam(search,"category"),initialRegion=singleParam(search,"region"),initialAudience=singleParam(search,"audience"),initialRange=singleParam(search,"range"),initialMonth=singleParam(search,"month"),initialDay=singleParam(search,"day");
+        const nextRange:EventRange=initialRange==="week"||initialRange==="weekend"?initialRange:initialRange==="month"&&validMonth(initialMonth)?"month":"upcoming";
+        const nextMonth=nextRange==="month"?initialMonth:"",nextView=nextMonth&&singleParam(search,"view")==="calendar"?"calendar":"list";
+        setCategory(eventCategories.includes(initialCategory)?initialCategory:"");setRegion(eventRegions.includes(initialRegion)?initialRegion:"");setAudience(eventAudiences.includes(initialAudience)?initialAudience:"");setOnline(singleParam(search,"online")==="1");
+        setRange(nextRange);setMonth(nextMonth);setView(nextView);setDay(nextView==="calendar"&&validDay(initialDay)&&initialDay.slice(0,7)===nextMonth?initialDay:"");
+      }
+      setReady(true);
+    };
+    restore();
+    if(compact)return;
+    window.addEventListener("popstate",restore);return()=>window.removeEventListener("popstate",restore);
+  },[compact]);
+  useEffect(()=>{
+    if(compact||!ready)return;
+    const url=new URL(window.location.href);
+    for(const key of ["region","audience","category","online","range","month","view","day","cursor"])url.searchParams.delete(key);
+    if(region)url.searchParams.set("region",region);if(audience)url.searchParams.set("audience",audience);if(category)url.searchParams.set("category",category);if(online)url.searchParams.set("online","1");
+    if(range!=="upcoming")url.searchParams.set("range",range);if(range==="month"&&month)url.searchParams.set("month",month);
+    if(view==="calendar"){url.searchParams.set("view",view);if(day)url.searchParams.set("day",day);}
+    const next=`${url.pathname}${url.search}${url.hash}`;
+    if(next!==`${window.location.pathname}${window.location.search}${window.location.hash}`)window.history.replaceState(window.history.state,"",next);
+  },[compact,ready,region,audience,category,online,range,month,view,day,queryChurch]);
   useEffect(()=>{if(compact&&portalRegion===undefined)return;const tick=()=>{setClock(new Date().toISOString());if(portalRegion!==undefined&&document.visibilityState==="visible")setRevision(value=>value+1);};setClock(new Date().toISOString());const timer=window.setInterval(tick,5*60000);return()=>clearInterval(timer);},[compact,portalRegion]);
   const params = new URLSearchParams(compact ? {preview:"1",limit:"12"} : month ? {...bounds(month),limit:"100"} : {upcoming:"1",limit:"100"});
   if(!compact&&clock&&(range==="week"||range==="weekend")){const dates=nearbyBounds(koreaDate(new Date(clock)),range);params.set("from",dates.from);params.set("to",dates.to);}
@@ -27,9 +56,10 @@ export default function EventsBrowser({ compact=false, preview=false, churchId, 
   if(compact&&portalRegion!==undefined&&homeRange==="week"&&clock){params.set("from",koreaDate(new Date(clock)));params.set("to",koreaDate(new Date(Date.parse(clock)+6*86400000)));}
   if(online)params.set("online","1");if(category)params.set("category",category);if(audience)params.set("audience",audience);
   const query=params.toString();
+  const filtersReady=ready&&(compact||(range!=="week"&&range!=="weekend")||Boolean(clock));
   activeQuery.current=query;
   useEffect(()=>{
-    if(!ready||!visible)return;
+    if(!filtersReady||!visible)return;
     const controller=new AbortController();setError(false);if(lastLoadedQuery.current!==query){setLoading(true);setData(null);}
     (async()=>{for(let attempt=0;attempt<2;attempt++) {try{
       const response=await fetch(`/api/events?${query}`,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(8000)])});
@@ -37,9 +67,9 @@ export default function EventsBrowser({ compact=false, preview=false, churchId, 
       if(!controller.signal.aborted){lastLoadedQuery.current=query;setData(result);setLoading(false);}return;
     }catch{if(controller.signal.aborted)return;}}setError(true);setLoading(false);})();
     return()=>controller.abort();
-  },[query,ready,revision,visible]);
+  },[query,filtersReady,revision,visible]);
   async function more(){if(!data?.nextCursor||moreBusy)return;const requested=query;setMoreBusy(true);setError(false);try{const response=await fetch(`/api/events?${query}&cursor=${encodeURIComponent(data.nextCursor)}`,{signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error();const next=await response.json() as EventsPayload;if(activeQuery.current===requested)setData(current=>current?{...next,items:[...current.items,...next.items.filter(item=>!current.items.some(old=>old.id===item.id))]}:next);}catch{if(activeQuery.current===requested)setError(true);}finally{setMoreBusy(false);}}
-  function changeCategory(value:string){const next=eventCategories.includes(value)?value:"";setCategory(next);const url=new URL(window.location.href);if(next)url.searchParams.set("category",next);else url.searchParams.delete("category");window.history.replaceState(window.history.state,"",`${url.pathname}${url.search}${url.hash}`);}
+  function changeCategory(value:string){setCategory(eventCategories.includes(value)?value:"");}
   const today=koreaDate();
   const title=churchId?"이 교회의 예정 행사":"교계행사";
   const ownEvent:ChurchEvent={id:CONTEST.id,title:"에어처치 찬양대회",startDate:CONTEST.startsOn,endDate:koreaDate(new Date(CONTEST.resultsAt)),startTime:null,venue:"온라인 · 에어처치",region:"전국",attendance:"온라인",organizer:"에어처치",audience:"대상 확인 필요",category:"찬양·공연",sourceUrl:CONTEST.path,detailUrl:CONTEST.path,registrationUrl:CONTEST.path,checkedAt:CONTEST.startsOn,status:"confirmed",churchPublicId:null,sourceName:"에어처치 이벤트"};
@@ -57,8 +87,8 @@ export default function EventsBrowser({ compact=false, preview=false, churchId, 
     {compact&&<div className="section-heading"><div><span className="section-kicker">함께하는 신앙</span><h2>{title}</h2><p>공식 공지에서 확인한 행사 일정입니다. 정확한 진행일과 참여 방법은 원문에서 확인해 주세요.</p></div><a className="church-news-shuffle unified-other-button" href={churchId?`/events?church=${churchId}`:"/events"}>전체 일정 보기 →</a></div>}
     {compact&&portalRegion!==undefined&&<div className="event-home-controls"><div className="portal-switch" aria-label="행사 기간"><button type="button" aria-pressed={homeRange==="all"} onClick={()=>setHomeRange("all")}>전체 예정</button><button type="button" aria-pressed={homeRange==="week"} onClick={()=>setHomeRange("week")}>오늘부터 7일</button></div><label>지역<select value={portalRegion} onChange={event=>onPortalRegionChange?.(event.target.value)}><option>전체</option>{eventRegions.map(value=><option key={value}>{value}</option>)}</select></label><label><input type="checkbox" checked={online} onChange={event=>setOnline(event.target.checked)}/>온라인 참여 가능</label><small>지역 선택은 위의 검색·교회 찾기와 함께 적용됩니다.</small></div>}
     {data&&<EventSources sources={data.sources}/>}
-    {!compact&&<div className="event-filters"><label>기간<select value={range} onChange={e=>{const next=e.target.value as EventRange;setRange(next);setMonth(next==="month"?today.slice(0,7):"");setDay("");setView("list");}}><option value="upcoming">앞으로 1년</option><option value="week">오늘부터 7일</option><option value="weekend">이번 주말</option><option value="month">월 선택</option></select></label>{month&&<label>행사 월<input type="month" value={month} onChange={e=>{if(e.target.value)setMonth(e.target.value);setDay("");}}/></label>}
-      {!selectedChurch&&<label>지역<select value={region} onChange={e=>{setRegion(e.target.value);try{localStorage.setItem("airchurch:event-region",e.target.value);}catch{}}}><option value="">전국</option>{eventRegions.map(x=><option key={x}>{x}</option>)}</select></label>}
+    {!compact&&<div className="event-filters"><label>기간<select value={range} onChange={e=>{const next=e.target.value as EventRange;setRange(next);setMonth(next==="month"?today.slice(0,7):"");setDay("");setView("list");}}><option value="upcoming">앞으로 1년</option><option value="week">오늘부터 7일</option><option value="weekend">이번 주말</option><option value="month">월 선택</option></select></label>{month&&<label>행사 월<input type="month" value={month} onChange={e=>{if(validMonth(e.target.value))setMonth(e.target.value);setDay("");}}/></label>}
+      {!selectedChurch&&<label>지역<select value={region} onChange={e=>setRegion(e.target.value)}><option value="">전국</option>{eventRegions.map(x=><option key={x}>{x}</option>)}</select></label>}
       <label>유형<select value={category} onChange={e=>changeCategory(e.target.value)}><option value="">모든 유형</option>{eventCategories.map(x=><option key={x}>{x}</option>)}</select></label>
       <details className="event-extra-filters"><summary>상세 조건{(online||audience)?" · 적용 중":""}</summary><div><label className="event-online"><input type="checkbox" checked={online} onChange={e=>setOnline(e.target.checked)}/>온라인 참여 가능</label><label>참여 대상<select value={audience} onChange={e=>setAudience(e.target.value)}><option value="">모든 대상</option>{eventAudiences.map(x=><option key={x}>{x}</option>)}</select></label></div></details>
       {(range!=="upcoming"||month||region||online||category||audience||selectedChurch)&&<button type="button" onClick={()=>{setQueryChurch(undefined);window.history.replaceState(null,"","/events");setRange("upcoming");setMonth("");setView("list");setRegion("");setOnline(false);setCategory("");setAudience("");setDay("");}}>초기화</button>}
