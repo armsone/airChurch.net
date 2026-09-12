@@ -162,4 +162,20 @@ button.contest-sample{width:100%;font:inherit;text-align:left;cursor:pointer}.co
 /* Event listing uses the same poster as the homepage. */
 .our-event-card{align-items:center}.our-event-poster{display:block;width:240px;height:auto;aspect-ratio:1;object-fit:contain;flex:0 0 240px;border-radius:12px}.our-event-copy{min-width:0}.our-event-copy>small{margin-left:16px}.our-event-copy p{margin:8px 0}@media(max-width:600px){.our-event-card{align-items:stretch}.our-event-poster{width:100%;max-width:240px;flex:none;align-self:center}.our-event-copy h3{font-size:24px}}
 
-.contest-poster{width:100%;max-width:680px;margin:0 auto 32px}.contest-poster img{display:block;width:100%;height:auto;border-radius:16px}
+/* The poster belongs to the invitation, with a restrained framed presentation. */
+.contest-header-with-poster{display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,330px);gap:40px;padding:36px 40px;align-items:center}
+.contest-header-with-poster:after{right:190px}
+.contest-header-with-poster h1{font-size:clamp(2.2rem,3.6vw,3.25rem)}
+.contest-header-with-poster .contest-award{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 12px;margin-top:20px;padding:16px 0 0;border:0;border-top:1px solid #d6bc8333;text-align:left}
+.contest-header-with-poster .contest-award>strong{font-size:2rem;line-height:1.2}
+.contest-header-with-poster .contest-award strong span{font-size:.9rem;margin-left:5px}
+.contest-header-with-poster .contest-award small{width:auto;font-size:12px}
+.contest-header-with-poster .contest-hero-actions{margin-top:20px}
+.contest-poster{position:relative;z-index:1;width:100%;margin:0;padding:10px;background:#ffffff08;border:1px solid #d6bc8340;border-radius:15px;box-shadow:0 16px 36px #061b1940}
+.contest-poster a{display:block;border-radius:8px;overflow:hidden}
+.contest-poster img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:contain}
+.contest-poster figcaption{display:flex;justify-content:space-between;gap:8px;margin-top:10px;padding:0 2px;color:#e3d3ae;font-size:11px;letter-spacing:.02em}
+.contest-poster figcaption span{color:#e1e9e3;white-space:nowrap}
+@media(max-width:850px){.contest-header-with-poster{grid-template-columns:minmax(0,1fr) minmax(220px,280px);gap:24px;padding:28px}.contest-header-with-poster h1{font-size:2.35rem}}
+@media(max-width:650px){.contest-header-with-poster{grid-template-columns:minmax(0,1fr);gap:28px;padding:26px 24px}.contest-header-with-poster .contest-poster{max-width:280px;justify-self:center}.contest-header-with-poster .contest-award{gap:8px 12px}.contest-header-with-poster .contest-award small{width:100%}.contest-header-with-poster .contest-hero-actions a{min-height:40px}}
+
