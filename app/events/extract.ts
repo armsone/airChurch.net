@@ -181,6 +181,8 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   }
   const evidence=body.join("\n").slice(0,2500);
   const fail=(reason:string)=>({event:null,title,evidence,reason});
+  // ACTS faculty recruitment contains the word school, but is not an event.
+  if(source.id==="acts"&&/교원\s*초빙/.test(title))return fail("not_an_upcoming_event");
   if(source.christianOnly&&!/찬양|워십|그리스도|기독교|예배|가스펠/.test(body.slice(0,8).join(" ")))return fail("outside_christian_scope");
   if((!source.eventOnly&&!eventWords.test(title)&&!body.some(x=>/^(진행\s*일시|사역\s*일정)/.test(x)))||/채용|입찰|당첨|장학생 명단|결과 보고|성료|후기|다시보기/.test(title))return fail("not_an_upcoming_event");
   if(source.id==="duranno-college"&&/녹화·편집|녹화\s*영상|녹화된\s*강의|VOD/.test(body.join("\n")))return fail("recorded_course_not_event");

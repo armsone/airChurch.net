@@ -17,10 +17,8 @@ import urllib.error
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--output', required=True)
 parser.add_argument('--refresh-due', action='store_true')
-parser.add_argument('--source', choices=('acts', 'melon'), help='Retry this unresolved source once through the normal server guard, only when due; requires --refresh-due')
+parser.add_argument('--source', choices=('acts', 'melon', 'jiguchon'), help='Save detailed diagnostics for this source; --refresh-due also retries once through the normal server guard, only when due')
 args = parser.parse_args()
-if args.source and not args.refresh_due:
-    parser.error('--source requires --refresh-due')
 username = os.environ.get('AIRCHURCH_ADMIN_USERNAME')
 password = os.environ.get('AIRCHURCH_ADMIN_PASSWORD')
 if not username or not password:
