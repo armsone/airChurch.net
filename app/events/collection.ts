@@ -1,3 +1,5 @@
+import { extractParticipation } from "./participation";
+import { verifiedEventChurchPublicId } from "./church-source";
 import { boundedFetch as fetchSource, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
 import { database } from "../api/_shared";
 import { sources as newsSources } from "../news/feed";
@@ -5,7 +7,7 @@ import { officialEventSources, additionalDiscoverySources, type SourceConfig } f
 import { eventWords, eventPriority, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const COLLECTOR_VERSION=13;
+const COLLECTOR_VERSION=14;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -99,7 +101,11 @@ async function processSource(source:SourceConfig){
         const fresh=saved.results.filter(item=>!queue.results.some(row=>row.url===item.url));
         queue.results.splice(queue.results.indexOf(candidate)+1,0,...fresh);continue;
       }
-      const extracted=occurrence?(entries.find(entry=>entry.key===occurrence)||{event:null,title:candidate.title,evidence:"",reason:"occurrence_removed_or_changed"}):extractEvent(doc.text,candidate.url,source,candidate.title),value=extracted.event,hash=await digest(JSON.stringify(value??extracted.evidence));
+      const extracted=occurrence?(entries.find(entry=>entry.key===occurrence)||{event:null,title:candidate.title,evidence:"",reason:"occurrence_removed_or_changed"}):extractEvent(doc.text,candidate.url,source,candidate.title);
+      const value=extracted.event?{...extracted.event,participation:extractParticipation(doc.text,source.id)}:null;
+      const verifiedPublicId=value?verifiedEventChurchPublicId(source,candidate.url,value.organizer):null;
+      if(value&&verifiedPublicId&&value.organizer==="주최 확인 필요")value.organizer=source.churchName!;
+      const hash=await digest(JSON.stringify(value??extracted.evidence));
       const notice=noticeStatus(`${extracted.title}\n${extracted.evidence}`);
       if(notice&&candidate.eventId)await db.prepare("UPDATE events SET status=?,updated_at=?,checked_at=? WHERE id=? AND source_url=?").bind(notice,now,now,candidate.eventId,candidate.url).run();
       if(!value){await db.batch([
@@ -109,7 +115,7 @@ async function processSource(source:SourceConfig){
       if(value.startDate>koreaDate(new Date(Date.now()+366*86400000))){await db.prepare("UPDATE event_candidates SET status='checking',reason='outside_collection_window',checked_at=? WHERE id=?").bind(now,candidate.id).run();continue;}
       const identity=[value.title,value.startDate,value.organizer,value.venue,...(occurrence?[value.startTime||""]:[])].map(x=>x.normalize("NFKC").replace(/\s+/g,"").toLowerCase()).join("|");
       const eventId=candidate.eventId||(await digest(identity)).slice(0,32);
-      const church=source.churchName&&value.organizer.replace(/\s/g,"")===source.churchName.replace(/\s/g,"")?await db.prepare("SELECT id FROM churches WHERE name=? AND review_status='approved' LIMIT 2").bind(source.churchName).all<{id:number}>():null;
+      const church=verifiedPublicId?await db.prepare("SELECT id FROM churches WHERE public_id=? AND name=? AND review_status='approved' LIMIT 2").bind(verifiedPublicId,source.churchName).all<{id:number}>():!source.churchPublicId&&source.churchName&&value.organizer.replace(/\s/g,"")===source.churchName.replace(/\s/g,"")?await db.prepare("SELECT id FROM churches WHERE name=? AND review_status='approved' LIMIT 2").bind(source.churchName).all<{id:number}>():null;
       const churchId=church?.results.length===1?church.results[0].id:null;
       const existing=await db.prepare("SELECT source_url AS url,content_hash AS hash FROM events WHERE id=?").bind(eventId).first<{url:string;hash:string}>();
       // A secondary source never rewrites the primary source's facts or provenance.
@@ -126,7 +132,8 @@ async function processSource(source:SourceConfig){
     await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":found.length||source.kind==="rss"?"ok":"empty",failed+blocked,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":!found.length&&source.kind==="official"?`listing_no_matches:${listingChecks.join(";")}`.slice(0,180):null,nextScan,source.id,token).run();
   }catch(error){console.warn("event_source_failed",source.id,String(error).slice(0,180));const state=await db.prepare("SELECT failures FROM event_sources WHERE id=?").bind(source.id).first<{failures:number}>();await db.prepare("UPDATE event_sources SET status=?,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=failures+1,last_error=? WHERE id=? AND lease_token=?").bind(/robots_disallowed|access_challenge/.test(String(error))?"blocked":"failed",after(Math.min(24,2**Math.min(5,(state?.failures||0)+1))),String(error).slice(0,180),source.id,token).run();}
 }
-export async function syncEvents(){
+export async function syncEvents(requestedSource?:string){
+  if(requestedSource&&!collectionSources.some(source=>source.id===requestedSource))throw Error("unknown_event_source");
   const db=database(),now=new Date().toISOString();
   const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
   await db.batch(seeds);
@@ -134,13 +141,14 @@ export async function syncEvents(){
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN ('sorrygom','jiguchon') AND event_id IS NOT NULL AND source_id IN (SELECT id FROM event_sources WHERE collector_version<14 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='worldteach' AND reason='venue_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<13 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='paidion' AND reason='explicit_event_date_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<12 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='uofnjeju' AND reason='outside_event_board' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<8 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') OR (collector_version<14 AND id IN ('sorrygom','jiguchon')) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
-  const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(collectionSources.map(s=>s.id))).all<{id:string}>();
+  const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(requestedSource?[requestedSource]:collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});
   await db.batch([
     db.prepare("UPDATE events SET status='ended',updated_at=? WHERE end_date<? AND status='published'").bind(now,koreaDate()),

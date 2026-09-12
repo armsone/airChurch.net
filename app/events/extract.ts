@@ -209,7 +209,24 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   const category=/북\s*콘서트/.test(title)?"세미나·교육":(source.id==="gwangya"||source.id==="melon")||/찬양|공연|뮤지컬|음악회|콘서트|전시|영화제/.test(title)?"찬양·공연":source.id==="duranno-college"||source.id==="chungeoram"||/세미나|워크숍|컨퍼런스|교육|훈련|학교|포럼|대학|강좌|강연|클래스|배움터/.test(title)?"세미나·교육":/봉사|선교/.test(title)?"봉사·선교":/수련회|캠프|수양회/.test(title)?"수련회":/집회|예배/.test(title)?"집회":"기타 행사";
   const attendance=/온라인|[Zz][Oo][Oo][Mm]|유튜브/.test(venue)?(/현장|병행/.test(venue)?"현장·온라인":"온라인"):"현장";
   // External application buttons are followed by the user, never fetched by the collector.
-  const registrationUrl=links(html,url).find(x=>/^(신청하기|신청가기|신청페이지가기|참가신청|등록하기)$/.test(x.title))?.url||null;
+  let registrationUrl=links(html,url).find(x=>/^(신청하기|신청가기|신청페이지가기|참가신청|등록하기)$/.test(x.title))?.url||null;
+  if(source.id==="jiguchon"){
+    // G02 navigation also has a generic H01 "신청하기" link. Only the
+    // bounded post body can supply this event's application guidance.
+    const content=html.match(/<div\b[^>]*id=["']bo_v_con["'][^>]*>([\s\S]*?)<!--\s*}\s*본문 내용 끝\s*-->/i)?.[1];
+    registrationUrl=null;
+    if(content){
+      const paragraphs=[...content.replace(/<br\b[^>]*>/gi,"</p><p>").matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)].map(match=>match[1]);
+      for(const paragraph of paragraphs){
+        if(!/신청|등록\s*방법/.test(plain(paragraph)))continue;
+        const application=links(paragraph,url).find(link=>{
+          const target=new URL(link.url);
+          return !(target.hostname==="www.jiguchon.or.kr"&&target.searchParams.get("bo_table")==="H01");
+        });
+        if(application){registrationUrl=application.url;break;}
+      }
+    }
+  }
   const status=noticeStatus(`${title}\n${evidence}`)||"published";
   const explicitAddress=venue.match(/주소\s*[:：]\s*([^)]*)/)?.[1]||venue;
   return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:attendance==="온라인"?"온라인":regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};

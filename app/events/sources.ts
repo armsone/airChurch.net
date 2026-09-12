@@ -1,4 +1,4 @@
-export type SourceConfig = { id:string;name:string;homepage:string;url:string;kind:"official"|"rss";detailPattern:string;churchName?:string;organizer?:string;listingUrls?:string[];charset?:string;eventOnly?:boolean;christianOnly?:boolean;singlePage?:boolean };
+export type SourceConfig = { id:string;name:string;homepage:string;url:string;kind:"official"|"rss";detailPattern:string;churchName?:string;churchPublicId?:number;organizer?:string;listingUrls?:string[];charset?:string;eventOnly?:boolean;christianOnly?:boolean;singlePage?:boolean };
 import qualifiedSources from "../../data/qualified-content-sources.json";
 // Official ownership and listing URLs checked 2026-09-09. Dates/venues are never inferred from headquarters.
 export const officialEventSources:SourceConfig[] = [
@@ -20,7 +20,7 @@ export const officialEventSources:SourceConfig[] = [
   {id:"gwangya",name:"광야아트센터",homepage:"https://gwangya.art/",url:"https://gwangya.art/tickets",kind:"official",detailPattern:"/Resistance/?$",eventOnly:true},
   {id:"chungeoram",name:"청어람ARMC",homepage:"https://ichungeoram.com/",url:"https://ichungeoram.com/meet",kind:"official",detailPattern:"/meet/?\\?[^#]*idx=\\d+",eventOnly:true},
   {id:"onnuri",name:"온누리교회",homepage:"https://www.onnuri.org/",url:"https://www.onnuri.org/festival/",kind:"official",detailPattern:"/festival/(?!page/)[^/?]+/",churchName:"온누리교회",organizer:"온누리교회"},
-  {id:"jiguchon",name:"지구촌교회",homepage:"https://www.jiguchon.or.kr/",url:"https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02",kind:"official",detailPattern:"[?&]wr_id=\\d+",churchName:"지구촌교회",organizer:"지구촌교회"},
+  {id:"jiguchon",name:"지구촌교회",homepage:"https://www.jiguchon.or.kr/",url:"https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02",kind:"official",detailPattern:"[?&]wr_id=\\d+",churchName:"지구촌교회",churchPublicId:10017,organizer:"지구촌교회"},
   {id:"kmc",name:"기독교대한감리회",homepage:"https://kmc.or.kr/",url:"https://kmc.or.kr/head-quater-kmc/notice",kind:"official",detailPattern:"[?&]pid=\\d+"},
   {id:"prok",name:"한국기독교장로회 총회",homepage:"https://www.prok.org/",url:"https://www.prok.org/Board/Index/32",kind:"official",detailPattern:"/Board/Detail/32/\\d+"},
   {id:"pck",name:"대한예수교장로회 통합 총회",homepage:"https://www.pck.or.kr/",url:"https://www.pck.or.kr/bbs/board.php?bo_table=SM05_02_01",kind:"official",detailPattern:"[?&]wr_id=\\d+"},
