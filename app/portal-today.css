@@ -325,7 +325,8 @@
 .integrated-portal .portal-eight .portal-caption,.integrated-portal .portal-eight .portal-switch{height:auto;min-height:42px;margin:0 0 8px;font-size:12px;line-height:1.6}
 .integrated-portal .portal-eight .portal-switch{gap:10px;flex-wrap:wrap}
 .integrated-portal .portal-eight .portal-switch button{font-size:12px;min-height:38px;padding:8px 0}
-.integrated-portal .portal-eight .portal-video,.integrated-portal .portal-eight .portal-picks li{height:auto;min-height:90px;padding:14px 0;border-color:#eff0e9}
+.integrated-portal .portal-eight .portal-video,.integrated-portal .portal-eight .portal-picks li{height:6.5rem;min-height:6.5rem;padding:14px 0;border-color:#eff0e9}
+.integrated-portal .portal-eight .portal-video:has(.portal-player){height:auto;min-height:6.5rem}
 .integrated-portal .portal-eight .portal-video strong,.integrated-portal .portal-eight .portal-picks strong{font-size:14px;line-height:1.6}
 .integrated-portal .portal-eight .portal-video small,.integrated-portal .portal-eight .portal-picks small{font-size:12px;line-height:1.5;color:#6b766c}
 .integrated-portal .portal-eight .portal-video-play{border-radius:10px}
