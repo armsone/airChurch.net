@@ -2,8 +2,8 @@ import HomeReloadLink from "./home-reload-link";
 import FooterVisitorCounts from "./footer-visitor-counts";
 
 const footerLinks = [
-  ["제작기록", "/making"], ["운영 안내", "/about"], ["문의", "/contact"],
-  ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"],
+  ["제작기록", "/making"], ["운영 안내", "/about"],
+  ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"], ["문의", "/contact"],
 ] as const;
 
 export default function SiteFooter() {
