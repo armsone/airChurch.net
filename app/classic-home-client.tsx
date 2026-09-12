@@ -293,11 +293,10 @@ export default function Home() {
         setChurchNewsSources(result.sources||[]);
         setChurchNewsLoading(false);
       }),
-      community: ()=>loadItems("/api/posts").then((data)=>{
-        if(alive) setApprovedPosts((data as {items?:CommunityItem[]}).items||[]);
-      }),
-      talent: ()=>loadItems("/api/talents").then((data)=>{
-        if(alive) setApprovedTalents((data as {items?:TalentItem[]}).items||[]);
+      community: ()=>Promise.all([loadItems("/api/posts"),loadItems("/api/talents")]).then(([posts,talents])=>{
+        if(!alive) return;
+        setApprovedPosts((posts as {items?:CommunityItem[]}).items||[]);
+        setApprovedTalents((talents as {items?:TalentItem[]}).items||[]);
       }),
       "church-directory": ()=>{const fresh=sessionStorage.getItem("airchurch:church-cache-bust");return loadItems(`/api/churches${fresh?`?adminFresh=${encodeURIComponent(fresh)}`:""}`).then((data)=>{
         if(!alive) return;
