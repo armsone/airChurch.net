@@ -1,14 +1,15 @@
 import type { ChurchEvent, EventSource } from "./types";
-import { dateLabel } from "./types";
+import { dateLabel,koreaDate } from "./types";
 import SourceDirectory from "../source-directory";
 import EventSaveButton from "./event-save-button";
 
 export function EventCard({ item, compact=false }: { item: ChurchEvent; compact?:boolean }) {
+  const registrationPassed=Boolean(item.participation?.registrationClosesOn&&item.participation.registrationClosesOn<koreaDate());
   const weekday = new Date(`${item.startDate}T00:00:00Z`).getUTCDay();
   const weekendClass = weekday === 6 ? " event-card-saturday" : weekday === 0 ? " event-card-sunday" : "";
   return <article className={`event-card${weekendClass}${compact?" event-card-compact church-news-card":""}`}>
     <time className="event-date" dateTime={item.startDate}>{compact?<><span>{Number(item.startDate.slice(5,7))}월</span><strong>{Number(item.startDate.slice(8))}</strong><span>{new Date(`${item.startDate}T00:00:00+09:00`).toLocaleDateString("ko-KR",{timeZone:"Asia/Seoul",weekday:"long"})}</span>{item.endDate!==item.startDate&&<span className="event-date-end">~ {Number(item.endDate.slice(5,7))}.{Number(item.endDate.slice(8))}<br/>행사 기간</span>}</>:<>{item.endDate!==item.startDate&&<span>안내된 행사 기간</span>}{dateLabel(item.startDate)}{item.endDate!==item.startDate&&` ~ ${dateLabel(item.endDate)}`}<span>{item.startTime||"시간은 원문 확인"}</span></>}</time>
-    <div className="event-card-copy">{compact&&<small className="event-source-label">{item.sourceName}</small>}<div className="event-tags"><span>{item.category}</span>{item.attendance !== "현장" && <span>{item.attendance}</span>}{item.status === "cancelled" && <strong>취소된 행사</strong>}</div>
+    <div className="event-card-copy">{compact&&<small className="event-source-label">{item.sourceName}</small>}<div className="event-tags"><span>{item.category}</span>{item.attendance !== "현장" && <span>{item.attendance}</span>}{item.status === "cancelled" && <strong>취소된 행사</strong>}{registrationPassed&&<span>안내된 신청 기간 경과</span>}</div>
       <h3><a href={item.detailUrl||`/events/${item.id}`}>{item.title}</a></h3><p className="event-venue">{item.venue}{compact&&item.startTime&&` · ${item.startTime}`}</p>
       <div className="event-actions"><a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">{compact?"원문 ↗":`${item.sourceName} ↗`}</a><a href={item.detailUrl||`/events/${item.id}`}>자세히 →</a><EventSaveButton item={item}/></div>
     </div>
