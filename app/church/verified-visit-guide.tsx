@@ -94,6 +94,12 @@ const chapels = [
   },
 ] as const;
 
+export function hasVerifiedVisitGuide({ publicId, region, denomination }: Props) {
+  const area = region.replace(/\s/g, ""), group = denomination.replace(/\s/g, "");
+  return localGuides.some(guide => guide.publicId === publicId && guide.region === area && guide.denomination === group)
+    || (publicId === 10017 && area === "경기성남" && group === "기독교한국침례회");
+}
+
 export default function VerifiedVisitGuide({ publicId, region, denomination }: Props) {
   const local = localGuides.find(guide => guide.publicId === publicId && guide.region === region.replace(/\s/g, "") && guide.denomination === denomination.replace(/\s/g, ""));
   if (local) return <section className="church-detail-content church-personalized" aria-labelledby="verified-visit-title">
