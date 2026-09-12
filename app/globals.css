@@ -849,3 +849,5 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 @media(prefers-reduced-motion:reduce){.making-board li{transition:none}}
 
 @media(max-width:760px){.portal-today>.making-home{grid-template-columns:repeat(2,minmax(0,1fr));padding:16px;gap:16px;border-radius:18px}.making-home-latest{grid-column:1/-1}.making-home-guide{border-left:0;border-top:1px solid #dfe4d4;padding:12px 0 0}.making-home-posts a{line-height:28px}.making-home-guide>a{min-height:32px;line-height:32px}}
+
+.church-schedule-card li .church-schedule-evidence{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:-5px;color:#586e67;font-size:10px;line-height:1.5}.church-schedule-card li .church-schedule-evidence a{margin:0;font-size:10px}.church-schedule-card li .church-schedule-evidence span{display:inline}

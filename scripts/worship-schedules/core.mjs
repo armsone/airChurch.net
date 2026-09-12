@@ -5,6 +5,8 @@ import { extractAhyeonSchedules } from "./ahyeon.mjs";
 import { extractAllakSchedules } from "./allak.mjs";
 import { extractDonghaeSchedules } from "./donghae.mjs";
 import { extractWonjuSchedules } from "./wonju.mjs";
+import { extractChangsinSchedules } from "./changsin.mjs";
+import { extractHakikSchedules } from "./hakik.mjs";
 
 export const DAYS = Object.freeze({
   "월": "MON", "화": "TUE", "수": "WED", "목": "THU", "금": "FRI", "토": "SAT", "주일": "SUN", "일": "SUN",
@@ -105,6 +107,10 @@ export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt
   if (donghae !== null) return donghae;
   const wonju = extractWonjuSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
   if (wonju !== null) return wonju;
+  const changsin = extractChangsinSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (changsin !== null) return changsin;
+  const hakik = extractHakikSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (hakik !== null) return hakik;
   const lines = visibleLines(html);
   const records = [];
   let section = "";
