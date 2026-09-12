@@ -2,8 +2,7 @@ import HomeReloadLink from "./home-reload-link";
 import FooterVisitorCounts from "./footer-visitor-counts";
 
 const linkGroups = [
-  { title: "에어처치 안내", links: [["운영 안내", "/about"], ["에어처치 만들기", "/making"], ["문의", "/contact"]] },
-  { title: "참여와 운영", links: [["이벤트", "/our-events"], ["목회자 업무", "/pastor"], ["관리자", "/admin"]] },
+  { title: "에어처치 안내", links: [["운영 안내", "/about"], ["에어처치 만들기", "/making"], ["이벤트", "/our-events"], ["문의", "/contact"]] },
   { title: "이용 원칙", links: [["공동체 안전", "/community-guidelines"], ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"], ["저작권 원칙", "/copyright"]] },
 ] as const;
 
@@ -25,6 +24,7 @@ export default function SiteFooter() {
       <p>airchurch.net · goodshare.net · linechurch.net</p>
       <a className="site-footer-pastor" href="/pastors/2">협동목사 김민석 <span aria-hidden="true">↗</span></a>
       <FooterVisitorCounts />
+      <nav className="site-footer-tools" aria-label="운영자 메뉴"><a href="/pastor">목회자 업무</a><a href="/admin">관리자</a></nav>
     </div>
   </footer>;
 }
