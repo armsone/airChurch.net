@@ -32,6 +32,48 @@ function single(values: string[]) {
   return unique.length === 1 && unique[0].length <= 2000 ? unique[0] : undefined;
 }
 
+function gwangyaParticipation(html: string, sourceUrl: string): EventParticipation | null {
+  // A literal URL guard also rejects explicit ports and empty query/hash suffixes.
+  if (sourceUrl !== "https://gwangya.art/Resistance") return null;
+  const attr = (tag: string, name: string) => tag.match(new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "i"))?.[1] || "";
+  const hidden = (tag: string) => /\shidden(?:\s|=|>)/i.test(tag) || attr(tag, "aria-hidden") === "true" || /(?:^|\s)(?:hidden|hide|d-none|_hide)(?:\s|$)/.test(attr(tag, "class")) || /display\s*:\s*none|visibility\s*:\s*hidden/i.test(attr(tag, "style"));
+  const body = html.replace(/<!--[\s\S]*?-->/g, "").replace(/<(head|script|style|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, "");
+  const stack: { hidden: boolean; section: boolean; widget: boolean; info: boolean }[] = [];
+  const tables: string[] = [];
+  let bookingButton = false;
+  for (const match of body.matchAll(/<\/?div\b[^>]*>|<table\b[^>]*>[\s\S]*?<\/table>|<a\b[^>]*>[\s\S]*?<\/a>/gi)) {
+    const tag = match[0], parent = stack.at(-1), opening = tag.slice(0, tag.indexOf(">") + 1);
+    if (/^<\/div/i.test(tag)) { stack.pop(); continue; }
+    if (/^<div/i.test(tag)) {
+      const id = attr(tag, "id"), newSection = attr(tag, "doz_type") === "section", newWidget = attr(tag, "doz_type") === "widget";
+      stack.push({ hidden: Boolean(parent?.hidden) || hidden(tag), section: newSection ? id === "s2026021399d74d7245285" : Boolean(parent?.section), widget: newWidget ? id === "w2026021367c750cf8e605" : Boolean(parent?.widget), info: /(?:^|\s)info-wrap(?:\s|$)/.test(attr(tag, "class")) || Boolean(parent?.info) });
+      continue;
+    }
+    if (!parent?.section || parent.hidden || [...tag.matchAll(/<[a-z][^>]*>/gi)].some(item => hidden(item[0]))) continue;
+    if (/^<table/i.test(tag) && parent.widget && parent.info && attr(opening, "class") === "info-table") tables.push(tag);
+    // Keep the official-page button as the next step; never expose or alter
+    // the external booking URL's nonstandard-port policy here.
+    if (/^<a/i.test(tag) && text(tag) === "예매하기" && attr(opening, "href").startsWith("https://")) bookingButton = true;
+  }
+  if (tables.length !== 1) return null;
+  const fields = new Map<string, string[]>();
+  for (const row of tables[0].matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...row[1].matchAll(/<(th|td)\b[^>]*>([\s\S]*?)<\/\1>/gi)];
+    if (cells.length !== 2 || cells[0][1].toLowerCase() !== "th" || cells[1][1].toLowerCase() !== "td" || /\b(?:rowspan|colspan)\s*=/i.test(row[1])) continue;
+    const key = text(cells[0][2]);
+    fields.set(key, [...(fields.get(key) || []), cells[1][2]]);
+  }
+  const field = (key: string) => { const values = fields.get(key); return values?.length === 1 ? values[0] : undefined; };
+  const result: EventParticipation = {};
+  const audience = text(field("관람등급") || "");
+  if (audience && audience.length <= 200 && !/확인\s*필요|미정|추후/.test(audience)) result.audienceText = audience;
+  const prices = (field("티켓정보") || "").split(/<br\b[^>]*>/i).map(text).filter(Boolean);
+  if (prices.length > 0 && prices.length <= 10 && prices.every(value => /^[^|]{1,40}\s*\|\s*(?:\d{1,3}(?:,\d{3})+|\d+)원$/.test(value))) result.cost = prices.map(value => value.replace(/\s*\|\s*/, " ")).join(" / ");
+  const booking = text(field("예매처") || "");
+  if (booking === "광야아트센터 홈페이지" && bookingButton) result.registrationInstructions = `${booking}의 공식 공연 페이지에서 예매하기 버튼으로 예매`;
+  return Object.keys(result).length ? result : null;
+}
+
 function verifiedFamilySource(sourceId: string, sourceUrl: string) {
   try {
     const url = new URL(sourceUrl);
@@ -51,6 +93,7 @@ export function verifiedParticipationAudience(sourceId: string, sourceUrl: strin
 // Only the explicitly labelled sections of this source have been inspected.
 // Missing or ambiguous sections stay absent instead of inheriting old details.
 export function extractParticipation(html: string, sourceId: string, sourceUrl?: string): EventParticipation | null {
+  if (sourceId === "gwangya") return gwangyaParticipation(html, sourceUrl || "");
   if (sourceId === "duranno-college") {
     try {
       const url = new URL(sourceUrl || "");
