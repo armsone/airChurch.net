@@ -11,7 +11,11 @@ type News={title:string;url:string;source:string;publishedAt:string};
 type Rank={id:number;publicId:number;name:string;churchName?:string|null;uniqueVisitors:number;source?:string};
 type Post={href?:string;id:number;category:string;nickname:string;content:string};
 type Props={news:News[];sermons:Video[];saved:SavedItem[];now:string;newsLoading:boolean;sermonLoading:boolean;refresh:{sermons:string;news:string;sermonError:boolean;newsError:boolean};rankings:{churches:Rank[];pastors:Rank[]};posts:Post[];region:string;onRankingMore:(kind:"churches"|"pastors")=>void};
-const jumps=[["오늘의 성경","#daily-scripture"],["쇼츠","#shorts"],["교회 찾기","#church-directory"],["목회자 찾기","#pastor-directory"],["글 쓰기","#talent"],["소개·원칙","#vision"]];
+const contentJumps=[
+ ["말씀","#sermons","📖"],["뉴스","#church-news","📰"],["찬양","#praises","🎵"],["선한 영향력","#community","💬"],
+ ["신앙이야기","#faith-stories","🌿"],["교계행사","#events","📅"],["교회","#church-directory","⛪"],["목회자","#pastor-directory","👤"],
+];
+const serviceJumps=[["오늘의 성경","#daily-scripture"],["쇼츠","#shorts"],["에어처치 이벤트","#our-events"],["글쓰기","#talent"],["나의 모음","/saved"],["소개·원칙","#vision"]];
 const normalize=(value:string)=>value.replace(/\s/g,"").replace(/목사(?:님)?$/u,"").toLocaleLowerCase("ko-KR");
 const panelThemes:Record<string,{icon:string;tone:string}>={"말씀":{icon:"📖",tone:"word"},"찬양":{icon:"🎵",tone:"praise"},"뉴스":{icon:"📰",tone:"news"},"교회":{icon:"⛪",tone:"church"},"목회자":{icon:"👤",tone:"pastor"},"교계행사":{icon:"📅",tone:"event"},"선한 영향력":{icon:"💬",tone:"community"}};
 function Panel({title,href,children,onMore}:{title:string;href:string;children:ReactNode;onMore?:()=>void}){const theme=panelThemes[title];return <article className={`portal-panel portal-tone-${theme.tone}`}><div className="portal-panel-heading"><h3><a href={href} onClick={onMore}><span className="portal-title-icon" aria-hidden="true">{theme.icon}</span>{title}</a></h3><a href={href} onClick={onMore} aria-label={`${title} 더 보기`}>더 보기 →</a></div>{children}</article>;}
@@ -39,6 +43,10 @@ export default function PortalToday({news,sermons,saved,now,newsLoading,sermonLo
    <Panel title="교계행사" href="#events"><EventsBrowser compact preview portalRegion={region}/></Panel>
    {(["churches","pastors"] as const).map(kind=><Panel key={kind} title={kind==="churches"?"교회":"목회자"} href={kind==="churches"?"#ranking-churches":"#ranking-pastors"} onMore={()=>onRankingMore(kind)}><p className="portal-caption">이번 주 많이 찾은 {kind==="churches"?"교회":"목회자"}</p><ol className="portal-picks portal-rank-picks">{rankings[kind].slice(0,4).map((item,index)=><li key={item.id}><b>{index+1}</b><a href={`/${kind==="churches"?"church":"pastors"}/${item.publicId}`}><strong>{item.name}</strong><small>{item.source==="sermon"?"새로 소개하는 교회":`${item.uniqueVisitors.toLocaleString("ko-KR")}명 방문`}{item.churchName?` · ${item.churchName}`:""}</small></a></li>)}</ol>{!rankings[kind].length&&<p className="portal-empty">아직 집계된 방문 기록이 없습니다.</p>}</Panel>)}
   </div>
-  <nav className="portal-jumps portal-extras" aria-label="함께 이용하는 서비스">{jumps.map(([label,href])=><a href={href} key={href}>{label}</a>)}</nav>
+  <nav className="portal-directory" aria-labelledby="portal-directory-title">
+   <h3 id="portal-directory-title">전체 둘러보기</h3>
+   <div className="portal-directory-main">{contentJumps.map(([label,href,icon])=><a href={href} key={href}><span aria-hidden="true">{icon}</span>{label}</a>)}</div>
+   <div className="portal-directory-services"><span>함께 이용하기</span><div>{serviceJumps.map(([label,href])=><a href={href} key={href}>{label}</a>)}</div></div>
+  </nav>
  </section>;
 }
