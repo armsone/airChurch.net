@@ -2,7 +2,7 @@
 .news-page h1{font-family:inherit;font-size:clamp(28px,4vw,42px);line-height:1.3;letter-spacing:-.04em;margin:12px 0}
 .news-page .section-heading p{font-size:16px;line-height:1.7;color:var(--muted)}
 .news-list-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 24px}
-.news-list-toolbar label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:650;min-width:180px}
+.news-list-toolbar label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:500;min-width:180px}
 .news-list-toolbar select{max-width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font:inherit}
 .news-list-toolbar p{margin:0 0 12px;color:var(--muted);font-size:14px;white-space:nowrap}
 .news-list-message{padding:24px 0;color:var(--muted);font-size:16px;line-height:1.7}

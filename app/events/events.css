@@ -6,7 +6,7 @@
 .events-browser .section-heading p{max-width:620px;margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.6}
 @media(max-width:760px){.events-browser .section-heading>.unified-other-button{margin-left:0;margin-right:auto}}
 .event-filters{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:0 0 22px}
-.event-filters label{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:650}
+.event-filters label{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:500}
 .event-filters select,.event-filters input[type=month]{min-height:44px;padding:9px 12px;max-width:100%;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font:inherit}
 .event-filters .event-online{flex-direction:row;align-items:center;min-height:44px;font-weight:500}
 .event-extra-filters{font-size:14px;color:var(--muted)}
@@ -19,7 +19,7 @@
 .event-view-switch>span{margin-left:auto;font-size:14px;color:var(--muted)}
 .event-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .event-card{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:white}
-.event-date{display:block;padding:16px 20px;background:var(--cream);border-bottom:1px solid var(--line);font-weight:750;font-size:17px;line-height:1.6}
+.event-date{display:block;padding:16px 20px;background:var(--cream);border-bottom:1px solid var(--line);font-weight:400;font-size:17px;line-height:1.6}
 .event-date>span{display:block;font-size:14px;font-weight:500;color:var(--muted)}
 .event-card-copy{display:flex;flex-direction:column;flex:1;padding:18px 20px;min-width:0}
 .event-tags{display:flex;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:14px}
@@ -27,7 +27,7 @@
 .event-card h3{margin:12px 0;font-size:19px;line-height:1.5;font-family:inherit;letter-spacing:-.02em}
 .event-card p{margin:0 0 8px;font-size:15px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
 .event-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto;padding-top:16px}
-.event-actions a{display:inline-flex;align-items:center;min-height:44px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:650}
+.event-actions a{display:inline-flex;align-items:center;min-height:44px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:500}
 .event-actions a:hover,.event-card h3 a:hover{color:var(--orange)}
 .event-save-control{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px}
 .event-actions>.event-save-control{margin-left:auto}
@@ -48,12 +48,12 @@
 .event-card-sunday .event-date{background:#f9e4e5;color:#873d43}
 .event-card-saturday .event-date>span,.event-card-sunday .event-date>span{color:inherit}
 .event-card-compact .event-card-copy{padding:16px}
-.event-card-compact .event-source-label{margin:0 0 6px;color:var(--orange);font-size:12px;font-weight:800}
+.event-card-compact .event-source-label{margin:0 0 6px;color:var(--orange);font-size:12px;font-weight:500}
 .event-card-compact .event-tags{font-size:12px;gap:6px}
 .event-card-compact h3{margin:6px 0 8px;font-size:15px;line-height:1.4;word-break:keep-all}
 .event-card-compact p{margin:0 0 4px;font-size:13px;line-height:1.5}
 .event-card-compact .event-actions{gap:0 12px;padding-top:8px}
-.event-card-compact .event-actions a{min-height:36px;padding:4px 0;border:0;border-radius:0;font-size:12px;font-weight:800}
+.event-card-compact .event-actions a{min-height:36px;padding:4px 0;border:0;border-radius:0;font-size:12px;font-weight:500}
 .event-card-compact .event-card-copy>small:last-child{margin-top:8px;font-size:12px}
 .event-empty{padding:28px 20px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);font-size:16px;line-height:1.8}
 .event-day-group{margin:28px 0}
@@ -81,7 +81,7 @@
 .event-calendar button{display:flex;flex-direction:column;align-items:start;gap:10px;min-height:80px;padding:12px;border:1px solid var(--line);border-radius:9px;background:white;color:var(--ink);font-size:16px;cursor:pointer}
 .event-calendar button small{font-size:14px;color:var(--orange)}
 .event-calendar button[aria-pressed=true]{border:2px solid var(--ink);background:var(--cream)}
-.event-calendar .is-today time{font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.event-calendar .is-today time{font-weight:600;text-decoration:underline;text-underline-offset:4px}
 .event-more{display:block;margin:22px auto}
 .event-detail{max-width:900px}
 .event-detail dl{padding:8px 0}

@@ -3,7 +3,7 @@
 .making-research .table-wrap { max-width: 100%; overflow-x: auto; margin: 1.5rem 0; border: 1px solid #dce4dd; border-radius: .8rem; }
 .making-research table { border-collapse: collapse; width: 100%; min-width: 740px; font-size: .92rem; line-height: 1.75; }
 .making-research th, .making-research td { padding: 1rem; border-bottom: 1px solid #e2e8e1; text-align: left; vertical-align: top; }
-.making-research th { background: #edf3eb; color: #234b3e; font-weight: 700; }
+.making-research th { background: #edf3eb; color: #234b3e; font-weight: 500; }
 .making-research tbody tr:nth-child(even) { background: #fafbf7; }
 .making-research h3 { margin: 2rem 0 1rem; font-size: 1.2rem; line-height: 1.55; color: #244b3e; }
 .making-research a { color: #27634f; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }

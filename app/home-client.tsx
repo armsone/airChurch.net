@@ -716,7 +716,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
-          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:900,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
+          {shortMuted&&<button type="button" onClick={unmuteShort} style={{position:"absolute",top:"40%",left:"50%",zIndex:3,transform:"translate(-50%,-50%)",minWidth:190,minHeight:60,padding:"18px 32px",border:"2px solid rgba(255,255,255,.82)",borderRadius:999,background:"rgba(0,0,0,.86)",boxShadow:"0 8px 28px rgba(0,0,0,.45)",color:"white",fontSize:20,fontWeight:600,whiteSpace:"nowrap",cursor:"pointer",touchAction:"manipulation"}}>🔊 소리 켜기</button>}
           <span className="shorts-viewer-count" aria-live="polite">{(activeShortIndex??0)+1} / {filteredShorts.length}</span>
           <button ref={shortCloseButtonRef} type="button" className="shorts-viewer-close" onClick={()=>setActiveShortIndex(null)} title="닫기" aria-label="쇼츠 재생 닫기">×</button>
           <button type="button" className="shorts-viewer-nav shorts-viewer-prev" onClick={()=>setActiveShortIndex((current)=>current!==null && current>0 ? current-1 : current)} disabled={activeShortIndex===0} aria-label="이전 쇼츠 보기">‹</button>
