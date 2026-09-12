@@ -261,5 +261,9 @@ export function extractEvent(html:string,url:string,source:SourceConfig,knownTit
   }
   const status=noticeStatus(`${title}\n${evidence}`)||"published";
   const explicitAddress=venue.match(/주소\s*[:：]\s*([^)]*)/)?.[1]||venue;
-  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:attendance==="온라인"?"온라인":regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
+  // Onnuri's official 서빙고 address entry is 서울특별시 용산구 이촌로 347-11
+  // (onnuri.org/about-onnuri/service-times/seobinggo-campus/, checked 2026-09-12).
+  // Apply only to 4197's matching PC/mobile venue, not Duranno's office address.
+  const verifiedDurannoRegion=source.id==="duranno-college"&&url==="https://biblecollege.duranno.com/biblecollege/view/seminar_detail.asp?smrnum=4197"&&durannoSummary?.venue.replace(/\s/g,"")==="서빙고온누리교회b1두란노홀"?"서울":null;
+  return {title,evidence,reason:"",event:{title,startDate,endDate,startTime,venue:venue.slice(0,300),region:attendance==="온라인"?"온라인":verifiedDurannoRegion||regionOf(explicitAddress),attendance,organizer:organizer.slice(0,200),audience,category,registrationUrl,status}};
 }
