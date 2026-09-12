@@ -32,6 +32,22 @@ function single(values: string[]) {
   return unique.length === 1 && unique[0].length <= 2000 ? unique[0] : undefined;
 }
 
+function verifiedFamilySource(sourceId: string, sourceUrl: string) {
+  try {
+    const url = new URL(sourceUrl);
+    if (url.username || url.password || url.port || url.hash) return null;
+    if (sourceId === "duranno-college" && url.origin === "https://biblecollege.duranno.com" && url.pathname === "/biblecollege/view/seminar_detail.asp" && [...url.searchParams.keys()].every(key => key === "smrnum") && url.searchParams.getAll("smrnum").length === 1 && url.searchParams.get("smrnum") === "4197") return "duranno-college";
+    if (sourceId === "jiguchon" && url.origin === "https://www.jiguchon.or.kr" && url.pathname === "/bbs/board.php" && [...url.searchParams.keys()].every(key => key === "bo_table" || key === "wr_id") && url.searchParams.getAll("bo_table").length === 1 && url.searchParams.get("bo_table") === "G02" && url.searchParams.getAll("wr_id").length === 1 && url.searchParams.get("wr_id") === "1170") return "jiguchon";
+  } catch { /* Unknown or changed source boundaries remain unclassified. */ }
+  return null;
+}
+
+export function verifiedParticipationAudience(sourceId: string, sourceUrl: string, participation: EventParticipation | null): "가정" | null {
+  if (!verifiedFamilySource(sourceId, sourceUrl)) return null;
+  const audience = participation?.audienceText?.trim();
+  return audience && /부부|커플/.test(audience) && !/제외|불가|아닌|아니라/.test(audience) ? "가정" : null;
+}
+
 // Only the explicitly labelled sections of this source have been inspected.
 // Missing or ambiguous sections stay absent instead of inheriting old details.
 export function extractParticipation(html: string, sourceId: string, sourceUrl?: string): EventParticipation | null {
@@ -84,6 +100,10 @@ export function extractParticipation(html: string, sourceId: string, sourceUrl?:
     if (cost) result.cost = cost;
     const audience = single(rows.filter(value => /^등록조건\s*[:：]\s*\S/.test(value)).map(value => value.replace(/^등록조건\s*[:：]\s*/, "")));
     if (audience) result.audienceText = audience;
+    else if (!rows.some(value => /^등록조건\s*[:：]/.test(value)) && verifiedFamilySource(sourceId, sourceUrl || "") === "jiguchon") {
+      const invitation = single(rows.filter(value => /^성서적 비전으로\s+가정을\s+세우기\s+원하는\s+.*부부.*관심과\s+참여/.test(value)));
+      if (invitation) result.audienceText = invitation;
+    }
     return Object.keys(result).length ? result : null;
   }
   if (sourceId !== "sorrygom") return null;

@@ -1,5 +1,5 @@
 import { sourceDateReviewReason } from "./source-date-review";
-import { extractParticipation } from "./participation";
+import { extractParticipation, verifiedParticipationAudience } from "./participation";
 import { verifiedEventChurchPublicId } from "./church-source";
 import { boundedFetch as fetchSource, robotsAllowed, robotsDelay, discover, nextListing, isDetail } from "./source-reader";
 import { database } from "../api/_shared";
@@ -8,7 +8,7 @@ import { officialEventSources, additionalDiscoverySources, type SourceConfig } f
 import { eventWords, eventPriority, extractEvent, extractScheduleEntries, links, noticeStatus, plain } from "./extract";
 import { koreaDate } from "./types";
 
-const COLLECTOR_VERSION=16;
+const COLLECTOR_VERSION=17;
 export const collectionSources:SourceConfig[]=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss" as const,detailPattern:""})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];
 const host=(url:string)=>new URL(url).hostname.replace(/^www\./,"");
 export async function digest(value:string){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -104,6 +104,10 @@ async function processSource(source:SourceConfig){
       }
       const extracted=occurrence?(entries.find(entry=>entry.key===occurrence)||{event:null,title:candidate.title,evidence:"",reason:"occurrence_removed_or_changed"}):extractEvent(doc.text,candidate.url,source,candidate.title);
       const value=extracted.event?{...extracted.event,participation:extractParticipation(doc.text,source.id,candidate.url)}:null;
+      if(value&&value.audience==="대상 확인 필요"){
+        const audience=verifiedParticipationAudience(source.id,candidate.url,value.participation);
+        if(audience)value.audience=audience;
+      }
       const verifiedPublicId=value?verifiedEventChurchPublicId(source,candidate.url,value.organizer):null;
       if(value&&verifiedPublicId&&value.organizer==="주최 확인 필요")value.organizer=source.churchName!;
       const reviewedConflict=sourceDateReviewReason(doc.text,source.id,candidate.url);
@@ -150,6 +154,8 @@ export async function syncEvents(requestedSource?:string){
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
   await db.batch([
+    // Reconcile list filters with the two reviewed official audience statements.
+    db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE ((source_id='duranno-college' AND event_id='67036ed578b39eab6008bc027f137ea2' AND url='https://biblecollege.duranno.com/biblecollege/view/seminar_detail.asp?smrnum=4197') OR (source_id='jiguchon' AND event_id='19f60be947c79e0fee01c4508bbf8065' AND url='https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02&wr_id=1170')) AND source_id IN (SELECT id FROM event_sources WHERE collector_version<17 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     // Refresh only the existing seminar whose official participation fields were reviewed.
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='duranno-college' AND event_id='67036ed578b39eab6008bc027f137ea2' AND url='https://biblecollege.duranno.com/biblecollege/view/seminar_detail.asp?smrnum=4197' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<16 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='jiguchon' AND event_id IS NOT NULL AND source_id IN (SELECT id FROM event_sources WHERE collector_version<15 AND (lease_until IS NULL OR lease_until<?))").bind(now),
@@ -158,7 +164,7 @@ export async function syncEvents(requestedSource?:string){
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='paidion' AND reason='explicit_event_date_required' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<12 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='uofnjeju' AND reason='outside_event_board' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<8 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id IN (SELECT id FROM event_sources WHERE collector_version<4 AND (lease_until IS NULL OR lease_until<?)) AND status='failed'").bind(now),
-    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') OR (collector_version<14 AND id IN ('sorrygom','jiguchon')) OR (collector_version<15 AND id='jiguchon') OR (collector_version<16 AND id='duranno-college') THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
+    db.prepare("UPDATE event_sources SET collector_version=?,next_check_at=CASE WHEN (status='empty' AND (collector_version<5 OR (collector_version<6 AND id='sarang'))) OR (status='failed' AND (collector_version<4 OR (collector_version<7 AND id='news-10'))) OR (collector_version<8 AND id IN ('uofnjeju','nics','acts','sjs')) OR (collector_version<9 AND id='sjs') OR (collector_version<10 AND id IN ('krim','juba','interserve')) OR (collector_version<11 AND id='bpu') OR (collector_version<12 AND (id='paidion' OR (status='failed' AND last_error LIKE '%TimeoutError%'))) OR (collector_version<13 AND id='worldteach') OR (collector_version<14 AND id IN ('sorrygom','jiguchon')) OR (collector_version<15 AND id='jiguchon') OR (collector_version<16 AND id='duranno-college') OR (collector_version<17 AND id IN ('duranno-college','jiguchon')) THEN ? ELSE next_check_at END WHERE collector_version<? AND (lease_until IS NULL OR lease_until<?)").bind(COLLECTOR_VERSION,now,COLLECTOR_VERSION,now),
   ]);
   const due=await db.prepare("SELECT id FROM event_sources WHERE enabled=1 AND next_check_at<=? AND (lease_until IS NULL OR lease_until<?) AND id IN (SELECT value FROM json_each(?)) ORDER BY next_check_at,CASE kind WHEN 'official' THEN 0 ELSE 1 END LIMIT 1").bind(now,now,JSON.stringify(requestedSource?[requestedSource]:collectionSources.map(s=>s.id))).all<{id:string}>();
   await pool(due.results,1,async row=>{const source=collectionSources.find(s=>s.id===row.id);if(source)await processSource(source);});
