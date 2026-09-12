@@ -2,7 +2,7 @@ import { accessSession } from "../../../admin-access";
 import { syncEvents } from "../../../events/collection";
 import { database, readLimitedJson } from "../../_shared";
 
-const refreshableSources=["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion","ncck","acts","onnuri","cemk"];
+const refreshableSources=["sorrygom","jiguchon","duranno-college","gwangya","melon","paidion","ncck","onnuri","cemk"];
 type SourceHealth={id:string;enabled:number;status:string;nextCheckAt:string;leaseUntil:string|null;lastCheckedAt:string|null;lastSuccessAt:string|null;lastError:string|null;collectorVersion:number};
 const healthColumns="id,enabled,status,next_check_at AS nextCheckAt,lease_until AS leaseUntil,last_checked_at AS lastCheckedAt,last_success_at AS lastSuccessAt,last_error AS lastError,collector_version AS collectorVersion";
 const isDue=(source:SourceHealth,now:string)=>source.enabled===1&&source.nextCheckAt<=now&&(source.leaseUntil===null||source.leaseUntil<now);

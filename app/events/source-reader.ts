@@ -16,9 +16,7 @@ export async function boundedFetch(url:string,source:SourceConfig,pace?:()=>Prom
     if(r.status>=300&&r.status<400){const next=r.headers.get("location");void r.body?.cancel();if(!next)throw Error("redirect_without_location");url=new URL(next,url).href;continue;}
     if(!r.ok){void r.body?.cancel();return {text:"",status:r.status,finalUrl:url};}
     if(source.kind==="rss"&&host(url)===host(source.url)&&/xml|rss|atom/i.test(r.headers.get("content-type")||""))return {text:(await readFeedText(r)).text,status:r.status,finalUrl:url};
-    // Inspected complete notice: 4,358,173 bytes, including one 4.31 MB inline image.
-    // Keep a fixed exception for this exact public document; other URLs retain 1.5 MB.
-    const responseLimit=source.id==="acts"&&url==="https://www.acts.ac.kr/modules/board/bd_view.asp?ListBlock=&Pagecount=153&ca_no=&gotopage=1&id=board_notice&left=unilife4_1&lnb_id=&mncode=&no=3113&sk=&sleft=&sv=&title="?4500000:1500000;
+    const responseLimit=1500000;
     const declaredSize=Number(r.headers.get("content-length")||0);
     if(declaredSize>responseLimit){void r.body?.cancel();throw Error(`response_too_large:declared=${declaredSize}`);}
     const reader=r.body?.getReader();if(!reader)return {text:"",status:r.status,finalUrl:url};const chunks:Uint8Array[]=[];let size=0;

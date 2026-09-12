@@ -8,7 +8,7 @@ import { validDate } from "./extract";
 const columns="e.id,e.title,e.start_date AS startDate,e.end_date AS endDate,e.start_time AS startTime,e.venue,e.region,e.attendance,e.organizer,e.audience,e.category,e.source_url AS sourceUrl,e.registration_url AS registrationUrl,e.checked_at AS checkedAt,e.status,c.public_id AS churchPublicId,s.name AS sourceName";
 const participationColumn="(SELECT ec.payload FROM event_candidates ec WHERE ec.event_id=e.id AND ec.source_id=e.source_id AND ec.url=e.source_url AND ec.content_hash=e.content_hash AND ec.status=e.status ORDER BY ec.checked_at DESC LIMIT 1) AS participationPayload";
 const joins="FROM events e JOIN event_sources s ON s.id=e.source_id LEFT JOIN churches c ON c.id=e.church_id";
-const visible="s.enabled=1 AND (e.church_id IS NULL OR c.review_status='approved')";
+const visible="s.id!='acts' AND s.enabled=1 AND (e.church_id IS NULL OR c.review_status='approved')";
 export async function withDeadline<T>(work:Promise<T>,ms=4500){let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([work,new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(Error("database_timeout")),ms);})]);}finally{clearTimeout(timer);}}
 export async function readEventSources():Promise<EventSource[]>{
   const configs=[...officialEventSources,...additionalDiscoverySources,...newsSources.map((s,i)=>({id:`news-${i}`,name:s.name,homepage:s.homepage,url:s.url,kind:"rss"})).filter(s=>!additionalDiscoverySources.some(other=>other.homepage.replace(/\/$/,"")===s.homepage.replace(/\/$/,"")))];

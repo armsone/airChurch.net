@@ -42,7 +42,7 @@ export const officialEventSources:SourceConfig[] = [
   {id:"bibleforum",name:"한국성서학연구소",homepage:"https://bibleforum.org/",url:"https://bibleforum.org/seminars",kind:"official",detailPattern:"/seminars/[^/?]+",eventOnly:true},
   {id:"eco-christ",name:"기독교환경교육센터 살림",homepage:"https://eco-christ.tistory.com/",url:"https://eco-christ.tistory.com/",kind:"official",detailPattern:"^https://eco-christ\\.tistory\\.com/\\d+$"},
   {id:"greenchrist",name:"기독교환경운동연대",homepage:"https://greenchrist.org/",url:"https://greenchrist.org/community_1/",kind:"official",detailPattern:"/community_1/\\?(?=[^#]*mod=document)(?=[^#]*uid=\\d+)"},
-  ...qualifiedSources.events as SourceConfig[],
+  ...(qualifiedSources.events as SourceConfig[]).filter(source=>source.id!=="acts"),
   // Public board and a dated, located training notice verified 2026-09-10.
   {id:"kacsw",name:"한국기독교사회복지실천학회",homepage:"https://kacsw.kr/",url:"https://kacsw.kr/500/",kind:"official",detailPattern:"/500/\\?(?=[^#]*bmode=view)(?=[^#]*idx=\\d+)",eventOnly:true},
 ];
