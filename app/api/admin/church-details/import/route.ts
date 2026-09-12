@@ -7,6 +7,16 @@ type Operation={action?:unknown;key?:unknown;values?:Record<string,unknown>};
 const SENSITIVE=/(?:[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:헌금|후원|입금)\s*계좌|(?:휴대폰|핸드폰)\s*[:：]?\s*01[016789][\d-]{7,})/i;
 const iso=(value:string)=>/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value);
 const validDays=(value:string)=>{try{const days=JSON.parse(value);return Array.isArray(days)&&days.length>0&&days.length<=7&&new Set(days).size===days.length&&days.every(day=>typeof day==="string"&&["MON","TUE","WED","THU","FRI","SAT","SUN"].includes(day));}catch{return false;}};
+// Comparison only: ASCII space/tab/CR/LF, NBSP and ideographic space.
+// Keep these exact code points identical in JS and SQLite; never rewrite source fields.
+const scheduleSpaceCodes=[32,9,13,10,160,12288];
+const scheduleText=(value:string|null)=>String(value??"").replace(/[ \t\r\n\u00a0\u3000]/g,"");
+const scheduleSqlText=(column:string)=>scheduleSpaceCodes.reduce((sql,code)=>`replace(${sql},char(${code}),'')`,`coalesce(${column},'')`);
+const safeScheduleDays="CASE WHEN json_valid(ws.day_of_week) THEN CASE WHEN json_type(ws.day_of_week)='array' THEN ws.day_of_week ELSE '[]' END ELSE '[]' END";
+// Exact sorted JSON equality also rejects malformed, repeated or unsupported day values:
+// the incoming array has already passed validDays and contains unique supported strings.
+const sameScheduleSql=`ws.church_id=? AND ${scheduleSqlText("ws.service_type") }=? AND ws.start_time=? AND ${scheduleSqlText("ws.venue_audience") }=? AND (SELECT json_group_array(value) FROM (SELECT value FROM json_each(${safeScheduleDays}) ORDER BY value))=?`;
+const scheduleComparison=(item:{churchId:number;values:Record<string,string|null>})=>[item.churchId,scheduleText(item.values.serviceType),item.values.startTime!,scheduleText(item.values.venue),JSON.stringify((JSON.parse(item.values.days!) as string[]).sort())] as const;
 const dateLike=(value:string)=>/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z)?$/.test(value);
 const ROLE_CATEGORIES=new Set(["current_primary","associate","education","cooperating","emeritus","retired"]);
 const ROLE_TITLES=new Set(["담임목사","위임목사","대표목사","수석부목사","부목사","행정목사","목양목사","교육목사","강도사","전임전도사","교육전도사","전도사","협동목사","원로목사","은퇴목사"]);
@@ -53,9 +63,14 @@ export async function POST(request:Request){
   if(preserveExisting){
     const recordIds=parsed.map(item=>item.values.recordId!);
     if(new Set(recordIds).size!==recordIds.length)return Response.json({error:"중복된 예배 기록이 있어 반영하지 않았습니다."},{status:409});
+    const comparisons=parsed.map(scheduleComparison),comparisonKeys=comparisons.map(value=>JSON.stringify(value));
+    if(new Set(comparisonKeys).size!==comparisonKeys.length)return Response.json({error:"공백이나 요일 순서만 다른 동일 일정이 있어 반영하지 않았습니다.",insertedRecordIds:[]},{status:409,headers:{"cache-control":"no-store"}});
     const existing=await db.prepare(`SELECT record_id FROM worship_schedules WHERE record_id IN (${recordIds.map(()=>"?").join(",")})`).bind(...recordIds).all<{record_id:string}>();
     if(existing.results.length)return Response.json({error:"이미 있는 예배 기록은 덮어쓰지 않았습니다. 상태 변경은 개별 검토로 진행해 주세요.",conflictingRecordIds:existing.results.map(row=>row.record_id),insertedRecordIds:[]},{status:409,headers:{"cache-control":"no-store"}});
-    const results=await db.batch<{record_id:string}>(parsed.map(item=>db.prepare("INSERT INTO worship_schedules (record_id,church_id,service_type,day_of_week,start_time,venue_audience,source_text,source_url,collected_at,confidence,review_status,reviewed_at) SELECT ?,?,?,?,?,?,?,?,?,?,'approved',? WHERE EXISTS (SELECT 1 FROM churches WHERE id=? AND review_status='approved') ON CONFLICT(record_id) DO NOTHING RETURNING record_id").bind(item.values.recordId,item.churchId,item.values.serviceType,item.values.days,item.values.startTime,item.values.venue,item.values.sourceText,item.values.sourceUrl,item.values.collectedAt,item.values.confidence,item.values.reviewedAt,item.churchId)));
+    const duplicates=await db.batch<{record_id:string}>(comparisons.map(values=>db.prepare(`SELECT ws.record_id FROM worship_schedules ws WHERE ${sameScheduleSql}`).bind(...values)));
+    const duplicateIds=[...new Set(duplicates.flatMap(result=>result.results.map(row=>row.record_id)))];
+    if(duplicateIds.length)return Response.json({error:"공백이나 요일 순서만 다른 기존 일정이 있습니다. 보류 자료도 개별 검토로 처리해 주세요.",conflictingRecordIds:duplicateIds,insertedRecordIds:[]},{status:409,headers:{"cache-control":"no-store"}});
+    const results=await db.batch<{record_id:string}>(parsed.map((item,index)=>db.prepare(`INSERT INTO worship_schedules (record_id,church_id,service_type,day_of_week,start_time,venue_audience,source_text,source_url,collected_at,confidence,review_status,reviewed_at) SELECT ?,?,?,?,?,?,?,?,?,?,'approved',? WHERE EXISTS (SELECT 1 FROM churches WHERE id=? AND review_status='approved') AND NOT EXISTS (SELECT 1 FROM worship_schedules ws WHERE ${sameScheduleSql}) ON CONFLICT(record_id) DO NOTHING RETURNING record_id`).bind(item.values.recordId,item.churchId,item.values.serviceType,item.values.days,item.values.startTime,item.values.venue,item.values.sourceText,item.values.sourceUrl,item.values.collectedAt,item.values.confidence,item.values.reviewedAt,item.churchId,...comparisons[index])));
     const insertedRecordIds=results.flatMap(result=>result.results.map(row=>row.record_id)),inserted=new Set(insertedRecordIds),skippedRecordIds=recordIds.filter(id=>!inserted.has(id));
     if(skippedRecordIds.length)return Response.json({error:"등록 중 자료나 교회 상태가 변경되었습니다. 기존 기록은 보존했으며 신규 반영 결과를 확인해 주세요.",insertedRecordIds,skippedRecordIds,schedules:insertedRecordIds.length},{status:409,headers:{"cache-control":"no-store"}});
     return Response.json({ok:true,digest:calculated,operations:parsed.length,schedules:insertedRecordIds.length,profiles:0,ministers:0,appearances:0,insertedRecordIds},{headers:{"cache-control":"no-store"}});
