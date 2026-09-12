@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 import { extractJiguchonSchedules } from "./jiguchon.mjs";
+import { extractYeondongSchedules } from "./yeondong.mjs";
+import { extractAhyeonSchedules } from "./ahyeon.mjs";
 
 export const DAYS = Object.freeze({
   "월": "MON", "화": "TUE", "수": "WED", "목": "THU", "금": "FRI", "토": "SAT", "주일": "SUN", "일": "SUN",
@@ -90,6 +92,10 @@ export function recordId(record) {
 export function extractScheduleCandidates({ church, sourceUrl, html, collectedAt = new Date().toISOString(), sourceLastModified = null }) {
   const scoped = extractJiguchonSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
   if (scoped !== null) return scoped;
+  const yeondong = extractYeondongSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (yeondong !== null) return yeondong;
+  const ahyeon = extractAhyeonSchedules({church, sourceUrl, html, collectedAt, sourceLastModified});
+  if (ahyeon !== null) return ahyeon;
   const lines = visibleLines(html);
   const records = [];
   let section = "";
