@@ -250,8 +250,8 @@
 @media(max-width:760px){.integrated-portal .hero{padding-top:16px;padding-bottom:28px}.integrated-portal .hero h1{margin-bottom:10px}}
 
 /* Scripture remains the main feature; a square contest poster sits beside it. */
-.scripture-feature-row{max-width:1132px;margin:0 auto 18px;display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:16px;align-items:start}
-.scripture-feature-row>.season-scripture{width:100%;max-width:none;margin:0;min-height:240px;grid-template-columns:190px minmax(0,1fr)}
+.scripture-feature-row{max-width:1132px;margin:0 auto 18px;display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.scripture-feature-row>.season-scripture{width:100%;max-width:none;margin:0;min-height:0;grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
 .scripture-feature-row .scripture-context{padding:20px}
 .scripture-feature-row .scripture-reading{padding:24px}
 .scripture-feature-row .scripture-reading blockquote{font-size:23px;line-height:1.7}
