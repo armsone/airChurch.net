@@ -12,7 +12,7 @@ export default function SiteFooter({ identity }: { identity: SiteIdentity }) {
     <div className="site-footer-main">
       <div className="site-footer-identity">
         <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면`}><img className="brand-mark" src="/favicon.svg" width={30} height={30} alt="" aria-hidden="true" /><span>{identity.wordmark}</span></HomeReloadLink>
-        <p>사람과 교회를 잇는 크리스천 포털</p>
+        <p>{identity.description}</p>
       </div>
       <div className="site-footer-groups">
         <nav aria-label="사이트 안내">
