@@ -22,7 +22,14 @@ async function refresh():Promise<FaithPayload>{
       return {items:items.slice(0,12),failed:""};
     }catch{return {items:previous.filter(item=>item.source===source.source&&item.category===source.category),failed:source.source};}
   }));
-  return {items:[...seed.filter(item=>item.source==="CTS"),...results.flatMap(result=>result.items)],checkedAt:new Date().toISOString(),failedSources:[...new Set(results.map(result=>result.failed).filter(Boolean))]};
+  // Fresh official channel videos lead; retain the curated archive behind them.
+  const seen=new Set<string>();
+  const items=[...results.flatMap(result=>result.items),...seed.filter(item=>item.source==="CTS")].filter(item=>{
+    const key=`${item.source}:${item.id}`;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+  return {items,checkedAt:new Date().toISOString(),failedSources:[...new Set(results.map(result=>result.failed).filter(Boolean))]};
 }
 export async function GET(){
   if(!cached||Date.now()-Date.parse(cached.checkedAt)>600000){
