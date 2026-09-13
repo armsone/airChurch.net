@@ -65,6 +65,6 @@ export default function SiteHeader() {
         {navigation}<div className="mobile-menu-admin" onClick={() => setOpen(false)}><SavedNavLink/><a href="/contact">문의</a></div>
       </nav>
     </header>
-    <p className="site-header-subtitle">{identity.description}</p>
+    <p className="site-header-subtitle">{identity.description.replace("사람과 교회를 잇는 ", "사람과 교회를 잇는 · ")}</p>
   </>;
 }
