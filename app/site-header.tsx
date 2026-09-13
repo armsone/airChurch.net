@@ -56,7 +56,7 @@ export default function SiteHeader() {
   const hrefFor = (href: string) => pathname === "/" && href.startsWith("/#") ? href.slice(1) : href;
   const navigation = menuItems.map(([label, href]) => <a key={href} href={hrefFor(href)} onClick={() => setOpen(false)}>{label}</a>);
   return <header className="site-header shared-site-header" ref={header}>
-    <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면 새로 불러오기`}><span className="brand-mark" aria-hidden="true"/><span>{identity.wordmark}</span></HomeReloadLink>
+    <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면 새로 불러오기`}><img className="brand-mark" src="/favicon.svg" width={30} height={30} alt="" aria-hidden="true"/><span>{identity.wordmark}</span></HomeReloadLink>
     <nav className="shared-primary-nav" aria-label="주요 메뉴">{navigation}</nav>
     <nav className="header-admin-links" aria-label="개인 메뉴와 도움말"><SavedNavLink/><a href="/contact">문의</a></nav>
     <button ref={button} className="mobile-menu-button" type="button" aria-expanded={open} aria-controls="mobile-site-menu" onClick={() => setOpen(value => !value)}><span aria-hidden="true">{open ? "×" : "☰"}</span>{open ? "닫기" : "메뉴"}</button>

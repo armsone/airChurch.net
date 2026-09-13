@@ -11,7 +11,7 @@ export default function SiteFooter({ identity }: { identity: SiteIdentity }) {
   return <footer id="page-bottom" className="site-footer">
     <div className="site-footer-main">
       <div className="site-footer-identity">
-        <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면`}><span className="brand-mark" aria-hidden="true" /><span>{identity.wordmark}</span></HomeReloadLink>
+        <HomeReloadLink className="brand" ariaLabel={`${identity.name} 첫 화면`}><img className="brand-mark" src="/favicon.svg" width={30} height={30} alt="" aria-hidden="true" /><span>{identity.wordmark}</span></HomeReloadLink>
         <p>사람과 교회를 잇는 크리스천 포털</p>
       </div>
       <div className="site-footer-groups">
@@ -21,7 +21,7 @@ export default function SiteFooter({ identity }: { identity: SiteIdentity }) {
       </div>
     </div>
     <div className="site-footer-bottom">
-      <p className="site-domain-links">{Object.values(siteIdentities).map((site, index) => <span key={site.domain}>{index > 0 && <span aria-hidden="true"> · </span>}<a href={`https://${site.domain}/`} aria-label={`${site.name} (${site.domain})`} aria-current={site.domain === identity.domain ? "true" : undefined}>{site.domain}</a></span>)}</p>
+      <p className="site-domain-links">{Object.values(siteIdentities).map((site, index) => <span key={site.domain}>{index > 0 && <span aria-hidden="true"> · </span>}<a href={`https://${site.domain}/`} aria-label={`${site.name} (${site.domain})`} aria-current={site.domain === identity.domain ? "true" : undefined}>{site.wordmark}</a></span>)}</p>
       <a className="site-footer-pastor" href="/pastors/2">협동목사 김민석 <span aria-hidden="true">↗</span></a>
       <FooterVisitorCounts />
     </div>
