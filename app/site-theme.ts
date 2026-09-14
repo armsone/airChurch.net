@@ -25,14 +25,14 @@ export const SITE_THEMES = [
     name: "대림절",
     description: "기다림과 소망을 보라빛과 촛불 금색으로 표현합니다.",
     colors: ["#55466F", "#352B49", "#C5A45C", "#F7F3EA"],
-    palette: { green: "#55466F", greenText: "#352B49", coral: "#A98436", paper: "#FFFEFA", text: "#403B47" },
+    palette: { green: "#55466F", greenText: "#FFFEFA", coral: "#A98436", paper: "#FFFEFA", text: "#403B47" },
   },
   {
     id: "christmas",
     name: "크리스마스",
     description: "전나무 초록, 따뜻한 금색, 베리빛 포인트로 성탄을 맞이합니다.",
     colors: ["#285341", "#173D30", "#C64D4B", "#D9B86C"],
-    palette: { green: "#285341", greenText: "#173D30", coral: "#B23D3B", paper: "#FFFEFA", text: "#3D4540" },
+    palette: { green: "#285341", greenText: "#FFFFFF", coral: "#B23D3B", paper: "#FFFEFA", text: "#3D4540" },
   },
 ] as const;
 

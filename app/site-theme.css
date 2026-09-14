@@ -63,8 +63,8 @@ html[data-site-theme="christmas"] {
 .theme-mini-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; color: var(--theme-green-text); background: var(--theme-green); font-size: 12px; }
 .theme-mini-header b { font-size: 14px; font-weight: 600; }
 .theme-mini-body { min-height: 112px; padding: 13px 15px; }
-.theme-mini-body>span { display: block; color: var(--theme-green-text); font-size: 11px; font-weight: 500; }
-.theme-mini-body strong { display: block; margin-top: 4px; color: var(--theme-green-text); font-size: 19px; font-weight: 600; line-height: 1.35; }
+.theme-mini-body>span { display: block; color: var(--theme-text); font-size: 11px; font-weight: 500; }
+.theme-mini-body strong { display: block; margin-top: 4px; color: var(--theme-text); font-size: 19px; font-weight: 600; line-height: 1.35; }
 .theme-mini-body i { display: inline-block; margin-top: 8px; padding-top: 5px; border-top: 2px solid var(--theme-coral); color: var(--theme-coral); font-size: 11px; font-style: normal; font-weight: 500; }
 .theme-swatches { display: flex; gap: 8px; margin-top: 16px; }
 .theme-swatches>span { width: 30px; height: 30px; border: 1px solid rgba(0,0,0,.1); border-radius: 50%; }
