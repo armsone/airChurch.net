@@ -12,6 +12,7 @@ const isPublicChange = (files) => files.some((file) =>
 
 function historyItem(subject) {
   const normalized = subject.toLowerCase();
+  if (normalized.includes("theme")) return "평소·새봄·대림절·크리스마스 테마를 마련하고 화면의 공통 색상 기준을 정리했습니다.";
   if (normalized.includes("short")) return "Shorts 화면과 재생 흐름을 더 편하게 다듬었습니다.";
   if (normalized.includes("event") || normalized.includes("news")) return "교회 일정과 소식 탐색을 보완했습니다.";
   if (normalized.includes("liturgical") || normalized.includes("season")) return "교회력에 맞춘 상세 화면을 추가했습니다.";

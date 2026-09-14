@@ -1,10 +1,25 @@
+html[data-site-theme="everyday"] {
+  --ink: #18362f;
+  --muted: #687c76;
+  --cream: #f8f5ee;
+  --paper: #fffefa;
+  --orange: #eb7448;
+  --line: #dfe7e1;
+  --brand-strong: #254a3b;
+  --surface-soft: #f2f5f1;
+  --accent-soft: #fff0e8;
+}
+
 html[data-site-theme="spring"] {
   --ink: #184d22;
   --muted: #586d5b;
   --cream: #f3f7f1;
   --paper: #ffffff;
-  --orange: #c94b2d;
+  --orange: #ff7b4a;
   --line: #dce8d8;
+  --brand-strong: #184d22;
+  --surface-soft: #f3f7f1;
+  --accent-soft: #fff1e9;
 }
 
 html[data-site-theme="advent"] {
@@ -14,6 +29,9 @@ html[data-site-theme="advent"] {
   --paper: #fffefa;
   --orange: #94753b;
   --line: #e2dce8;
+  --brand-strong: #352b49;
+  --surface-soft: #f4f0f6;
+  --accent-soft: #f5ecda;
 }
 
 html[data-site-theme="christmas"] {
@@ -23,6 +41,9 @@ html[data-site-theme="christmas"] {
   --paper: #fffefa;
   --orange: #b23d3b;
   --line: #dce6df;
+  --brand-strong: #173d30;
+  --surface-soft: #f1f5f1;
+  --accent-soft: #f7ece7;
 }
 
 .theme-page { max-width: 1180px; margin: auto; padding: 26px 24px 70px; }

@@ -161,16 +161,7 @@
 }
 
 /* Shared section rhythm and category cues continue the overview palette. */
-.integrated-portal #sermons{--section-tone:#355c47}
-.integrated-portal #praises{--section-tone:#7051a0}
-.integrated-portal #shorts{--section-tone:#7051a0}
-.integrated-portal #faith-stories{--section-tone:#946127}
-.integrated-portal #church-news{--section-tone:#365e93}
-.integrated-portal :is(#interest-ranking,#church-directory){--section-tone:#36746a}
-.integrated-portal #pastor-directory{--section-tone:#655a8e}
-.integrated-portal #events{--section-tone:#a45733}
-.integrated-portal #community{--section-tone:#975b70}
-.integrated-portal :is(#goodshare,#talent){--section-tone:#36746a}
+.integrated-portal :is(#sermons,#praises,#shorts,#faith-stories,#church-news,#interest-ranking,#church-directory,#pastor-directory,#events,#community,#goodshare,#talent){--section-tone:var(--ink)}
 .integrated-portal>:is(.content-section,.church-directory-section,.cts-discovery,.goodshare-section,.community-section,.talent-section,.vision-section,.safety-section){padding-top:30px;padding-bottom:30px;border-top:1px solid #d4dfd8}
 .integrated-portal .section-heading,.integrated-portal>.cts-discovery>.portal-panel-heading{border-bottom:0;border-left:3px solid var(--section-tone,#355c47);padding:2px 0 2px 12px;margin-bottom:20px;min-height:38px}
 .integrated-portal .section-heading .section-kicker{color:var(--section-tone,#527061);font-size:11px}
@@ -376,4 +367,29 @@
 }
 @media(prefers-reduced-motion:reduce){.integrated-portal .sermon-card{transition:none}.integrated-portal .sermon-card:hover{transform:none}}
 
-
+/* The selected theme is the sole source of the home page's branded colors. */
+.portal-tone-word,.portal-tone-praise,.portal-tone-story,.portal-tone-news,.portal-tone-church,.portal-tone-pastor,.portal-tone-event,.portal-tone-community{--panel-tone:var(--ink);--panel-tint:var(--surface-soft)}
+.integrated-portal :is(#sermons,#praises,#shorts,#faith-stories,#church-news,#interest-ranking,#church-directory,#pastor-directory,#events,#community,#goodshare,#talent){--section-tone:var(--ink)}
+.integrated-portal .hero{background:var(--cream)}
+.integrated-portal .hero .search{border-color:var(--line);box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 8%,transparent)}
+.integrated-portal .hero .search:focus-within{border-color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 15%,transparent)}
+.integrated-portal .hero .search button{background:var(--ink)}
+.integrated-portal .scripture-context{background:linear-gradient(145deg,var(--brand-strong),var(--ink))}
+.integrated-portal .scripture-reading{background:var(--paper)}
+.integrated-portal .scripture-reading>small{color:var(--muted)}
+.integrated-portal .portal-heading h2::after{background:var(--accent-soft)}
+.integrated-portal .portal-heading>a{border-color:var(--line);color:var(--ink)}
+.integrated-portal .portal-eight>.portal-panel{border-color:var(--line);background:linear-gradient(180deg,var(--panel-tint) 0,var(--paper) 120px)}
+.integrated-portal .portal-eight .portal-panel-heading>a,.integrated-portal .portal-eight .portal-video small,.integrated-portal .portal-eight .portal-picks small{color:var(--muted)}
+.integrated-portal .portal-extras a{background:var(--surface-soft);color:var(--ink)}
+.integrated-portal .portal-extras a:hover{background:var(--line);color:var(--ink)}
+.integrated-portal .section-heading .section-kicker{background:var(--surface-soft);color:var(--ink)}
+.integrated-portal .sermon-card,.integrated-portal .home-event-feature,.integrated-portal .community-reading>.approved-list article,.integrated-portal .open-participation-form{border-color:var(--line);background:var(--paper)}
+.integrated-portal>.faith-home{background:var(--surface-soft);color:var(--ink)}
+.integrated-portal .home-event-status{color:var(--orange)}
+.integrated-portal :is(.section-heading :is(h2,h3),.portal-heading h2,.portal-panel-heading h3,.scripture-context h2,.home-event-feature h3){font-family:inherit;color:var(--ink)}
+.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:25px;font-weight:600;line-height:1.45;letter-spacing:-.03em}
+.integrated-portal .portal-heading h2{font-size:25px;font-weight:600}
+.integrated-portal .portal-panel-heading h3{font-size:17px;font-weight:600}
+.integrated-portal .sermon-copy h3,.integrated-portal .portal-video strong,.integrated-portal .portal-picks strong{font-weight:500}
+@media(max-width:760px){.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .portal-heading h2{font-size:22px}}
