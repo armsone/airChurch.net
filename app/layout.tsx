@@ -8,6 +8,7 @@ import SkipLink from "./skip-link";
 import { headers } from "next/headers";
 import { siteIdentityForHost } from "./site-identity";
 import { SiteIdentityProvider } from "./site-identity-context";
+import { getSelectedSiteTheme } from "./site-theme";
 
 export const dynamic = "force-dynamic";
 async function requestIdentity() {
@@ -56,6 +57,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const identity = await requestIdentity();
+  const theme = identity.domain === "airchurch.net" ? await getSelectedSiteTheme() : "everyday";
   const structuredData = [
     {
       "@context": "https://schema.org",
@@ -81,6 +83,6 @@ export default async function RootLayout({
     },
   ];
   return (
-    <html lang="ko"><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body><SiteIdentityProvider identity={identity}><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><SiteFooter identity={identity}/><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></SiteIdentityProvider></body></html>
+    <html lang="ko" data-site-theme={theme}><head><link rel="dns-prefetch" href="https://i.ytimg.com"/><link rel="dns-prefetch" href="https://www.youtube.com"/></head><body><SiteIdentityProvider identity={identity}><SkipLink target="site-content"/><SiteHeader/><div id="site-content" tabIndex={-1}>{children}</div><SiteFooter identity={identity}/><AdminBulkBar/><VisitorTracker /><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,"\\u003c")}} /></SiteIdentityProvider></body></html>
   );
 }
