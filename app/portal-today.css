@@ -420,3 +420,30 @@ html[data-site-theme="advent"] .integrated-portal .hero .trust-note{color:#d3c7d
 html[data-site-theme="advent"] .integrated-portal .hero .trust-note span{background:#a88e57}
 html[data-site-theme="advent"] .integrated-portal .hero .search{border-color:#b49a60;box-shadow:0 0 0 4px #b49a6024,0 9px 28px #100d1770}
 html[data-site-theme="advent"] .integrated-portal .hero .search button{background:#43364f}
+
+/* Naver-inspired portal theme: white surfaces, precise dividers, restrained green. */
+html[data-site-theme="portal"] .integrated-portal .hero{background:#fff;border-bottom:1px solid #e8ebed}
+html[data-site-theme="portal"] .integrated-portal .hero .search{border:2px solid #03c75a;border-radius:28px;box-shadow:none}
+html[data-site-theme="portal"] .integrated-portal .hero .search:focus-within{border-color:#03b950;box-shadow:0 0 0 3px #03c75120}
+html[data-site-theme="portal"] .integrated-portal .hero .search button{border-radius:7px;background:#03c75a}
+html[data-site-theme="portal"] .integrated-portal .hero .search button:hover{background:#00b84f}
+html[data-site-theme="portal"] .integrated-portal .portal-extras a{padding:5px 10px;border:1px solid #e1e5e8;border-radius:8px;background:#fff;color:#555d63}
+html[data-site-theme="portal"] .integrated-portal .portal-extras a:hover{border-color:#03c75a;background:#f5fcf7;color:#087c3b;text-decoration:none}
+html[data-site-theme="portal"] .integrated-portal .portal-heading{border-bottom:1px solid #e1e5e8}
+html[data-site-theme="portal"] .integrated-portal .portal-heading h2::after{display:none}
+html[data-site-theme="portal"] .integrated-portal .portal-heading>a{color:#03a94d}
+html[data-site-theme="portal"] .integrated-portal .portal-eight>.portal-panel{border:1px solid #e1e5e8;border-radius:8px;background:#fff;box-shadow:none}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-panel-heading{border-bottom-color:#edf0f2}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-panel-heading>a{color:#03a94d}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-switch button{border:1px solid #e1e5e8;border-radius:6px;background:#fff;color:#50585e}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-switch button[aria-pressed="true"]{border-color:#03c75a;background:#eaf8ef;color:#087c3b}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-video,
+html[data-site-theme="portal"] .integrated-portal .portal-eight .faith-video-card,
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-picks li{border-bottom-color:#edf0f2}
+html[data-site-theme="portal"] .integrated-portal .section-heading .section-kicker{border-radius:4px}
+html[data-site-theme="portal"] .integrated-portal .sermon-card,
+html[data-site-theme="portal"] .integrated-portal .home-event-feature,
+html[data-site-theme="portal"] .integrated-portal .community-reading>.approved-list article,
+html[data-site-theme="portal"] .integrated-portal .open-participation-form{border-radius:9px;box-shadow:none}
+html[data-site-theme="portal"] .shared-site-header.site-header{border-bottom-color:#e1e5e8}
+html[data-site-theme="portal"] .shared-site-header .brand-mark{background-color:#03c75a}

@@ -10,7 +10,7 @@ import ThemeChoices from "./theme-choices";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "에어처치 테마 | 색상과 화면 분위기",
-  description: "에어처치의 평소·새봄·대림절·크리스마스 테마 색상표와 미리보기입니다.",
+  description: "에어처치의 평소·새봄·포털·대림절·크리스마스 테마 색상표와 미리보기입니다.",
 };
 
 export default async function ThemePage() {

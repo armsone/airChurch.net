@@ -21,6 +21,13 @@ export const SITE_THEMES = [
     palette: { green: "#8EC179", greenText: "#184D22", coral: "#FF7B4A", paper: "#FFFFFF", text: "#414641" },
   },
   {
+    id: "portal",
+    name: "포털",
+    description: "네이버 메인에서 참고한 흰 여백과 얇은 회색 구분선, 정보 카드, 검색 중심의 맑은 초록을 담았습니다.",
+    colors: ["#FFFFFF", "#F5F7F8", "#DDE2E5", "#03C75A", "#33383D"],
+    palette: { green: "#FFFFFF", greenText: "#03C75A", coral: "#03C75A", paper: "#FFFFFF", text: "#33383D" },
+  },
+  {
     id: "advent",
     name: "대림절",
     description: "깊은 황혼빛 자주와 남청, 낮은 촛불의 금빛으로 기다림과 소망을 담습니다.",
