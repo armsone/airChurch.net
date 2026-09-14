@@ -391,5 +391,7 @@
 .integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:25px;font-weight:600;line-height:1.45;letter-spacing:-.03em}
 .integrated-portal .portal-heading h2{font-size:25px;font-weight:600}
 .integrated-portal .portal-panel-heading h3{font-size:17px;font-weight:600}
+.integrated-portal .hero h1{font-family:inherit;font-size:clamp(26px,3vw,34px);font-weight:600;line-height:1.45;letter-spacing:-.03em;color:var(--ink)}
+.integrated-portal .scripture-context h2{color:#fff}
 .integrated-portal .sermon-copy h3,.integrated-portal .portal-video strong,.integrated-portal .portal-picks strong{font-weight:500}
-@media(max-width:760px){.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .portal-heading h2{font-size:22px}}
+@media(max-width:760px){.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .portal-heading h2{font-size:22px}.integrated-portal .hero h1{font-size:clamp(23px,5vw,27px)}}
