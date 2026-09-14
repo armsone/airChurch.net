@@ -410,5 +410,5 @@
 .integrated-portal .sermon-copy h3,.integrated-portal .portal-video strong,.integrated-portal .portal-picks strong{font-weight:500}
 @media(max-width:760px){.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .portal-heading h2{font-size:22px}.integrated-portal .hero h1{font-size:clamp(23px,5vw,27px)}}
 
-html[data-site-theme="christmas"] .integrated-portal .hero::before{content:"";display:block;width:100%;max-width:1180px;height:clamp(92px,12vw,148px);margin:0 auto 20px;border-top:4px solid #e51f3b;border-radius:0 0 18px 18px;background:#fff4d9 url("/images/christmas-garland-banner.webp") center 37%/cover no-repeat;box-shadow:0 8px 22px #a2352024}
+html[data-site-theme="christmas"] .integrated-portal .hero::before{content:"";display:block;width:100%;max-width:1180px;height:clamp(92px,12vw,148px);margin:0 auto 20px;border-top:4px solid #e51f3b;border-radius:0 0 18px 18px;background:#fff4d9 url("/images/christmas-garland-banner.jpg") center 37%/cover no-repeat;box-shadow:0 8px 22px #a2352024}
 @media(max-width:760px){html[data-site-theme="christmas"] .integrated-portal .hero::before{height:92px;margin-bottom:16px;border-radius:0 0 12px 12px;background-position:center 35%}}
