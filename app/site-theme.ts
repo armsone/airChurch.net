@@ -30,9 +30,9 @@ export const SITE_THEMES = [
   {
     id: "christmas",
     name: "크리스마스",
-    description: "전나무 초록, 따뜻한 금색, 베리빛 포인트로 성탄을 맞이합니다.",
-    colors: ["#285341", "#173D30", "#C64D4B", "#D9B86C"],
-    palette: { green: "#285341", greenText: "#FFFFFF", coral: "#B23D3B", paper: "#FFFEFA", text: "#3D4540" },
+    description: "선명한 성탄 레드와 포레스트 그린, 오너먼트와 금빛 조명으로 밝게 맞이합니다.",
+    colors: ["#0C5A2C", "#E51F3B", "#FFD05A", "#EDF7EB", "#FFF7E5"],
+    palette: { green: "#0C5A2C", greenText: "#FFFFFF", coral: "#E51F3B", paper: "#FFFDF6", text: "#12452B" },
   },
 ] as const;
 

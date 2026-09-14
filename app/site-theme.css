@@ -8,6 +8,14 @@ html[data-site-theme="everyday"] {
   --brand-strong: #254a3b;
   --surface-soft: #f2f5f1;
   --accent-soft: #fff0e8;
+  --panel-word: #355c47; --tint-word: #edf4ee;
+  --panel-praise: #7051a0; --tint-praise: #f2eef8;
+  --panel-story: #946127; --tint-story: #fbf3e8;
+  --panel-news: #365e93; --tint-news: #edf3fa;
+  --panel-church: #36746a; --tint-church: #eaf5f1;
+  --panel-pastor: #655a8e; --tint-pastor: #f1eef7;
+  --panel-event: #a45733; --tint-event: #fbefe7;
+  --panel-community: #975b70; --tint-community: #f8edf2;
 }
 
 html[data-site-theme="spring"] {
@@ -20,6 +28,14 @@ html[data-site-theme="spring"] {
   --brand-strong: #184d22;
   --surface-soft: #f3f7f1;
   --accent-soft: #fff1e9;
+  --panel-word: #287438; --tint-word: #edf7eb;
+  --panel-praise: #7853a7; --tint-praise: #f3eef9;
+  --panel-story: #99651c; --tint-story: #fff5df;
+  --panel-news: #27679a; --tint-news: #edf5fb;
+  --panel-church: #237c69; --tint-church: #eaf7f2;
+  --panel-pastor: #73558f; --tint-pastor: #f4eff8;
+  --panel-event: #d5532d; --tint-event: #fff0e8;
+  --panel-community: #a34f72; --tint-community: #f9edf2;
 }
 
 html[data-site-theme="advent"] {
@@ -32,18 +48,34 @@ html[data-site-theme="advent"] {
   --brand-strong: #352b49;
   --surface-soft: #f4f0f6;
   --accent-soft: #f5ecda;
+  --panel-word: #596d42; --tint-word: #f0f3e9;
+  --panel-praise: #705184; --tint-praise: #f2edf6;
+  --panel-story: #9a762e; --tint-story: #f8f2e3;
+  --panel-news: #536a87; --tint-news: #eef2f7;
+  --panel-church: #4f766e; --tint-church: #edf4f1;
+  --panel-pastor: #59446e; --tint-pastor: #f1edf5;
+  --panel-event: #a45d50; --tint-event: #f8efec;
+  --panel-community: #925c70; --tint-community: #f6edf1;
 }
 
 html[data-site-theme="christmas"] {
-  --ink: #173d30;
-  --muted: #607267;
-  --cream: #f1f5f1;
-  --paper: #fffefa;
-  --orange: #b23d3b;
-  --line: #dce6df;
-  --brand-strong: #173d30;
-  --surface-soft: #f1f5f1;
-  --accent-soft: #f7ece7;
+  --ink: #12452b;
+  --muted: #526c5a;
+  --cream: #fff7e5;
+  --paper: #fffdf6;
+  --orange: #e51f3b;
+  --line: #efd5c5;
+  --brand-strong: #0c5a2c;
+  --surface-soft: #edf7eb;
+  --accent-soft: #ffe1db;
+  --panel-word: #14783e; --tint-word: #e8f6e9;
+  --panel-praise: #c11d3b; --tint-praise: #fff0f2;
+  --panel-story: #a56508; --tint-story: #fff5dc;
+  --panel-news: #1767a5; --tint-news: #eaf4ff;
+  --panel-church: #087866; --tint-church: #e7f7f1;
+  --panel-pastor: #7546a5; --tint-pastor: #f3edfc;
+  --panel-event: #d7472b; --tint-event: #fff0e8;
+  --panel-community: #ad245b; --tint-community: #fcebf2;
 }
 
 .theme-page { max-width: 1180px; margin: auto; padding: 26px 24px 70px; }

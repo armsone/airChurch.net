@@ -20,7 +20,7 @@ export default async function ThemePage() {
   const [setting, canManage] = await Promise.all([readSelectedSiteTheme(), hasAdminAccess()]);
   return <main className="making-shell theme-page">
     <div className="making-section-nav"><a href="/making">에어처치 만들기</a><MakingNav current="theme" /></div>
-    <header className="theme-page-heading"><span>COLOR THEMES</span><h1>계절에 따라, 한결같은 기준으로</h1><p>에어처치의 네 가지 색상 테마입니다. 각 색에는 맡은 역할을 두어 페이지가 달라도 같은 인상을 유지합니다.</p></header>
+    <header className="theme-page-heading"><span>COLOR THEMES</span><h1>계절에 따라, 한결같은 기준으로</h1><p>테마마다 계절의 색을 분명히 담고, 투데이 패널은 말씀·찬양·소식 등 주제별 고유 색을 유지합니다.</p></header>
     <ThemeChoices themes={SITE_THEMES} selected={setting.theme} canManage={canManage} settingsAvailable={setting.available} />
     {!canManage && <p className="theme-admin-note"><a href="/admin">관리자 로그인</a> 후 사이트 전체에 사용할 테마를 선택할 수 있습니다.</p>}
   </main>;

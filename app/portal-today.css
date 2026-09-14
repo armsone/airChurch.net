@@ -367,9 +367,23 @@
 }
 @media(prefers-reduced-motion:reduce){.integrated-portal .sermon-card{transition:none}.integrated-portal .sermon-card:hover{transform:none}}
 
-/* The selected theme is the sole source of the home page's branded colors. */
-.portal-tone-word,.portal-tone-praise,.portal-tone-story,.portal-tone-news,.portal-tone-church,.portal-tone-pastor,.portal-tone-event,.portal-tone-community{--panel-tone:var(--ink);--panel-tint:var(--surface-soft)}
-.integrated-portal :is(#sermons,#praises,#shorts,#faith-stories,#church-news,#interest-ranking,#church-directory,#pastor-directory,#events,#community,#goodshare,#talent){--section-tone:var(--ink)}
+/* Keep each Today panel's subject color while letting the selected theme retune its palette. */
+.portal-tone-word{--panel-tone:var(--panel-word);--panel-tint:var(--tint-word)}
+.portal-tone-praise{--panel-tone:var(--panel-praise);--panel-tint:var(--tint-praise)}
+.portal-tone-story{--panel-tone:var(--panel-story);--panel-tint:var(--tint-story)}
+.portal-tone-news{--panel-tone:var(--panel-news);--panel-tint:var(--tint-news)}
+.portal-tone-church{--panel-tone:var(--panel-church);--panel-tint:var(--tint-church)}
+.portal-tone-pastor{--panel-tone:var(--panel-pastor);--panel-tint:var(--tint-pastor)}
+.portal-tone-event{--panel-tone:var(--panel-event);--panel-tint:var(--tint-event)}
+.portal-tone-community{--panel-tone:var(--panel-community);--panel-tint:var(--tint-community)}
+.integrated-portal #sermons{--section-tone:var(--panel-word)}
+.integrated-portal :is(#praises,#shorts){--section-tone:var(--panel-praise)}
+.integrated-portal #faith-stories{--section-tone:var(--panel-story)}
+.integrated-portal #church-news{--section-tone:var(--panel-news)}
+.integrated-portal :is(#interest-ranking,#church-directory,#goodshare,#talent){--section-tone:var(--panel-church)}
+.integrated-portal #pastor-directory{--section-tone:var(--panel-pastor)}
+.integrated-portal :is(#events,#our-events){--section-tone:var(--panel-event)}
+.integrated-portal #community{--section-tone:var(--panel-community)}
 .integrated-portal .hero{background:var(--cream)}
 .integrated-portal .hero .search{border-color:var(--line);box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 8%,transparent)}
 .integrated-portal .hero .search:focus-within{border-color:var(--ink);box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 15%,transparent)}
@@ -383,7 +397,7 @@
 .integrated-portal .portal-eight .portal-panel-heading>a,.integrated-portal .portal-eight .portal-video small,.integrated-portal .portal-eight .portal-picks small{color:var(--muted)}
 .integrated-portal .portal-extras a{background:var(--surface-soft);color:var(--ink)}
 .integrated-portal .portal-extras a:hover{background:var(--line);color:var(--ink)}
-.integrated-portal .section-heading .section-kicker{background:var(--surface-soft);color:var(--ink)}
+.integrated-portal .section-heading .section-kicker{background:color-mix(in srgb,var(--section-tone,var(--ink)) 11%,var(--paper));color:var(--section-tone,var(--ink))}
 .integrated-portal .sermon-card,.integrated-portal .home-event-feature,.integrated-portal .community-reading>.approved-list article,.integrated-portal .open-participation-form{border-color:var(--line);background:var(--paper)}
 .integrated-portal>.faith-home{background:var(--surface-soft);color:var(--ink)}
 .integrated-portal .home-event-status{color:var(--orange)}
@@ -395,3 +409,6 @@
 .integrated-portal .scripture-context h2{color:#fff}
 .integrated-portal .sermon-copy h3,.integrated-portal .portal-video strong,.integrated-portal .portal-picks strong{font-weight:500}
 @media(max-width:760px){.integrated-portal .section-heading :is(h2,h3),.integrated-portal>.cts-discovery h3{font-size:22px}.integrated-portal .portal-heading h2{font-size:22px}.integrated-portal .hero h1{font-size:clamp(23px,5vw,27px)}}
+
+html[data-site-theme="christmas"] .integrated-portal .hero::before{content:"";display:block;width:100%;max-width:1180px;height:clamp(92px,12vw,148px);margin:0 auto 20px;border-top:4px solid #e51f3b;border-radius:0 0 18px 18px;background:#fff4d9 url("/images/christmas-garland-banner.webp") center 37%/cover no-repeat;box-shadow:0 8px 22px #a2352024}
+@media(max-width:760px){html[data-site-theme="christmas"] .integrated-portal .hero::before{height:92px;margin-bottom:16px;border-radius:0 0 12px 12px;background-position:center 35%}}
