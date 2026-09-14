@@ -39,43 +39,43 @@ html[data-site-theme="spring"] {
 }
 
 html[data-site-theme="advent"] {
-  --ink: #352b49;
-  --muted: #6b6574;
-  --cream: #f4f0f6;
-  --paper: #fffefa;
-  --orange: #94753b;
-  --line: #e2dce8;
-  --brand-strong: #352b49;
-  --surface-soft: #f4f0f6;
-  --accent-soft: #f5ecda;
-  --panel-word: #596d42; --tint-word: #f0f3e9;
-  --panel-praise: #705184; --tint-praise: #f2edf6;
-  --panel-story: #9a762e; --tint-story: #f8f2e3;
-  --panel-news: #536a87; --tint-news: #eef2f7;
-  --panel-church: #4f766e; --tint-church: #edf4f1;
-  --panel-pastor: #59446e; --tint-pastor: #f1edf5;
-  --panel-event: #a45d50; --tint-event: #f8efec;
-  --panel-community: #925c70; --tint-community: #f6edf1;
+  --ink: #32263e;
+  --muted: #766c7c;
+  --cream: #24202d;
+  --paper: #fbf9f5;
+  --orange: #b49759;
+  --line: #e3dce5;
+  --brand-strong: #211a2d;
+  --surface-soft: #eee9f0;
+  --accent-soft: #c4a96d;
+  --panel-word: #47543d; --tint-word: #e9ecdf;
+  --panel-praise: #554064; --tint-praise: #ebe5ef;
+  --panel-story: #80652f; --tint-story: #f0eadb;
+  --panel-news: #3d536d; --tint-news: #e5eaf0;
+  --panel-church: #3c625a; --tint-church: #e2ebe7;
+  --panel-pastor: #493652; --tint-pastor: #e9e3eb;
+  --panel-event: #85564d; --tint-event: #f0e6e2;
+  --panel-community: #77485b; --tint-community: #eee3e8;
 }
 
 html[data-site-theme="christmas"] {
   --ink: #12452b;
-  --muted: #526c5a;
-  --cream: #fff7e5;
+  --muted: #4b6655;
+  --cream: #fff2d8;
   --paper: #fffdf6;
-  --orange: #e51f3b;
-  --line: #efd5c5;
-  --brand-strong: #0c5a2c;
-  --surface-soft: #edf7eb;
-  --accent-soft: #ffe1db;
-  --panel-word: #14783e; --tint-word: #e8f6e9;
-  --panel-praise: #c11d3b; --tint-praise: #fff0f2;
-  --panel-story: #a56508; --tint-story: #fff5dc;
-  --panel-news: #1767a5; --tint-news: #eaf4ff;
-  --panel-church: #087866; --tint-church: #e7f7f1;
-  --panel-pastor: #7546a5; --tint-pastor: #f3edfc;
-  --panel-event: #d7472b; --tint-event: #fff0e8;
-  --panel-community: #ad245b; --tint-community: #fcebf2;
+  --orange: #ed2945;
+  --line: #efd0b8;
+  --brand-strong: #0b612e;
+  --surface-soft: #eff8e9;
+  --accent-soft: #ffe3b3;
+  --panel-word: #087a38; --tint-word: #e5f7df;
+  --panel-praise: #c6173b; --tint-praise: #fff0ef;
+  --panel-story: #aa6500; --tint-story: #fff2d1;
+  --panel-news: #1468aa; --tint-news: #e8f4ff;
+  --panel-church: #007765; --tint-church: #e3f8ed;
+  --panel-pastor: #7440a4; --tint-pastor: #f3eaff;
+  --panel-event: #e34522; --tint-event: #fff0e4;
+  --panel-community: #b32059; --tint-community: #fdeaf0;
 }
 
 .theme-page { max-width: 1180px; margin: auto; padding: 26px 24px 70px; }
@@ -109,6 +109,12 @@ html[data-site-theme="christmas"] {
 .theme-unavailable { margin: 14px 0 0; padding: 12px 15px; border: 1px solid #dfbd8b; border-radius: 10px; color: var(--ink); background: #fff8e8; font-size: 14px; line-height: 1.6; text-align: center; }
 .theme-admin-note { margin: 22px 0 0; color: var(--muted); font-size: 14px; text-align: center; }
 .theme-admin-note a { color: var(--orange); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.theme-option-advent .theme-mini-preview { border-color: #574a62; }
+.theme-option-advent .theme-mini-header { box-shadow: inset 0 -3px #b49759; }
+.theme-option-advent .theme-mini-body { background: linear-gradient(135deg,#f4f0f4,#e7e1e9); }
+.theme-option-christmas .theme-mini-preview { border: 2px solid #e42b40; box-shadow: 0 4px 14px #b5223220; }
+.theme-option-christmas .theme-mini-header { box-shadow: inset 0 -3px #ffd15c; }
+.theme-option-christmas .theme-mini-body { background: linear-gradient(135deg,#fffdf6,#fff1d8); }
 @media(max-width:760px) {
   .theme-page { padding: 20px 16px 48px; }
   .theme-page-heading { margin: 34px auto 25px; }

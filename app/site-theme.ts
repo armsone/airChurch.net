@@ -23,16 +23,16 @@ export const SITE_THEMES = [
   {
     id: "advent",
     name: "대림절",
-    description: "기다림과 소망을 보라빛과 촛불 금색으로 표현합니다.",
-    colors: ["#55466F", "#352B49", "#C5A45C", "#F7F3EA"],
-    palette: { green: "#55466F", greenText: "#FFFEFA", coral: "#A98436", paper: "#FFFEFA", text: "#403B47" },
+    description: "깊은 황혼빛 자주와 남청, 낮은 촛불의 금빛으로 기다림과 소망을 담습니다.",
+    colors: ["#24202D", "#493652", "#3D536D", "#B49759", "#EEE9F0"],
+    palette: { green: "#30263E", greenText: "#F7F1E6", coral: "#B49759", paper: "#F4F0F4", text: "#32263E" },
   },
   {
     id: "christmas",
     name: "크리스마스",
-    description: "선명한 성탄 레드와 포레스트 그린, 오너먼트와 금빛 조명으로 밝게 맞이합니다.",
-    colors: ["#0C5A2C", "#E51F3B", "#FFD05A", "#EDF7EB", "#FFF7E5"],
-    palette: { green: "#0C5A2C", greenText: "#FFFFFF", coral: "#E51F3B", paper: "#FFFDF6", text: "#12452B" },
+    description: "환한 크림빛 위에 축제의 레드·그린과 반짝이는 금빛을 힘 있게 담습니다.",
+    colors: ["#0B612E", "#ED2945", "#FFD15C", "#EFF8E9", "#FFF2D8"],
+    palette: { green: "#0B612E", greenText: "#FFFFFF", coral: "#ED2945", paper: "#FFFDF6", text: "#12452B" },
   },
 ] as const;
 

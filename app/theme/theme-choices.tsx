@@ -39,11 +39,11 @@ export default function ThemeChoices({ themes, selected, canManage, settingsAvai
 
   return <>
     <div className="theme-options" aria-label="에어처치 색상 테마">
-      {themes.map((theme) => <article className={`theme-option${active === theme.id ? " is-active" : ""}`} key={theme.id}>
+      {themes.map((theme) => <article className={`theme-option theme-option-${theme.id}${active === theme.id ? " is-active" : ""}`} key={theme.id}>
         <div className="theme-option-head"><div><span className="theme-option-kicker">{theme.id === "everyday" ? "ALL YEAR" : theme.id.toUpperCase()}</span><h2>{theme.name}</h2></div>{active === theme.id && <span className="theme-active-badge">현재 적용</span>}</div>
         <p className="theme-description">{theme.description}</p>
         <div className="theme-mini-preview" style={{ "--theme-green": theme.palette.green, "--theme-green-text": theme.palette.greenText, "--theme-coral": theme.palette.coral, "--theme-paper": theme.palette.paper, "--theme-text": theme.palette.text } as CSSProperties}>
-          <div className="theme-mini-header"><b>에어처치</b><span>말씀　 교회　 메뉴</span></div>
+          <div className="theme-mini-header"><b>에어처치</b><span>말씀 · 교회 · 메뉴</span></div>
           <div className="theme-mini-body"><span>말씀과 교회를 한곳에서</span><strong>사람과 교회를 잇는<br />크리스천 포털</strong><i>오늘의 말씀</i></div>
         </div>
         <div className="theme-swatches" aria-label={`${theme.name} 색상표`}>{theme.colors.map((color) => <span key={color} style={{ backgroundColor: color }} title={color}><span className="sr-only">{color}</span></span>)}</div>
