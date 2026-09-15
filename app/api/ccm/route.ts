@@ -1,4 +1,6 @@
 type Track = { id:string; title:string; channel:string; duration:number };
+const choirPattern=/(합창단|합창|성가대|choral|choir|chorus)/i;
+const ccmPattern=/(ccm|찬양|워십|worship|praise|gospel|예배음악)/i;
 let cached:{items:Track[];at:number}|undefined;
 let pending:Promise<Track[]>|undefined;
 
@@ -14,13 +16,16 @@ async function catalog() {
     const seen=new Set<string>();
     const items:Track[]=[];
     for(const value of body.items||[]) {
-      if(!value||typeof value!=="object")continue;
+    if(!value||typeof value!=="object")continue;
       const item=value as Record<string,unknown>;
       if(typeof item.id!=="string"||! /^[\w-]{11}$/.test(item.id)||seen.has(item.id)||typeof item.title!=="string")continue;
+      const title=item.title.slice(0,300),channel=typeof item.channel==="string"?item.channel.slice(0,150):"YouTube";
+      if(choirPattern.test(`${title} ${channel}`))continue;
       seen.add(item.id);
-      items.push({id:item.id,title:item.title.slice(0,300),channel:typeof item.channel==="string"?item.channel.slice(0,150):"YouTube",duration:typeof item.duration==="number"&&Number.isFinite(item.duration)?Math.max(0,item.duration):0});
+      items.push({id:item.id,title,channel,duration:typeof item.duration==="number"&&Number.isFinite(item.duration)?Math.max(0,item.duration):0});
     }
     if(!items.length)throw new Error("CCM empty");
+    items.sort((a,b)=>Number(ccmPattern.test(b.title))-Number(ccmPattern.test(a.title)));
     cached={items,at:Date.now()};
     return items;
   })().finally(()=>{pending=undefined;});
