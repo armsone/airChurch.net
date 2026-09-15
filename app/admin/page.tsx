@@ -23,6 +23,7 @@ export const metadata:Metadata={title:"관리자 | airChurch",robots:{index:fals
 type CountRow = { views: number; visitors: number };
 type TimeRow = { period: string; views: number; visitors: number };
 type ReferrerRow = { source: string; views: number; visitors: number };
+type PathRow = { path: string; views: number; visitors: number };
 type ChurchRow = { id: number; name: string; pastor: string; region: string; denomination: string; review_status: string; hold_reason: string | null; hold_note: string | null; held_at: string | null; priority_weight: number; homepage_url:string|null; youtube_channel_id:string|null; channel_image_url:string|null };
 type PostRow = { id: number; category: string; nickname: string; content: string; status: string; report_count:number; created_at: string };
 type TalentRow = { id: number; title: string; region: string; description: string; status: string; created_at: string };
@@ -59,14 +60,15 @@ export default async function AdminPage() {
   const db = database();
   await ensureAdminTables(db);
   const [privateContacts,pastorPrivateContacts]=await Promise.all([readPrivateContacts(db,{role:"admin",reviewerId:0}),readAllPastorPrivateContacts(db,{role:"admin",reviewerId:0})]);
-  const [today, week, month, active, hourly, daily, monthly, referrers, churches, heldChurches, recommendations, pendingCommunity, publicChurchRows, heldChurchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
+  const [today, week, month, active, hourly, daily, monthly, referrers, todayPaths, churches, heldChurches, recommendations, pendingCommunity, publicChurchRows, heldChurchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),
     db.prepare("SELECT COUNT(*) AS visitors FROM visitor_activity WHERE last_seen >= datetime('now','-5 minutes')").first<{ visitors: number }>(),
     db.prepare("WITH RECURSIVE hours(period,n) AS (SELECT strftime('%Y-%m-%d %H:00',datetime('now','+9 hours','-23 hours')),0 UNION ALL SELECT strftime('%Y-%m-%d %H:00',datetime(period,'+1 hour')),n+1 FROM hours WHERE n<23) SELECT hours.period,COUNT(page_views.id) AS views,COUNT(DISTINCT page_views.visitor_hash) AS visitors FROM hours LEFT JOIN page_views ON strftime('%Y-%m-%d %H:00',page_views.created_at,'+9 hours')=hours.period GROUP BY hours.period ORDER BY hours.period").all<TimeRow>(),
-    db.prepare("WITH RECURSIVE dates(period,n) AS (SELECT date('now','+9 hours','-13 days'),0 UNION ALL SELECT date(period,'+1 day'),n+1 FROM dates WHERE n<13) SELECT dates.period,COUNT(page_views.id) AS views,COUNT(DISTINCT page_views.visitor_hash) AS visitors FROM dates LEFT JOIN page_views ON date(page_views.created_at,'+9 hours')=dates.period GROUP BY dates.period ORDER BY dates.period").all<TimeRow>(),
+    db.prepare("WITH RECURSIVE dates(period,n) AS (SELECT date('now','+9 hours','-29 days'),0 UNION ALL SELECT date(period,'+1 day'),n+1 FROM dates WHERE n<29) SELECT dates.period,COUNT(page_views.id) AS views,COUNT(DISTINCT page_views.visitor_hash) AS visitors FROM dates LEFT JOIN page_views ON date(page_views.created_at,'+9 hours')=dates.period GROUP BY dates.period ORDER BY dates.period").all<TimeRow>(),
     db.prepare("WITH RECURSIVE months(period,n) AS (SELECT strftime('%Y-%m',date('now','+9 hours','start of month','-11 months')),0 UNION ALL SELECT strftime('%Y-%m',date(period||'-01','+1 month')),n+1 FROM months WHERE n<11) SELECT months.period,COUNT(page_views.id) AS views,COUNT(DISTINCT page_views.visitor_hash) AS visitors FROM months LEFT JOIN page_views ON strftime('%Y-%m',page_views.created_at,'+9 hours')=months.period GROUP BY months.period ORDER BY months.period").all<TimeRow>(),
     db.prepare("SELECT COALESCE(referrer_domain,'직접 방문') AS source,COUNT(*) AS views,COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','-30 days') GROUP BY referrer_domain ORDER BY views DESC,source LIMIT 12").all<ReferrerRow>(),
+    db.prepare("SELECT CASE WHEN instr(path,'?')>0 THEN substr(path,1,instr(path,'?')-1) ELSE path END AS path,COUNT(*) AS views,COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours') GROUP BY CASE WHEN instr(path,'?')>0 THEN substr(path,1,instr(path,'?')-1) ELSE path END ORDER BY views DESC,path LIMIT 50").all<PathRow>(),
     db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='approved'").first<{ count: number }>(),
     db.prepare("SELECT COUNT(*) AS count FROM churches WHERE review_status='removed'").first<{ count: number }>(),
     db.prepare("SELECT COUNT(*) AS count FROM church_recommendations WHERE status='pending'").first<{ count: number }>(),
@@ -108,6 +110,7 @@ export default async function AdminPage() {
   const sermonSyncHealthy=Number.isFinite(sermonSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-sermonSyncEpoch<12*60*60&&(!Number.isFinite(sermonFailureEpoch)||sermonSyncEpoch>=sermonFailureEpoch);
   const praiseSyncHealthy=Number.isFinite(praiseSyncEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-praiseSyncEpoch<12*60*60&&(!Number.isFinite(praiseFailureEpoch)||praiseSyncEpoch>=praiseFailureEpoch);
   const retentionHealthy=Number.isFinite(retentionEpoch)&&Number.isFinite(nowEpoch)&&nowEpoch-retentionEpoch<36*60*60;
+  const eventPaths=todayPaths.results.filter((row)=>row.path==="/events"||row.path.startsWith("/events/")||row.path==="/our-events"||row.path.startsWith("/our-events/")||row.path==="/praise-contest"||row.path.startsWith("/praise-contest/"));
   const safeChurchRows=(rows:ChurchRow[])=>rows.map((church)=>({...church,homepage_url:safeHttpUrl(church.homepage_url),channel_image_url:safeHttpUrl(church.channel_image_url)}));
   const requestWorkCount=pendingRequestCount+pendingConcernGroups.length;
   const pastorWorkCount=Number(pastorReviewStats?.pending??0);
@@ -170,10 +173,12 @@ export default async function AdminPage() {
       <article><small>최근 30일 방문자</small><strong>{Number(month.visitors).toLocaleString("ko-KR")}</strong><span>{Number(month.views).toLocaleString("ko-KR")}회 조회</span></article>
     </section>
     <section className="admin-grid analytics-grid">
-      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 14일</small><h2>날짜별 방문</h2></div><span>빠진 날짜 없이 조회수 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(5,7))}/${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
+      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 30일</small><h2>날짜별 방문</h2></div><span>빠진 날짜 없이 조회수 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(5,7))}/${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 24시간</small><h2>시간별 방문</h2></div><span>빠진 시간 없이 표시</span></div><TrafficChart rows={hourly.results} label={(period)=>`${Number(period.slice(11,13))}시`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 12개월</small><h2>월별 방문</h2></div><span>빠진 달 없이 표시</span></div><TrafficChart rows={monthly.results} label={(period)=>`${Number(period.slice(5))}월`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 30일</small><h2>어디서 들어왔나</h2></div><span>도메인 기준 · 직접 방문 포함</span></div><div className="path-list">{referrers.results.length?referrers.results.map((row,index)=><div key={row.source}><b>{String(index+1).padStart(2,"0")}</b><span>{row.source}</span><em>{Number(row.views).toLocaleString("ko-KR")}회 <small>· {Number(row.visitors).toLocaleString("ko-KR")}명</small></em></div>):<p className="admin-empty">유입 기록이 없습니다.</p>}</div></article>
+      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>오늘 · 한국 시간</small><h2>어느 페이지를 봤나</h2></div><span>주소 뒤 필터 조건은 제외하고 경로별 집계</span></div><div className="path-list">{todayPaths.results.length?todayPaths.results.map((row,index)=><div key={row.path}><b>{String(index+1).padStart(2,"0")}</b><span>{row.path}</span><em>{Number(row.views).toLocaleString("ko-KR")}회 <small>· {Number(row.visitors).toLocaleString("ko-KR")}명</small></em></div>):<p className="admin-empty">오늘 방문 기록이 없습니다.</p>}</div></article>
+      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>오늘 · 한국 시간</small><h2>행사 관련 방문</h2></div><span>/events · /our-events · /praise-contest</span></div><div className="path-list">{eventPaths.length?eventPaths.map((row,index)=><div key={row.path}><b>{String(index+1).padStart(2,"0")}</b><span>{row.path}</span><em>{Number(row.views).toLocaleString("ko-KR")}회 <small>· {Number(row.visitors).toLocaleString("ko-KR")}명</small></em></div>):<p className="admin-empty">오늘 행사 관련 페이지 방문 기록이 없습니다.</p>}</div></article>
     </section>
 
     <PrivateContactList items={privateContacts} viewer="관리자"/>
