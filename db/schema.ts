@@ -38,7 +38,7 @@ export const eventCandidates = sqliteTable("event_candidates", {
   id:text("id").primaryKey(),sourceId:text("source_id").notNull().references(()=>eventSources.id),eventId:text("event_id").references(()=>events.id),url:text("url").notNull(),title:text("title").notNull(),evidence:text("evidence").notNull(),contentHash:text("content_hash").notNull(),payload:text("payload"),status:text("status").notNull(),reason:text("reason"),firstSeenAt:text("first_seen_at").notNull(),lastSeenAt:text("last_seen_at").notNull(),checkedAt:text("checked_at"),
 },t=>[index("idx_event_candidates_source").on(t.sourceId,t.lastSeenAt),index("idx_event_candidates_event").on(t.eventId)]);
 export const pageViews = sqliteTable("page_views", {
-  id: integer("id").primaryKey({ autoIncrement: true }), path: text("path").notNull(), referrerDomain: text("referrer_domain"), visitorHash: text("visitor_hash").notNull(), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  id: integer("id").primaryKey({ autoIncrement: true }), path: text("path").notNull(), referrerDomain: text("referrer_domain"), visitorHash: text("visitor_hash").notNull(), userAgent: text("user_agent"), ipHash: text("ip_hash"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [index("idx_page_views_created").on(table.createdAt), index("idx_page_views_visitor_created").on(table.visitorHash, table.createdAt), index("idx_page_views_path_created").on(table.path, table.createdAt)]);
 export const visitorActivity = sqliteTable("visitor_activity", {
   visitorHash: text("visitor_hash").primaryKey(), path: text("path").notNull(), lastSeen: text("last_seen").notNull().default(sql`CURRENT_TIMESTAMP`),

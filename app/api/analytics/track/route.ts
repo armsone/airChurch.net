@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { clean, database, ensureAnalyticsTables, maybeRunDataRetention, readLimitedJson, requestOriginIsInvalid } from "../../_shared";
 
 function referrerDomain(value: unknown): string | null {
@@ -17,6 +18,14 @@ async function hashVisitor(visitorId: string): Promise<string> {
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 }
+async function hashIp(request:Request): Promise<string|null> {
+  const ip=request.headers.get("cf-connecting-ip")||request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const secrets=env as unknown as {FINGERPRINT_SECRET?:string;ADMIN_SESSION_SECRET?:string};
+  const secret=secrets.FINGERPRINT_SECRET||secrets.ADMIN_SESSION_SECRET;
+  if(!ip||!secret)return null;
+  const bytes=new TextEncoder().encode(`${secret}\u0000${ip}`);
+  return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))).map((byte)=>byte.toString(16).padStart(2,"0")).join("");
+}
 
 export async function POST(request: Request) {
   if(requestOriginIsInvalid(request))return Response.json({error:"invalid origin"},{status:403,headers:{"cache-control":"no-store"}});
@@ -31,8 +40,10 @@ export async function POST(request: Request) {
   await ensureAnalyticsTables(db);
   await maybeRunDataRetention(db);
   const visitorHash = await hashVisitor(visitorId);
+  const userAgent=clean(request.headers.get("user-agent"),240)||null;
+  const ipHash=await hashIp(request);
   await db.prepare("INSERT INTO visitor_activity (visitor_hash,path,last_seen) VALUES (?,?,CURRENT_TIMESTAMP) ON CONFLICT(visitor_hash) DO UPDATE SET path=excluded.path,last_seen=CURRENT_TIMESTAMP").bind(visitorHash, path).run();
-  const pageView=await db.prepare("INSERT INTO page_views (path,referrer_domain,visitor_hash) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM page_views WHERE visitor_hash=? AND path=? AND created_at>=datetime('now','-30 minutes'))").bind(path,referrerDomain(body.referrer),visitorHash,visitorHash,path).run();
+  const pageView=await db.prepare("INSERT INTO page_views (path,referrer_domain,visitor_hash,user_agent,ip_hash) SELECT ?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM page_views WHERE visitor_hash=? AND path=? AND created_at>=datetime('now','-30 minutes'))").bind(path,referrerDomain(body.referrer),visitorHash,userAgent,ipHash,visitorHash,path).run();
   const inserted=Number(pageView.meta.changes)>0;
   return Response.json(inserted?{ok:true}:{ok:true,skipped:"recent"},{status:inserted?201:200,headers:{"cache-control":"no-store"}});
 }

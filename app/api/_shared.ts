@@ -191,8 +191,7 @@ export const ensureReviewerTables = memoizeEnsure(async (db:D1Database) => {
 export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
   await ensureMaintenanceState(db);
   const ready=await db.prepare("SELECT key FROM maintenance_state WHERE key='schema-analytics-v1' LIMIT 1").first<{key:string}>();
-  if(ready)return;
-  await db.batch([
+  if(!ready) await db.batch([
     db.prepare("CREATE TABLE IF NOT EXISTS page_views (id INTEGER PRIMARY KEY AUTOINCREMENT, path TEXT NOT NULL, referrer_domain TEXT, visitor_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_visitor_created ON page_views(visitor_hash, created_at DESC)"),
@@ -201,6 +200,10 @@ export const ensureAnalyticsTables = memoizeEnsure(async (db:D1Database) => {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_visitor_activity_last_seen ON visitor_activity(last_seen DESC)"),
     db.prepare("INSERT OR REPLACE INTO maintenance_state (key,completed_at) VALUES ('schema-analytics-v1',CURRENT_TIMESTAMP)"),
   ]);
+  const columns=await db.prepare("PRAGMA table_info(page_views)").all<{name:string}>();
+  await addColumnIfMissing(db,columns.results,"user_agent","ALTER TABLE page_views ADD COLUMN user_agent TEXT");
+  await addColumnIfMissing(db,columns.results,"ip_hash","ALTER TABLE page_views ADD COLUMN ip_hash TEXT");
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_page_views_ip_hash_created ON page_views(ip_hash,created_at DESC)").run();
 });
 export const ensureAccessTables=memoizeEnsure(async(db:D1Database)=>{
   await ensureMaintenanceState(db);
