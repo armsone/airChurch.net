@@ -9,9 +9,8 @@ import { safeHttpUrl } from "../safe-url";
 import ReviewerResolutionControls from "./reviewer-resolution-controls";
 import HomeReloadLink from "../home-reload-link";
 import { database, ensureAdminTables } from "../api/_shared";
-import PrivateContactList from "../private-contact-list";
 import PastorPrivateContactList from "../pastor-private-contact-list";
-import { readAllPastorPrivateContacts,readPrivateContacts } from "../private-contact-vault";
+import { readAllPastorPrivateContacts } from "../private-contact-vault";
 import ChurchDetailImporter from "./church-detail-importer";
 import PastorDataImporter from "./pastor-data-importer";
 import AdminPastorDirectory,{type AdminPastorItem} from "./admin-pastor-directory";
@@ -61,7 +60,7 @@ export default async function AdminPage() {
 
   const db = database();
   await ensureAdminTables(db);
-  const [privateContacts,pastorPrivateContacts]=await Promise.all([readPrivateContacts(db,{role:"admin",reviewerId:0}),readAllPastorPrivateContacts(db,{role:"admin",reviewerId:0})]);
+  const pastorPrivateContacts=await readAllPastorPrivateContacts(db,{role:"admin",reviewerId:0});
   const [today, week, month, active, hourly, daily, monthly, referrers, todayPaths, accessProfiles, churches, heldChurches, recommendations, pendingCommunity, publicChurchRows, heldChurchRows, postRows, talentRows, recommendationRows, contactRows] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')").first<CountRow>(),
     countSince(db, "-7 days"), countSince(db, "-30 days"),
@@ -186,7 +185,6 @@ export default async function AdminPage() {
       <article className="admin-panel analytics-compact"><div className="admin-panel-title"><div><small>오늘 · 한국 시간</small><h2>누가 반복해서 들어왔나</h2></div><span>20개씩 표시 · 원문 IP 대신 해시 · User-Agent 기준</span></div><AccessProfilesList rows={accessProfiles.results}/></article>
     </section>
 
-    <PrivateContactList items={privateContacts} viewer="관리자"/>
     <PastorPrivateContactList items={pastorPrivateContacts} viewer="관리자"/>
     <p className="admin-privacy">현재 접속자는 1분마다 자동 갱신됩니다. IP 주소, 이름, 이메일과 방문한 전체 주소는 저장하지 않습니다. 유입 경로는 외부 도메인만 집계하며, 직접 방문은 별도로 표시합니다. 동일 브라우저의 익명 식별값은 해시 처리하고 같은 페이지의 30분 이내 중복 조회는 제외합니다.</p>
   </main>;
