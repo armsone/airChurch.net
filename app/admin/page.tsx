@@ -98,7 +98,6 @@ export default async function AdminPage() {
   for(const opinion of pendingConcernRows.results){const group=concernGroups.get(opinion.church_id)??{church:opinion,opinions:[]};group.opinions.push(opinion);concernGroups.set(opinion.church_id,group);}
   const pendingConcernGroups=[...concernGroups.values()];
   const pendingRequestCount=changeRequestRows.results.filter((request)=>request.status==="pending").length;
-  const hourlyChartRows=[...hourly.results].sort((a,b)=>Number(a.period.slice(11,13))-Number(b.period.slice(11,13)));
   const pendingReviewerCount=reviewerRows.results.filter((reviewer)=>reviewer.status==="pending").length;
   const pendingContactCount=contactRows.results.filter((request)=>request.status==="pending").length;
   const [mediaFreshness,statusEvents]=await Promise.all([
@@ -176,7 +175,7 @@ export default async function AdminPage() {
     </section>
     <section className="admin-grid analytics-grid">
       <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 30일</small><h2>날짜별 방문</h2></div><span>빠진 날짜 없이 조회수 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(5,7))}/${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
-      <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 24시간</small><h2>시간별 방문</h2></div><span>0시부터 23시 순서 · 빠진 시간 없이 표시</span></div><TrafficChart rows={hourlyChartRows} label={(period)=>`${Number(period.slice(11,13))}시`} empty="방문 기록이 없습니다." /></article>
+      <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 24시간</small><h2>시간별 방문</h2></div><span>실제 시간순 · 전일에서 오늘까지</span></div><TrafficChart rows={hourly.results} label={(period)=>`${Number(period.slice(11,13))}시`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 12개월</small><h2>월별 방문</h2></div><span>빠진 달 없이 표시</span></div><TrafficChart rows={monthly.results} label={(period)=>`${Number(period.slice(5))}월`} empty="방문 기록이 없습니다." /></article>
       <div className="analytics-triple">
         <article className="admin-panel analytics-compact"><div className="admin-panel-title"><div><small>최근 30일</small><h2>어디서 들어왔나</h2></div><span>직접 방문 포함</span></div><div className="path-list">{referrers.results.length?referrers.results.map((row,index)=><div key={row.source}><b>{String(index+1).padStart(2,"0")}</b><span>{row.source}</span><em>{Number(row.views).toLocaleString("ko-KR")}회 <small>· {Number(row.visitors).toLocaleString("ko-KR")}명</small></em></div>):<p className="admin-empty">유입 기록이 없습니다.</p>}</div></article>
