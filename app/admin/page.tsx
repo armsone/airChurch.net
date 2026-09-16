@@ -174,7 +174,7 @@ export default async function AdminPage() {
       <article><small>최근 30일 방문자</small><strong>{Number(month.visitors).toLocaleString("ko-KR")}</strong><span>{Number(month.views).toLocaleString("ko-KR")}회 조회</span></article>
     </section>
     <section className="admin-grid analytics-grid">
-      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 30일</small><h2>날짜별 방문</h2></div><span>빠진 날짜 없이 조회수 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(5,7))}/${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
+      <article className="admin-panel analytics-wide"><div className="admin-panel-title"><div><small>최근 30일</small><h2>날짜별 방문</h2></div><span>매일 표시 · 막대에 올리면 방문자 표시</span></div><TrafficChart rows={daily.results} label={(period)=>`${Number(period.slice(8,10))}`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 24시간</small><h2>시간별 방문</h2></div><span>실제 시간순 · 전일에서 오늘까지</span></div><TrafficChart rows={hourly.results} label={(period)=>`${Number(period.slice(11,13))}시`} empty="방문 기록이 없습니다." /></article>
       <article className="admin-panel"><div className="admin-panel-title"><div><small>최근 12개월</small><h2>월별 방문</h2></div><span>빠진 달 없이 표시</span></div><TrafficChart rows={monthly.results} label={(period)=>`${Number(period.slice(5))}월`} empty="방문 기록이 없습니다." /></article>
       <div className="analytics-triple">
