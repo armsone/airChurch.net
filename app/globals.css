@@ -170,7 +170,14 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 @media (min-width:601px) and (max-width:999px) {
   .admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admin-operations{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .admin-grid,.analytics-grid,.admin-management-grid,.admin-review-grid,.reviewer-queue-list{grid-template-columns:1fr}
+  /* Foldables and tablets have enough horizontal room for a working admin
+     surface. Keep the queue itself single-column, but avoid turning every
+     independent panel into one very long mobile page. */
+  .admin-grid{grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr)}
+  .analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analytics-grid .analytics-wide{grid-column:1/-1}
+  .admin-management-grid,.admin-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .reviewer-queue-list{grid-template-columns:1fr}
   .reviewer-church-list{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admin-panel{padding:20px}
 }
