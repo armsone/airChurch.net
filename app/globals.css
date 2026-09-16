@@ -371,16 +371,16 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-batch-bar button{min-height:36px;padding:7px 11px;border:1px solid #cdd8d2;border-radius:8px;background:white;color:var(--ink);font-size:10px;font-weight:500;cursor:pointer}
 .admin-batch-bar button:disabled{opacity:.45;cursor:default}.admin-batch-bar button.danger{border-color:#e7c2b7;color:#a65038;background:#fff8f5}.admin-batch-bar button.restore{border-color:#bdd6c8;color:#47765f;background:#f3faf6}
 .admin-batch-bar .admin-error{flex-basis:100%}
-.admin-management-grid .admin-manage-list>.admin-directory-card{min-width:0;height:114px;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
+.admin-management-grid .admin-manage-list>.admin-directory-card{min-width:0;min-height:114px;height:auto;padding:10px;border:1px solid var(--line);border-radius:14px;background:white;position:relative;cursor:pointer;overflow:visible;transition:border-color .15s ease,box-shadow .15s ease}
 .admin-management-grid .admin-manage-list>.admin-directory-card[data-admin-selected="true"]{border-color:#719a86;box-shadow:0 0 0 2px rgba(83,116,100,.13)}
 .admin-church-region-select{min-width:0;display:flex;align-items:center;gap:5px;color:var(--orange);font-size:10px;font-weight:400}
 .admin-card-select{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;margin:-4px 0 -4px -4px;cursor:pointer}
 .admin-card-select input{width:16px;height:16px;margin:0;accent-color:#527565;cursor:pointer}
 .admin-management-grid .admin-manage-list>.admin-directory-card:hover{border-color:#bfd0c7;box-shadow:0 4px 16px rgba(24,54,47,.06)}
 .admin-management-grid .admin-manage-list>.admin-directory-card:has(.admin-church-details[open]){height:auto;min-height:114px}
-.admin-management-grid .admin-directory-card h3{margin:7px 0 5px;font-size:16px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.admin-management-grid .admin-directory-card .church-directory-meta-copy p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.admin-management-grid .admin-directory-card .church-directory-meta-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-management-grid .admin-directory-card h3{margin:7px 0 5px;font-size:16px;line-height:1.25;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.admin-management-grid .admin-directory-card .church-directory-meta-copy p{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.admin-management-grid .admin-directory-card .church-directory-meta-copy small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
 .admin-management-grid .admin-directory-card .admin-church-details{cursor:default;margin:0;padding:0;border:0}
 .admin-management-grid .admin-directory-card .admin-church-details>summary{display:none}
 .admin-management-grid .admin-directory-card .admin-church-details[open]{margin-top:14px;padding-top:12px;border-top:1px solid #e3e8e5}
@@ -391,11 +391,11 @@ footer { padding:43px max(24px,calc((100vw - 1132px)/2));display:grid;grid-templ
 .admin-management-grid .admin-directory-card .admin-action-row button{width:100%;justify-content:center;text-align:center;white-space:nowrap}
 #church-hold .admin-manage-list{grid-template-columns:1fr}
 .admin-directory-card.is-held-card{padding:10px;cursor:default;overflow:hidden}
-.is-held-card .admin-held-card-body{height:92px;display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,1.15fr);gap:20px;align-items:stretch}
+.is-held-card .admin-held-card-body{min-height:92px;height:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:stretch}
 .admin-held-card-public{min-width:0;cursor:pointer}
 .admin-directory-hold-panel{min-width:0;height:calc(100% + 20px);margin:-10px -10px -10px 0;padding:10px 14px;display:flex;flex-direction:column;justify-content:space-between;border-radius:0 13px 13px 0;background:#fff4ee;color:#865844;cursor:default}
 .admin-directory-hold-reason{display:flex;flex-direction:column;min-width:0}
-.admin-directory-hold-reason b{font-size:13px!important;line-height:1.25;color:#865844;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-directory-hold-reason b{font-size:13px!important;line-height:1.25;color:#865844;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
 .admin-directory-hold-reason>span{margin-top:3px;color:#786b65;font-size:11px!important;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:ellipsis;word-break:break-word;max-height:2.7em}
 .admin-directory-hold-actions{margin-top:4px;display:flex;align-items:center;gap:4px}
 .admin-directory-hold-actions button{flex:none;min-height:0;padding:3px 7px;border:1px solid #c9d8d0;border-radius:6px;background:white;color:#315847;font-size:10px!important;font-weight:500;line-height:1.3;cursor:pointer;white-space:nowrap}
