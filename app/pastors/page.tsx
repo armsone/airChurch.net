@@ -4,7 +4,7 @@ import {hasAdminAccess} from "../admin-access";
 import PastorDirectoryCard from "../pastor-directory-card";
 
 export const dynamic="force-dynamic";
-export const metadata:Metadata={title:"목회자 찾기 | airChurch",description:"담임·부교역자·협동·원로·은퇴 목회자를 교회와 함께 찾고 응원합니다."};
+export const metadata:Metadata={title:"목회자 찾기 | airChurch",description:"담임·부교역자·협동·원로·은퇴 목회자를 교회와 함께 찾고 응원합니다.",alternates:{canonical:"/pastors"}};
 
 type PastorRow={person_id:number|null;public_id:number|null;role_id:number|null;church_id:number|null;minister_id:number|null;name:string;role_title:string;role_titles:string;role_status:string;church_name:string|null;region:string|null;denomination:string|null;photo_url:string|null;merged_count:number;total_count:number};
 

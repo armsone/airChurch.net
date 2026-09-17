@@ -5,6 +5,7 @@ import historyData from "../../data/site-history.json";
 export const metadata: Metadata = {
   title: "airChurch 히스토리 | 함께 만들어 온 변화",
   description: "airChurch가 시작된 날부터 지금까지, 공개 화면과 운영 방식에 반영된 변화를 기록합니다.",
+  alternates: { canonical: "/history" },
 };
 
 const history = historyData.entries;

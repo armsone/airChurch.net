@@ -3,7 +3,10 @@ import { readEvent,withDeadline } from "../data";
 import { dateLabel,koreaDate } from "../types";
 import EventSaveButton from "../event-save-button";
 export const dynamic="force-dynamic";
-export const metadata:Metadata={title:"행사 안내 | airChurch"};
+export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
+  const {id}=await params;
+  return {title:"행사 안내 | airChurch",alternates:{canonical:`/events/${encodeURIComponent(id)}`}};
+}
 export default async function EventPage({params}:{params:Promise<{id:string}>}){
   const {id}=await params;let item;try{item=await withDeadline(readEvent(id));}catch{return <main className="events-page"><h1>일정을 잠시 불러오지 못했습니다</h1><a href={`/events/${id}`}>다시 시도</a><p><a href="/events">전체 일정 보기</a></p></main>;}
   if(!item)return <main className="events-page"><h1>행사를 찾을 수 없습니다</h1><a href="/events">전체 일정 보기 →</a></main>;
