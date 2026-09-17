@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     },
     {
       source: "/sitemap.xml",
-      headers: [{ key: "Cache-Control", value: "public, s-maxage=3600, stale-while-revalidate=3600" }],
+      headers: [{ key: "Cache-Control", value: "no-store" }],
     },
     {
       source: "/(.*)",
