@@ -458,6 +458,13 @@ html[data-site-theme="portal"] .integrated-portal .hero .search select{max-width
 html[data-site-theme="portal"] .integrated-portal .hero .search select.denomination-filter{max-width:170px}
 html[data-site-theme="portal"] .integrated-portal .hero .search button{min-height:44px;padding:0 18px;border-radius:7px;background:#03c75a;font-size:13px}
 html[data-site-theme="portal"] .integrated-portal .hero .search button:hover{background:#00b84f}
+html[data-site-theme="portal"] .integrated-portal .hero .search{overflow:hidden;border:1px solid #dfe5e8!important;border-radius:10px!important}
+html[data-site-theme="portal"] .integrated-portal .hero .search:focus-within{border-color:#03c75a!important;box-shadow:0 0 0 3px #03c75120!important}
+html[data-site-theme="portal"] .integrated-portal .hero .search button{border:0!important;border-radius:7px!important;box-shadow:none!important}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-panel-heading h3>a{gap:8px;font-size:17px;line-height:1.35}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-title-icon{width:30px;height:30px;border-radius:8px;font-size:17px}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-switch{gap:8px;margin:4px 0 10px}
+html[data-site-theme="portal"] .integrated-portal .portal-eight .portal-switch button{min-height:36px;padding:7px 11px;border-radius:7px;font-size:12px;line-height:1.3}
 @media(max-width:760px){
   html[data-site-theme="portal"] .integrated-portal .hero .search{height:auto;margin-top:14px;padding:10px 12px 12px;border-radius:9px}
   html[data-site-theme="portal"] .integrated-portal .hero .search>span{font-size:20px}
