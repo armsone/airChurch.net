@@ -661,7 +661,7 @@ export default function Home({initialQuery=""}:{initialQuery?:string}) {
 
       <section className="hero simple-portal-hero" id="primary-content" tabIndex={-1}>
         <h1>무엇을 찾으세요?</h1>
-        <p>교회나 목사님 이름을 입력하세요.</p>
+        <p>교회·목사·지역·교단을 한 번에 찾아보세요.</p>
         <form className="search simple-portal-search" role="search" action="/" method="get">
           <label className="sr-only" htmlFor="site-search">교회, 목사, 지역, 교단 검색</label><span aria-hidden="true">⌕</span>
           <input id="site-search" name="q" list="church-search-suggestions" type="search" inputMode="search" enterKeyHint="search" aria-describedby="site-search-help" autoComplete="off" autoCapitalize="none" spellCheck={false} value={query} onChange={(e) => { setQuery(e.target.value);setShowAllChurches(false); }} onKeyDown={(event)=>{if(event.key==="Enter"){event.preventDefault();event.currentTarget.form?.requestSubmit();}}} placeholder={churchTotal?`교회, 목사, 지역, 교단으로 ${churchTotal.toLocaleString("ko-KR")}개의 교회에서 찾아 보세요.`:"교회, 목사, 지역, 교단으로 찾아 보세요."} />
