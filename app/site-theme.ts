@@ -50,18 +50,14 @@ export function isSiteThemeId(value: unknown): value is SiteThemeId {
   return typeof value === "string" && SITE_THEMES.some((theme) => theme.id === value);
 }
 
-let ensurePromise: Promise<void> | undefined;
+let siteSettingsReady = false;
 async function ensureSiteSettings() {
-  if (ensurePromise) return ensurePromise;
-  ensurePromise = database()
+  if (siteSettingsReady) return;
+  // Share only completed initialization; pending D1 I/O belongs to this request.
+  await database()
     .prepare("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
-    .run()
-    .then(() => undefined)
-    .catch((error) => {
-      ensurePromise = undefined;
-      throw error;
-    });
-  return ensurePromise;
+    .run();
+  siteSettingsReady = true;
 }
 
 export async function readSelectedSiteTheme(): Promise<{ theme: SiteThemeId | null; available: boolean }> {

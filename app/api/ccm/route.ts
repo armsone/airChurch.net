@@ -2,34 +2,31 @@ type Track = { id:string; title:string; channel:string; duration:number };
 const choirPattern=/(합창단|합창|성가대|choral|choir|chorus)/i;
 const ccmPattern=/(ccm|찬양|워십|worship|praise|gospel|예배음악)/i;
 let cached:{items:Track[];at:number}|undefined;
-let pending:Promise<Track[]>|undefined;
 
 async function catalog() {
   if(cached && Date.now()-cached.at<600_000)return cached.items;
-  if(!pending)pending=(async()=>{
-    const response=await fetch("https://ppabang.net/api/catalog/select",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({category:"ccm",limit:260,excludeIds:[]}),signal:AbortSignal.timeout(12000),
-    });
-    if(!response.ok)throw new Error("CCM unavailable");
-    const body=await response.json() as {items?:unknown[]};
-    const seen=new Set<string>();
-    const items:Track[]=[];
-    for(const value of body.items||[]) {
+  // Cache resolved data only; each cache miss owns its fetch and timeout.
+  const response=await fetch("https://ppabang.net/api/catalog/select",{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({category:"ccm",limit:260,excludeIds:[]}),signal:AbortSignal.timeout(12000),
+  });
+  if(!response.ok)throw new Error("CCM unavailable");
+  const body=await response.json() as {items?:unknown[]};
+  const seen=new Set<string>();
+  const items:Track[]=[];
+  for(const value of body.items||[]) {
     if(!value||typeof value!=="object")continue;
-      const item=value as Record<string,unknown>;
-      if(typeof item.id!=="string"||! /^[\w-]{11}$/.test(item.id)||seen.has(item.id)||typeof item.title!=="string")continue;
-      const title=item.title.slice(0,300),channel=typeof item.channel==="string"?item.channel.slice(0,150):"YouTube";
-      if(choirPattern.test(`${title} ${channel}`))continue;
-      seen.add(item.id);
-      items.push({id:item.id,title,channel,duration:typeof item.duration==="number"&&Number.isFinite(item.duration)?Math.max(0,item.duration):0});
-    }
-    if(!items.length)throw new Error("CCM empty");
-    items.sort((a,b)=>Number(ccmPattern.test(b.title))-Number(ccmPattern.test(a.title)));
-    cached={items,at:Date.now()};
-    return items;
-  })().finally(()=>{pending=undefined;});
-  return pending;
+    const item=value as Record<string,unknown>;
+    if(typeof item.id!=="string"||! /^[\w-]{11}$/.test(item.id)||seen.has(item.id)||typeof item.title!=="string")continue;
+    const title=item.title.slice(0,300),channel=typeof item.channel==="string"?item.channel.slice(0,150):"YouTube";
+    if(choirPattern.test(`${title} ${channel}`))continue;
+    seen.add(item.id);
+    items.push({id:item.id,title,channel,duration:typeof item.duration==="number"&&Number.isFinite(item.duration)?Math.max(0,item.duration):0});
+  }
+  if(!items.length)throw new Error("CCM empty");
+  items.sort((a,b)=>Number(ccmPattern.test(b.title))-Number(ccmPattern.test(a.title)));
+  cached={items,at:Date.now()};
+  return items;
 }
 
 export async function GET() {
