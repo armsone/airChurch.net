@@ -53,6 +53,18 @@ test('praise contest real handlers over isolated local HTTP',async t=>{
  const stored=sqlite.prepare('SELECT payout_ciphertext FROM praise_contest_entries WHERE id=?').get(entry1);assert.match(stored.payout_ciphertext,/^v1\./);assert.ok(!stored.payout_ciphertext.includes('TEST HOLDER'));
  const feed=await request('/api/praise-contest','GET',undefined,cookie);assert.equal(feed.body.items.length,6);for(const item of feed.body.items)for(const field of ['contact','phone','bank','holder','account','payoutCiphertext','payout_ciphertext','browser_hash'])assert.equal(Object.hasOwn(item,field),false,field);});
  await t.test('cross-origin request refused',async()=>assert.equal((await request('/api/praise-contest/like','POST',{entryId:entry1},cookie,{origin:'https://untrusted.invalid'})).status,403));
+ await t.test('POST accepts only a positive safe integer entryId without coercion',async()=>{
+  const invalid=[true,false,'1','01','1.0','1e0',' 1 ',[1],[[1]],[],{},null,undefined,0,-1,1.5,Number.MAX_SAFE_INTEGER+1];
+  for(const entryId of invalid){const response=await request('/api/praise-contest/like','POST',{entryId},cookie);assert.equal(response.status,400,JSON.stringify({entryId,response}));assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_votes').get().n,0);}
+  assert.equal((await request('/api/praise-contest/like','POST',{entryId:entry1},cookie)).status,200);
+ });
+ await t.test('DELETE rejects coerced entryId without removing the current vote',async()=>{
+  const invalid=[true,false,String(entry1),'01','1.0','1e0',' 1 ',[entry1],[[entry1]],[],{},null,undefined,0,-1,1.5,Number.MAX_SAFE_INTEGER+1];
+  for(const entryId of invalid){const response=await request('/api/praise-contest/like','DELETE',{entryId},cookie);assert.equal(response.status,400,JSON.stringify({entryId,response}));assert.equal(sqlite.prepare('SELECT entry_id FROM praise_contest_votes').get().entry_id,entry1);}
+  assert.equal((await request('/api/praise-contest/like','DELETE',{entryId:entry1},cookie)).status,200);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_votes').get().n,0);
+  assert.equal(sqlite.prepare('SELECT SUM(delta) AS n FROM praise_contest_vote_events').get().n,0);
+ });
  await t.test('20 parallel HTTP votes by one browser persist exactly one vote',async()=>{const responses=await Promise.all(Array.from({length:20},(_,i)=>request('/api/praise-contest/like','POST',{entryId:i%2?entry1:entry2},cookie)));assert.ok(responses.some(r=>r.status===200));assert.ok(responses.every(r=>[200,409].includes(r.status)));assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_votes').get().n,1);assert.equal(sqlite.prepare('SELECT SUM(delta) AS n FROM praise_contest_vote_events').get().n,1);});
  await t.test('DELETE today vote then reselect other entry',async()=>{const before=await request('/api/praise-contest','GET',undefined,cookie);const old=before.body.votedEntryId;assert.ok(old);assert.equal((await request('/api/praise-contest/like','DELETE',{entryId:old},cookie)).status,200);assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_votes').get().n,0);const next=old===entry1?entry2:entry1;assert.equal((await request('/api/praise-contest/like','POST',{entryId:next},cookie)).status,200);assert.equal(sqlite.prepare('SELECT entry_id FROM praise_contest_votes').get().entry_id,next);});
  await t.test('unauthenticated admin payout and forged admin session both return 403',async()=>{assert.equal((await request('/api/admin/praise-contest/payout','POST',{id:entry1},cookie)).status,403);assert.equal((await request('/api/admin/praise-contest/payout','POST',{id:entry1},'__Host-airchurch_access=forged')).status,403);});
