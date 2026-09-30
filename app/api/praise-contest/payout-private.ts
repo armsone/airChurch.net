@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
-export type PayoutDetails={phone:string;bank:string;holder:string;account:string};
+// Existing records may still contain payout details; new entries store phone only.
+export type PayoutDetails={phone:string;bank?:string;holder?:string;account?:string};
 async function key(){
  const secret=(env as unknown as {ADMIN_SESSION_SECRET?:string}).ADMIN_SESSION_SECRET;
  if(!secret)throw new Error("Private payout storage unavailable");

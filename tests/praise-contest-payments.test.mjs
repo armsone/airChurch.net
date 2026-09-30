@@ -55,7 +55,7 @@ test('duplicate bank references reject the transaction without changing processi
   db.close();
 });
 
-test('held or missing-account entries cannot reserve, existing held payments can record bank results', () => {
+test('held or missing-private-contact entries cannot reserve, existing held payments can record bank results', () => {
   const { db, reserve, result } = setup();
   assert.equal(reserve(3, 'a'), 0);
   assert.equal(reserve(4, 'a'), 0);

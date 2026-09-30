@@ -21,10 +21,11 @@ export async function POST(request: Request) {
     const d=body.data,performer=clean(d.performer,60),title=clean(d.title,120),contact=clean(d.contact,160),videoId=youtubeIdFromUrl(clean(d.youtubeUrl,500));
     if(!videoId||performer.length<2||title.length<2||!/^\S+@\S+\.\S+$/.test(contact))return json({error:"참가자명·곡명·유튜브 링크·연락 이메일을 확인해 주세요."},400);
     if(d.rightsConsent!==true||d.privacyConsent!==true||d.ageConsent!==true)return json({error:"참가 동의 항목을 모두 확인해 주세요."},400);
-    const phone=clean(d.phone,30).replace(/[\s()+-]/g,""),bank=clean(d.bank,50),holder=clean(d.holder,60),account=clean(d.account,40).replace(/[\s-]/g,"");
-    if(!/^\d{8,15}$/.test(phone)||bank.length<2||holder.length<2||!/^\d{8,20}$/.test(account))return json({error:"전화번호·은행·예금주·계좌번호를 확인해 주세요."},400);
-    if(d.payoutConsent!==true)return json({error:"수상 연락과 상금 지급을 위한 정보 이용에 동의해 주세요."},400);
-    const payoutCiphertext=await sealPayout({phone,bank,holder,account},`${CONTEST.id}|${videoId}`);
+    const phone=clean(d.phone,30).replace(/[\s()+-]/g,"");
+    if(!/^\d{8,15}$/.test(phone))return json({error:"연락 전화번호를 확인해 주세요."},400);
+    if(d.payoutConsent!==true)return json({error:"접수 확인과 수상 연락을 위한 전화번호 이용에 동의해 주세요."},400);
+    // Reuse private encrypted storage for contact only; ignore legacy account fields.
+    const payoutCiphertext=await sealPayout({phone},`${CONTEST.id}|${videoId}`);
     const sourceFileUrl=null;
     const db=database();
     if(!await consumeSubmissionLimit(db,"contest-submit",await fingerprint(request,"contest-submit"),5,60))return json({error:"접수가 많습니다. 한 시간 뒤 다시 시도해 주세요."},429);
