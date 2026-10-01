@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     failureCode="db_duplicate_check_failed";
     if(await db.prepare("SELECT id FROM praise_contest_entries WHERE contest_id=? AND youtube_id=?").bind(CONTEST.id,videoId).first())return json({error:"이미 등록된 영상입니다."},409);
     failureStage="youtube_check";failureCode="youtube_fetch_failed";
-    const response=await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`,{signal:AbortSignal.timeout(8000),redirect:"error"});
+    const response=await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`,{signal:AbortSignal.timeout(8000),redirect:"manual"});
     if(!response.ok){console.error("praise_contest_submission_failed",{stage:"youtube_check",code:"youtube_http_rejected"});return json({error:"공개 재생 가능한 유튜브 영상을 확인해 주세요."},400);}
     failureCode="youtube_metadata_invalid";
     const metadata=await response.json() as {author_name?:string};

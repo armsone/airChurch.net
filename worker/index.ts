@@ -64,7 +64,7 @@ async function contestReadOnlyProbe(env:Env){
       let code="youtube_fetch_failed";
       try{
         // Existing public demonstration video; this is a metadata read, never a registration.
-        const response=await fetch("https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DCeilnv98oNA&format=json",{signal:AbortSignal.timeout(8000),redirect:"error"});
+        const response=await fetch("https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DCeilnv98oNA&format=json",{signal:AbortSignal.timeout(8000),redirect:"manual"});
         if(!response.ok){console.info("praise_contest_runtime_diagnostic",{check:"youtube",code:"youtube_http_rejected",status:response.status});return;}
         code="youtube_metadata_invalid";
         const metadata=await response.json() as {author_name?:unknown}|null;
