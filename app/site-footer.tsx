@@ -1,13 +1,15 @@
+import { hasAdminAccess } from "./admin-access";
 import HomeReloadLink from "./home-reload-link";
 import FooterVisitorCounts from "./footer-visitor-counts";
 import { siteIdentities, type SiteIdentity } from "./site-identity";
 
 const footerLinks = [
-  ["관리자", "/admin"], ["목회자", "/pastor"], ["제작기록", "/making"], ["운영안내", "/about"],
+  ["관리자", "/admin"], ["이벤트", "/admin/praise-contest"], ["목회자", "/pastor"], ["제작기록", "/making"], ["운영안내", "/about"],
   ["개인정보처리방침", "/privacy"], ["이용약관", "/terms"], ["문의", "/contact"],
 ] as const;
 
-export default function SiteFooter({ identity }: { identity: SiteIdentity }) {
+export default async function SiteFooter({ identity }: { identity: SiteIdentity }) {
+  const isAdmin=await hasAdminAccess();
   return <footer id="page-bottom" className="site-footer">
     <div className="site-footer-main">
       <div className="site-footer-identity">
@@ -16,7 +18,7 @@ export default function SiteFooter({ identity }: { identity: SiteIdentity }) {
       </div>
       <div className="site-footer-groups">
         <nav aria-label="사이트 안내">
-          <ul>{footerLinks.map(([label, href]) => <li key={href}><a href={href}>{label}</a></li>)}</ul>
+          <ul>{footerLinks.filter(([label])=>label!=="이벤트"||isAdmin).map(([label, href]) => <li key={href}><a href={href}>{label}</a></li>)}</ul>
         </nav>
       </div>
     </div>

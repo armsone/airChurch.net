@@ -859,7 +859,6 @@ export default function Home() {
       </section>
 
       <section className="content-section our-events-home" id="our-events">
-        {isAdmin&&<p><a className="unified-other-button" href="/admin/praise-contest">이벤트 관리 · 참가작 수정·삭제 →</a></p>}
         <div className="section-heading"><div><span className="section-kicker">에어처치가 함께 만드는</span><h2>이벤트</h2></div><a className="unified-other-button" href="/our-events">전체 이벤트 보기 →</a></div>
         <a className="home-event-feature" href={CONTEST.path}><img src="/images/praise-contest-2026-open-format.png" width={1024} height={1024} alt="에어처치 찬양대회 포스터" loading="lazy"/><div><span className="home-event-status">{portalNow?(contestPhase(Date.parse(portalNow))==="upcoming"?"접수 예정":contestPhase(Date.parse(portalNow))==="finished"?"지난 이벤트":"진행 중"):"찬양대회"}</span><h3>에어처치 찬양대회</h3><p>곡의 종류·형식 제한 없이, 개인·밴드·팀 누구나! 창작곡·기성곡 모두 참여하세요.</p><dl><div><dt>시작일</dt><dd><time dateTime={CONTEST.startsOn}>{CONTEST.startsOn}</time></dd></div><div><dt>영상 접수</dt><dd>2026-10-01 ~ 2026-10-15</dd></div><div><dt>응원 마감</dt><dd>2026-10-18</dd></div><div><dt>결과 발표</dt><dd>2026-10-19</dd></div></dl><strong>이벤트 안내와 참가작 보기 →</strong></div></a>
       </section>
