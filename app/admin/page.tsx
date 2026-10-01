@@ -126,7 +126,7 @@ export default async function AdminPage() {
     <div className="admin-header page-utility-bar">
       <div className="admin-utility-nav"><span>관리자</span><a href="/admin/making">에어처치 만들기</a><a href="#church-management">교회 관리</a><a href="#pastor-management">목회자 관리</a><a href="/admin/pastor-photos">사진 검토</a><a href="/pastor">협동 목사 화면</a><form action="/api/admin/lock" method="post"><button type="submit">로그아웃</button></form></div>
     </div>
-    <section className="admin-title"><div><span>ADMIN ACTION CENTER</span><h1>오늘 처리할 운영 업무</h1><p>목회자가 확인을 요청한 교회부터 결정하고, 나머지 운영 현황은 아래에서 확인하세요.</p></div>
+    <section className="admin-title"><div><span>ADMIN ACTION CENTER</span><h1>오늘 처리할 운영 업무</h1><p><a href="/admin/praise-contest">찬양대회 접수 수정·삭제 관리</a></p><p>목회자가 확인을 요청한 교회부터 결정하고, 나머지 운영 현황은 아래에서 확인하세요.</p></div>
       <HomeReloadLink>사이트 보기 ↗</HomeReloadLink>
     </section>
     <section className="admin-workflow-strip" aria-label="관리 업무 진행 순서"><a className="admin-next-work" href={nextWork.href}><small>지금 먼저</small><strong>{nextWork.label}</strong><span>{nextWork.count>0?`${nextWork.count.toLocaleString("ko-KR")}건 남음 →`:"대기 업무 없음 · 바로가기 →"}</span></a><nav aria-label="업무 단계"><a href="#reviewer-queue"><b>1</b> 요청 결정</a><a href="#church-management"><b>2</b> 교회 검색·수정</a><a href="#pastor-review"><b>3</b> 목회자 검토</a><a href="#site-analytics"><b>4</b> 운영 상태</a></nav></section>
