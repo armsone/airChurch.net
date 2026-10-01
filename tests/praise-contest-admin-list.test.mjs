@@ -10,7 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createServer} from 'node:http';
-import {DatabaseSync,backup} from 'node:sqlite';
+import {DatabaseSync} from 'node:sqlite';
 import ts from 'typescript';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -41,12 +41,11 @@ test('administrator global search-filter-order-pagination HTTP',async t=>{
  }
  const routes=new Map();
  for(const [url,file]of [['/api/praise-contest','app/api/praise-contest/route.ts'],['/api/praise-contest/like','app/api/praise-contest/like/route.ts'],['/api/admin/praise-contest/payout','app/api/admin/praise-contest/payout/route.ts'],['/api/admin/praise-contest','app/api/admin/praise-contest/route.ts'],['/api/admin/praise-contest/payments','app/api/admin/praise-contest/payments/route.ts']])routes.set(url,await import(pathToFileURL(compile(file)).href));
- globalThis.fetch=async (input,options)=>{const url=new URL(typeof input==='string'?input:input.url);if(url.hostname==='www.youtube.com'&&url.pathname==='/oembed')return Response.json({author_name:'SYNTHETIC TEST CHANNEL'});throw new Error('Unexpected external request '+url.origin);};
+ globalThis.fetch=async (input)=>{const url=new URL(typeof input==='string'?input:input.url);if(url.hostname==='www.youtube.com'&&url.pathname==='/oembed')return Response.json({author_name:'SYNTHETIC TEST CHANNEL'});throw new Error('Unexpected external request '+url.origin);};
  const server=createServer(async(req,res)=>{try{const chunks=[];for await(const chunk of req)chunks.push(chunk);const request=new Request(`http://${req.headers.host}${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})});const route=routes.get(new URL(request.url).pathname);const result=await route[req.method](request);res.writeHead(result.status,Object.fromEntries(result.headers));res.end(Buffer.from(await result.arrayBuffer()));}catch(e){res.writeHead(500);res.end(String(e));}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin=`http://127.0.0.1:${server.address().port}`;
  async function request(url,method='GET',body,cookie,otherHeaders={}){const response=await realFetch(origin+url,{method,headers:{...(method==='GET'?{}:{origin,'content-type':'application/json'}),...(cookie?{cookie}:{}),...otherHeaders},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:response.status,headers:response.headers,body:await response.json()};}
- let cookie,entry1,entry2;
  try{
  const auth=await import(pathToFileURL(compile('app/admin-access.ts')).href);const token=await auth.createAccessToken({role:'admin',reviewerId:0});const adminCookie=auth.adminCookie(token).split(';')[0];
  const insert=sqlite.prepare("INSERT INTO praise_contest_entries(contest_id,youtube_id,performer,title,channel_name,contact,browser_hash,consent_version,consent_at,created_at,status,reupload_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
