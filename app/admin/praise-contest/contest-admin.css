@@ -49,3 +49,25 @@
 .contest-admin-page .contest-notice p{margin:0 0 7px}
 .contest-admin-page .contest-notice small{display:block;line-height:1.7;margin-bottom:10px}
 @media(max-width:760px){.contest-admin-page{padding:24px 16px 40px}.contest-admin-page-header{flex-direction:column;gap:16px;margin-bottom:24px;padding-bottom:22px}.contest-admin-page-header h1{font-size:27px}.contest-admin-page-header nav{width:100%}.contest-admin-page-header nav a{font-size:12px}.contest-admin-toolbar h2{font-size:18px}.contest-admin-page .contest-entry-card{padding:20px 16px}.contest-entry-heading{gap:10px}.contest-entry-heading h3{font-size:18px}.contest-entry-status{font-size:11px;padding:5px 8px}.contest-entry-fields,.contest-entry-state-fields{grid-template-columns:minmax(0,1fr);gap:15px}.contest-entry-contact{gap:10px;margin-top:14px}.contest-entry-contact>span{width:100%}.contest-entry-details{padding:14px}.contest-entry-actions button{flex:1}.contest-admin-page .contest-entry-actions button{padding:11px 10px;font-size:13px}.contest-entry-actions p{font-size:12px}.contest-admin-payment-area>.contest-rules{padding:18px 16px}}
+
+.contest-admin-search{display:grid;grid-template-columns:minmax(0,2fr) minmax(140px,1fr) minmax(150px,1fr);align-items:end;gap:14px;margin-bottom:22px;padding:18px;border:1px solid var(--line);border-radius:12px;background:#f8faf7}
+.contest-admin-search label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:12px;font-weight:500}
+.contest-admin-search label>div{display:flex;gap:8px;min-width:0}
+.contest-admin-page .contest-admin-search input,.contest-admin-page .contest-admin-search select{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #cbd6ce;border-radius:8px;background:white;font:inherit;font-size:13px;color:var(--ink)}
+.contest-admin-page .contest-admin-search button{min-height:44px;flex-shrink:0;font-size:13px}
+.contest-admin-search .contest-admin-reset{grid-column:1/-1;justify-self:start;color:var(--muted);background:white;font-size:12px}
+.contest-admin-page .contest-entry-row{padding:0;overflow:hidden;border-radius:12px;box-shadow:none}
+.contest-admin-page .contest-admin-list{gap:10px}
+.contest-entry-summary{display:grid;grid-template-columns:48px minmax(0,1fr) 94px 100px;align-items:center;gap:16px;padding:17px 20px}
+.contest-entry-summary-copy{min-width:0}
+.contest-entry-summary-copy h3{margin:0;font-family:inherit;font-size:15px;font-weight:600;line-height:1.55;overflow-wrap:anywhere}
+.contest-entry-summary-copy p{margin:3px 0 0;color:var(--muted);font-size:13px;line-height:1.55;overflow-wrap:anywhere}
+.contest-entry-summary .contest-entry-status{justify-self:start}
+.contest-admin-page .contest-entry-summary button{min-height:42px;font-size:12px;padding:9px 11px;background:#f7f9f6}
+.contest-entry-row.is-open .contest-entry-summary{background:#f2f6f0}
+.contest-entry-expanded{padding:4px 24px 22px;border-top:1px solid var(--line)}
+.contest-admin-pagination{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:20px}
+.contest-admin-pagination p{margin:0;color:var(--muted);font-size:13px}
+.contest-admin-pagination>div{display:flex;gap:8px}
+.contest-admin-page .contest-admin-pagination button{min-width:70px;font-size:13px}
+@media(max-width:760px){.contest-admin-search{grid-template-columns:1fr 1fr;padding:15px;gap:12px}.contest-admin-search>label:first-child{grid-column:1/-1}.contest-entry-summary{grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:16px}.contest-entry-summary-copy{grid-column:2/-1}.contest-entry-summary>.contest-entry-status{grid-column:2}.contest-entry-summary>button{grid-column:3;grid-row:2}.contest-entry-summary-copy h3{font-size:15px}.contest-entry-summary-copy p{font-size:13px}.contest-entry-expanded{padding:2px 16px 20px}.contest-admin-pagination{align-items:flex-start}.contest-admin-pagination p{font-size:12px;line-height:1.8}.contest-admin-page .contest-admin-pagination button{min-width:58px;padding:10px}}

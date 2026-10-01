@@ -5,8 +5,22 @@ import { json,maintainContest,contestDecisionStatement,validMutation } from "../
 export const dynamic="force-dynamic";
 export async function GET(request:Request){
  if(!await hasAdminAccess(request))return json({error:"관리자 권한이 필요합니다."},403);
- try{await maintainContest();const rows=await database().prepare("SELECT id,performer,title,youtube_id AS youtubeId,channel_name AS channelName,contact,source_file_url AS sourceFileUrl,status,reupload_status AS reuploadStatus,reupload_url AS reuploadUrl,admin_note AS adminNote,consent_at AS consentAt,consent_version AS consentVersion,created_at AS createdAt FROM praise_contest_entries WHERE contest_id=? ORDER BY id ASC").bind(CONTEST.id).all();return json({items:rows.results,phase:contestPhase()});}
- catch{return json({error:"접수 목록을 불러오지 못했습니다."},503);}
+ const params=new URL(request.url).searchParams,q=(params.get("q")??"").trim(),status=params.get("status")??"all",sort=params.get("sort")??"newest",pageInput=params.get("page")??"1";
+ const orders:Record<string,string>={newest:"created_at DESC,id DESC",oldest:"created_at ASC,id ASC",name:"performer COLLATE NOCASE ASC,id ASC"};
+ if(q.length>80||!["all","published","held"].includes(status)||!Object.hasOwn(orders,sort)||!/^\d+$/.test(pageInput)||!Number.isSafeInteger(Number(pageInput))||Number(pageInput)<1)return json({error:"검색 조건을 확인해 주세요."},400);
+ try{
+  await maintainContest();const db=database();
+  const summary=await db.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN status='published' THEN 1 ELSE 0 END) AS published,SUM(CASE WHEN status='held' THEN 1 ELSE 0 END) AS held FROM praise_contest_entries WHERE contest_id=?").bind(CONTEST.id).first<{total:number;published:number;held:number}>();
+  const counts={total:Number(summary?.total??0),published:Number(summary?.published??0),held:Number(summary?.held??0)};
+  const clauses=["contest_id=?"],values:(string|number)[]=[CONTEST.id];
+  if(status!=="all"){clauses.push("status=?");values.push(status);}
+  if(q){const pattern=`%${q.replace(/[\\%_]/g,"\\$&")}%`,id=/^\d+$/.test(q)&&Number.isSafeInteger(Number(q))?Number(q):0;clauses.push("(performer LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\' OR id=?)");values.push(pattern,pattern,id);}
+  const where=clauses.join(" AND ");
+  const matching=q||status!=="all"?await db.prepare(`SELECT COUNT(*) AS total FROM praise_contest_entries WHERE ${where}`).bind(...values).first<{total:number}>():counts;
+  const total=Number(matching?.total??0),pageSize=20,totalPages=Math.max(1,Math.ceil(total/pageSize)),page=Math.min(Number(pageInput),totalPages);
+  const rows=await db.prepare(`SELECT id,performer,title,youtube_id AS youtubeId,channel_name AS channelName,contact,source_file_url AS sourceFileUrl,status,reupload_status AS reuploadStatus,reupload_url AS reuploadUrl,admin_note AS adminNote,consent_at AS consentAt,consent_version AS consentVersion,created_at AS createdAt FROM praise_contest_entries WHERE ${where} ORDER BY ${orders[sort]} LIMIT ? OFFSET ?`).bind(...values,pageSize,(page-1)*pageSize).all();
+  return json({items:rows.results,phase:contestPhase(),counts,pagination:{page,pageSize,total,totalPages}});
+ }catch{return json({error:"접수 목록을 불러오지 못했습니다."},503);}
 }
 export async function PATCH(request:Request){
  if(!validMutation(request)||!await hasAdminAccess(request))return json({error:"관리자 권한이 필요합니다."},403);
