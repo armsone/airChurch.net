@@ -111,5 +111,31 @@ test('praise contest real handlers over isolated local HTTP',async t=>{
   // Reset only synthetic scenario state; remove the unvoted sixth synthetic entry.
   sqlite.exec('DELETE FROM praise_contest_results; DELETE FROM praise_contest_decisions; DELETE FROM praise_contest_entries WHERE id=6');clock=RealDate.parse('2026-10-15T15:00:00.000Z');const cancelled=await request('/api/praise-contest','GET',undefined,cookie);assert.equal(cancelled.status,200);assert.equal(cancelled.body.phase,'cancelled');assert.deepEqual({...sqlite.prepare('SELECT eligible_count,cancelled FROM praise_contest_decisions').get()},{eligible_count:5,cancelled:1});assert.equal((await request('/api/praise-contest/like','POST',{entryId:entry1},cookie)).status,409);assert.equal((await request('/api/praise-contest/like','DELETE',{entryId:entry1},cookie)).status,409);clock=RealDate.parse('2026-10-18T15:00:00.000Z');const final=await request('/api/praise-contest','GET',undefined,cookie);assert.equal(final.status,200);assert.equal(final.body.phase,'cancelled');assert.equal(final.body.finalized,false);assert.equal(final.body.items.length,5);assert.ok(final.body.items.every(e=>e.prize===0&&e.rank===null));assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_results').get().n,0);
  });
+
+ await t.test('submission diagnostics classify failures without logging sensitive inputs or exception details',async()=>{
+  clock=RealDate.parse('2026-10-05T03:00:00.000Z');
+  const saved={fetch:globalThis.fetch,error:console.error,prepare:db.prepare,encrypt:crypto.subtle.encrypt,secret:globalThis[environmentName].ADMIN_SESSION_SECRET,binding:globalThis[environmentName].DB};
+  const sensitive='PRIVATE-NAME PRIVATE-TITLE private-contact@example.invalid 00000000000 192.0.2.250 https://youtu.be/TESTVIDEO08 PRIVATE-COOKIE PRIVATE-KEY PRIVATE-SQL-STACK';
+  const message={youtube:'유튜브 영상 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',contact:'연락처를 안전하게 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.',database:'접수 정보를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'};
+  const cases=[
+   {code:'contact_encryption_failed',stage:'contact_encryption',message:message.contact,setup(){globalThis[environmentName].ADMIN_SESSION_SECRET='';}},
+   {code:'contact_encryption_failed',stage:'contact_encryption',message:message.contact,setup(){crypto.subtle.encrypt=async()=>{throw new Error(sensitive);};}},
+   {code:'database_unavailable',stage:'database',message:message.database,setup(){globalThis[environmentName].DB=undefined;}},
+   {code:'db_entry_save_failed',stage:'database',message:message.database,setup(){db.prepare=function(sql){const statement=saved.prepare.call(this,sql);if(sql.startsWith('INSERT INTO praise_contest_entries'))statement.run=async()=>{throw new Error(sensitive);};return statement;};}},
+   {code:'youtube_fetch_failed',stage:'youtube_check',message:message.youtube,setup(){globalThis.fetch=async()=>{throw new TypeError(sensitive);};}},
+   {code:'youtube_timeout',stage:'youtube_check',message:message.youtube,setup(){globalThis.fetch=async()=>{throw new DOMException(sensitive,'TimeoutError');};}},
+   {code:'youtube_metadata_invalid',stage:'youtube_check',message:message.youtube,setup(){globalThis.fetch=async()=>new Response(sensitive);}},
+   {code:'youtube_http_rejected',stage:'youtube_check',status:400,message:'공개 재생 가능한 유튜브 영상을 확인해 주세요.',setup(){globalThis.fetch=async()=>new Response(sensitive,{status:403});}},
+  ];
+  const before=sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_entries').get().n;
+  try{for(let i=0;i<cases.length;i++){
+   const c=cases[i],logs=[];globalThis.fetch=saved.fetch;db.prepare=saved.prepare;crypto.subtle.encrypt=saved.encrypt;globalThis[environmentName].ADMIN_SESSION_SECRET=saved.secret;globalThis[environmentName].DB=saved.binding;console.error=(...args)=>logs.push(args);
+   c.setup();const result=await request('/api/praise-contest','POST',{...validEntry(8),performer:'PRIVATE-NAME',title:'PRIVATE-TITLE',contact:'private-contact@example.invalid'},cookie,{'cf-connecting-ip':'192.0.2.'+(210+i)});
+   assert.equal(result.status,c.status??503,c.code);assert.deepEqual(result.body,{error:c.message});
+   assert.deepEqual(logs,[['praise_contest_submission_failed',{stage:c.stage,code:c.code}]],c.code);
+   for(const value of sensitive.split(' '))assert.equal(JSON.stringify(logs).includes(value),false,c.code+' leaked '+value);
+   assert.equal(sqlite.prepare('SELECT COUNT(*) AS n FROM praise_contest_entries').get().n,before);
+  }}finally{globalThis.fetch=saved.fetch;console.error=saved.error;db.prepare=saved.prepare;crypto.subtle.encrypt=saved.encrypt;globalThis[environmentName].ADMIN_SESSION_SECRET=saved.secret;globalThis[environmentName].DB=saved.binding;}
+ });
  }finally{await new Promise(resolve=>server.close(resolve));sqlite.close();globalThis.Date=RealDate;globalThis.fetch=realFetch;delete globalThis[environmentName];fs.rmSync(temporary,{recursive:true,force:true});}
 });

@@ -14,6 +14,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   if(!validMutation(request))return json({error:"같은 사이트에서 다시 접수해 주세요."},403);
   if(contestPhase()!=="open")return json({error:"영상 접수는 10월 1일부터 15일까지입니다."},409);
+  let failureStage:"request"|"contact_encryption"|"youtube_check"|"database"="request";
+  let failureCode="request_failed";
   try {
     const identity=await browser(request);
     if(!identity)return json({error:"쿠키를 허용한 뒤 페이지를 새로 열어 주세요."},403);
@@ -25,18 +27,33 @@ export async function POST(request: Request) {
     if(!/^\d{8,15}$/.test(phone))return json({error:"연락 전화번호를 확인해 주세요."},400);
     if(d.payoutConsent!==true)return json({error:"접수 확인과 수상 연락을 위한 전화번호 이용에 동의해 주세요."},400);
     // Reuse private encrypted storage for contact only; ignore legacy account fields.
+    failureStage="contact_encryption";failureCode="contact_encryption_failed";
     const payoutCiphertext=await sealPayout({phone},`${CONTEST.id}|${videoId}`);
     const sourceFileUrl=null;
+    failureStage="database";failureCode="database_unavailable";
     const db=database();
+    failureCode="db_rate_limit_failed";
     if(!await consumeSubmissionLimit(db,"contest-submit",await fingerprint(request,"contest-submit"),5,60))return json({error:"접수가 많습니다. 한 시간 뒤 다시 시도해 주세요."},429);
+    failureCode="db_duplicate_check_failed";
     if(await db.prepare("SELECT id FROM praise_contest_entries WHERE contest_id=? AND youtube_id=?").bind(CONTEST.id,videoId).first())return json({error:"이미 등록된 영상입니다."},409);
+    failureStage="youtube_check";failureCode="youtube_fetch_failed";
     const response=await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`,{signal:AbortSignal.timeout(8000),redirect:"error"});
-    if(!response.ok)return json({error:"공개 재생 가능한 유튜브 영상을 확인해 주세요."},400);
+    if(!response.ok){console.error("praise_contest_submission_failed",{stage:"youtube_check",code:"youtube_http_rejected"});return json({error:"공개 재생 가능한 유튜브 영상을 확인해 주세요."},400);}
+    failureCode="youtube_metadata_invalid";
     const metadata=await response.json() as {author_name?:string};
+    const channelName=clean(metadata.author_name,120);
+    failureStage="database";failureCode="db_entry_save_failed";
     const inserted=await db.prepare(`INSERT INTO praise_contest_entries(contest_id,youtube_id,performer,title,channel_name,contact,source_file_url,browser_hash,consent_version,consent_at,status,reupload_status,payout_ciphertext,created_at)
       SELECT ?,?,?,?,?,?,?,?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now'),'published',?,?,strftime('%Y-%m-%dT%H:%M:%fZ','now')
-      WHERE strftime('%Y-%m-%dT%H:%M:%fZ','now')>=? AND strftime('%Y-%m-%dT%H:%M:%fZ','now')<?`).bind(CONTEST.id,videoId,performer,title,clean(metadata.author_name,120),contact,sourceFileUrl,identity.hash,CONTEST.consentVersion,"not_requested",payoutCiphertext,CONTEST.startsAt,CONTEST.submissionEndsAt).run();
+      WHERE strftime('%Y-%m-%dT%H:%M:%fZ','now')>=? AND strftime('%Y-%m-%dT%H:%M:%fZ','now')<?`).bind(CONTEST.id,videoId,performer,title,channelName,contact,sourceFileUrl,identity.hash,CONTEST.consentVersion,"not_requested",payoutCiphertext,CONTEST.startsAt,CONTEST.submissionEndsAt).run();
     if(!inserted.meta.changes)return json({error:"영상 접수가 마감되었습니다."},409);
     return json({ok:true,id:Number(inserted.meta.last_row_id)},201);
-  }catch(error){if(String(error).includes("UNIQUE constraint"))return json({error:"이미 등록된 영상입니다."},409);return json({error:"접수를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요."},503);}
+  }catch(error){
+    if(String(error).includes("UNIQUE constraint"))return json({error:"이미 등록된 영상입니다."},409);
+    if(failureCode==="youtube_fetch_failed"&&error instanceof Error&&["AbortError","TimeoutError"].includes(error.name))failureCode="youtube_timeout";
+    // Only fixed classifications are logged; never include the error or request.
+    console.error("praise_contest_submission_failed",{stage:failureStage,code:failureCode});
+    const message=failureStage==="youtube_check"?"유튜브 영상 정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.":failureStage==="contact_encryption"?"연락처를 안전하게 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.":failureStage==="database"?"접수 정보를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.":"접수를 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    return json({error:message},503);
+  }
 }
