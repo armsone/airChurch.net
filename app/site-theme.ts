@@ -1,8 +1,9 @@
 import { env } from "cloudflare:workers";
+import { observeDatabase } from "./api/_database-observability";
 
 function database() {
   if (!env.DB) throw new Error("Database unavailable");
-  return env.DB as D1Database;
+  return observeDatabase(env.DB as D1Database);
 }
 
 export const SITE_THEMES = [

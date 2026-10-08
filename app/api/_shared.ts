@@ -1,9 +1,10 @@
 import { env } from "cloudflare:workers";
+import { observeDatabase } from "./_database-observability";
 import { kwangsungOfficialPhotos } from "./kwangsung-photos";
 import { jejakwangsungOfficialPastors } from "./jejakwangsung-pastors";
 import { haneulbitKwangsungOfficialPastors } from "./haneulbit-kwangsung-pastors";
 import { kwangsungBranchOfficialPastors, kwangsungBranchOfficialPhotos } from "./kwangsung-branch-pastors";
-export function database() { if (!env.DB) throw new Error("Database unavailable"); return env.DB as D1Database; }
+export function database() { if (!env.DB) throw new Error("Database unavailable"); return observeDatabase(env.DB as D1Database); }
 export function internalTaskRequestAllowed(request:Request){
   if(new URL(request.url).hostname==="airchurch.internal")return true;
   const token=(env as unknown as {MAINTENANCE_TOKEN?:string}).MAINTENANCE_TOKEN;
