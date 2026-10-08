@@ -16,8 +16,10 @@ export async function digest(value:string){return [...new Uint8Array(await crypt
 function after(hours:number){return new Date(Date.now()+hours*3600000).toISOString();}
 async function pool<T>(items:T[],limit:number,fn:(x:T)=>Promise<void>){let at=0;await Promise.all(Array.from({length:Math.min(limit,items.length)},async()=>{while(at<items.length)await fn(items[at++]);}));}
 async function enqueue(source:SourceConfig,items:Array<{url:string;title:string}>,now:string){
-  const db=database();const statements=await Promise.all(items.slice(0,150).map(async item=>db.prepare("INSERT INTO event_candidates(id,source_id,url,title,evidence,content_hash,status,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,'','discovered',?,?) ON CONFLICT(id) DO UPDATE SET last_seen_at=excluded.last_seen_at,title=CASE WHEN length(excluded.title)>2 THEN excluded.title ELSE event_candidates.title END").bind((await digest(`${source.id}|${item.url}`)).slice(0,32),source.id,item.url,item.title.slice(0,180),"",now,now)));
-  for(let i=0;i<statements.length;i+=40)await db.batch(statements.slice(i,i+40));
+  const db=database();const candidates=await Promise.all(items.slice(0,150).map(async item=>({id:(await digest(`${source.id}|${item.url}`)).slice(0,32),url:item.url,title:item.title.slice(0,180)})));
+  // Preserve the forty-row transaction boundary while avoiding one SQL
+  // statement per candidate. JSON array order retains duplicate-title behavior.
+  for(let i=0;i<candidates.length;i+=40)await db.prepare("INSERT INTO event_candidates(id,source_id,url,title,evidence,content_hash,status,first_seen_at,last_seen_at) SELECT json_extract(value,'$.id'),?,json_extract(value,'$.url'),json_extract(value,'$.title'),'','','discovered',?,? FROM json_each(?) WHERE 1 ORDER BY CAST(key AS INTEGER) ON CONFLICT(id) DO UPDATE SET last_seen_at=excluded.last_seen_at,title=CASE WHEN length(excluded.title)>2 THEN excluded.title ELSE event_candidates.title END").bind(source.id,now,now,JSON.stringify(candidates.slice(i,i+40))).run();
 }
 async function processSource(source:SourceConfig){
   const db=database(),now=new Date().toISOString(),token=crypto.randomUUID(),started=Date.now();
@@ -143,9 +145,9 @@ async function processSource(source:SourceConfig){
       ]);
     }
     // A later healthy batch must not erase unresolved findings from an earlier one.
-    const unresolved=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND event_id IS NOT NULL AND status IN ('checking','failed','blocked') AND (reason LIKE 'event_parse_review:%' OR reason='official_date_conflict')").bind(source.id).first<{n:number}>();
+    const unresolved=await db.prepare("SELECT 1 AS n FROM event_candidates WHERE source_id=? AND event_id IS NOT NULL AND status IN ('checking','failed','blocked') AND (reason LIKE 'event_parse_review:%' OR reason='official_date_conflict') LIMIT 1").bind(source.id).first<{n:number}>();
     parseIssues=Math.max(parseIssues,Number(unresolved?.n||0));
-    const remaining=await db.prepare("SELECT COUNT(*) AS n FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END)").bind(source.id,after(-168),after(-4)).first<{n:number}>();
+    const remaining=await db.prepare("SELECT 1 AS n FROM event_candidates WHERE source_id=? AND (checked_at IS NULL OR checked_at<CASE WHEN status IN ('ignored','ended') THEN ? ELSE ? END) LIMIT 1").bind(source.id,after(-168),after(-4)).first<{n:number}>();
     await db.prepare("UPDATE event_sources SET status=?,last_success_at=CASE WHEN ?=0 THEN ? ELSE last_success_at END,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=?,candidate_count=?,last_error=?,scan_url=? WHERE id=? AND lease_token=?").bind(failed?"failed":blocked?"blocked":parseIssues?"checking":found.length||source.kind==="rss"?"ok":"empty",failed+blocked+parseIssues,now,after(failed||blocked?4:remaining?.n?0.25:4),failed,new Set(found.map(item=>item.url)).size,failed?"detail_fetch_failed":blocked?"robots_disallowed":parseIssues?"event_details_require_review":!found.length&&source.kind==="official"?`listing_no_matches:${listingChecks.join(";")}`.slice(0,180):null,nextScan,source.id,token).run();
   }catch(error){console.warn("event_source_failed",source.id,String(error).slice(0,180));const state=await db.prepare("SELECT failures FROM event_sources WHERE id=?").bind(source.id).first<{failures:number}>();await db.prepare("UPDATE event_sources SET status=?,next_check_at=?,lease_until=NULL,lease_token=NULL,failures=failures+1,last_error=? WHERE id=? AND lease_token=?").bind(/robots_disallowed|access_challenge/.test(String(error))?"blocked":"failed",after(Math.min(24,2**Math.min(5,(state?.failures||0)+1))),String(error).slice(0,180),source.id,token).run();}
 }
