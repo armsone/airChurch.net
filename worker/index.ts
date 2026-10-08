@@ -81,10 +81,10 @@ const worker = {
       }, allowedWidths);
     }
 
-    // These two endpoints contain public media only and already advertise
+    // These endpoints contain public media/rankings only and already advertise
     // cacheable responses. Reuse fresh results instead of repeating the full
     // weighted catalog sort for each visitor. Never cache failures or sessions.
-    const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age\s*=\s*0/i.test(request.headers.get("cache-control")||"")&&!/no-cache/i.test(request.headers.get("pragma")||"");
+    const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts","/api/rankings"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age\s*=\s*0/i.test(request.headers.get("cache-control")||"")&&!/no-cache/i.test(request.headers.get("pragma")||"");
     const cacheKey=cacheableMedia?new Request(url.toString(),{method:"GET"}):null;
     // Sites runs isolated user Workers: their default cache is disabled, while
     // named Cache API storage remains isolated to this Worker.
