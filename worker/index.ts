@@ -86,18 +86,21 @@ const worker = {
     // weighted catalog sort for each visitor. Never cache failures or sessions.
     const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age\s*=\s*0/i.test(request.headers.get("cache-control")||"")&&!/no-cache/i.test(request.headers.get("pragma")||"");
     const cacheKey=cacheableMedia?new Request(url.toString(),{method:"GET"}):null;
-    if(cacheKey){
-      const cached=await caches.default.match(cacheKey).catch(()=>undefined);
+    // Sites runs isolated user Workers: their default cache is disabled, while
+    // named Cache API storage remains isolated to this Worker.
+    const mediaCache=cacheKey?await caches.open("airchurch-public-media-v1").catch(()=>null):null;
+    if(cacheKey&&mediaCache){
+      const cached=await mediaCache.match(cacheKey).catch(()=>undefined);
       if(cached){
         const headers=new Headers(cached.headers);headers.set("x-airchurch-cache","HIT");
         return new Response(cached.body,{status:cached.status,headers});
       }
     }
     const response=await handler.fetch(request, env, ctx);
-    if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
+    if(cacheKey&&mediaCache&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
       const copy=response.clone(),headers=new Headers(copy.headers);
       headers.set("cache-control","public, max-age=60");
-      ctx.waitUntil(caches.default.put(cacheKey,new Response(copy.body,{status:200,headers})).catch((error)=>{console.warn("public_media_cache_write_failed",error instanceof Error?error.message.replace(/https?:\/\/[^\s)]+/g,"[url]").slice(0,240):"unknown_error");}));
+      ctx.waitUntil(mediaCache.put(cacheKey,new Response(copy.body,{status:200,headers})).catch((error)=>{console.warn("public_media_cache_write_failed",error instanceof Error?error.message.replace(/https?:\/\/[^\s)]+/g,"[url]").slice(0,240):"unknown_error");}));
     }
     if(url.pathname.startsWith("/api/pastor-photo/")&&response.ok&&response.body){
       try{
