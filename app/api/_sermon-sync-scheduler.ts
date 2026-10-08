@@ -1,18 +1,27 @@
 import { getRequestExecutionContext } from "vinext/shims/request-context";
 import { POST as syncSermons } from "./sermons/sync/route";
 import { POST as syncPraises } from "./praises/sync/route";
+import { database, ensureSermonTables } from "./_shared";
 
-let pendingSync:Promise<void>|null=null;
 let lastAttemptAt=0;
 
 export function scheduleSermonSync(){
   const context=getRequestExecutionContext();
   if(!context||Date.now()-lastAttemptAt<5*60*1000)return;
-  if(!pendingSync){lastAttemptAt=Date.now();pendingSync=(async()=>{
-    await syncPraises();
-    await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=photo_pastors&limit=1",{method:"POST"}));
-    await syncSermons(new Request("https://airchurch.internal/api/sermons/sync?scope=database&limit=20",{method:"POST"}));
-    await syncSermons(new Request("https://airchurch.internal/api/sermons/sync",{method:"POST"}));
-  })().then(()=>undefined).catch(()=>undefined).finally(()=>{pendingSync=null;});}
-  context.waitUntil(pendingSync);
+  lastAttemptAt=Date.now();
+  // The five-minute interval applies across Worker isolates. Per-isolate memory
+  // alone allows every cold public read to start all four collectors again.
+  context.waitUntil((async()=>{
+    const db=database();
+    await ensureSermonTables(db);
+    const now=new Date().toISOString();
+    const claim=await db.prepare("INSERT INTO sync_state(key,last_synced_at) VALUES('public-media-schedule-v1',?) ON CONFLICT(key) DO UPDATE SET last_synced_at=excluded.last_synced_at WHERE sync_state.last_synced_at<?").bind(now,new Date(Date.now()-5*60*1000).toISOString()).run();
+    if(Number(claim.meta.changes)!==1)return;
+    const praise=await syncPraises();
+    await praise.body?.cancel();
+    for(const path of ["?scope=photo_pastors&limit=1","?scope=database&limit=20",""]){
+      const response=await syncSermons(new Request(`https://airchurch.internal/api/sermons/sync${path}`,{method:"POST"}));
+      await response.body?.cancel();
+    }
+  })().catch(()=>{console.warn("public_media_schedule_failed");}));
 }
