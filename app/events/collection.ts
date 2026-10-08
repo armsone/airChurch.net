@@ -194,7 +194,7 @@ export async function syncEvents(requestedSource?:string){
     db.prepare("UPDATE events SET status='ended',updated_at=? WHERE end_date<? AND status='published'").bind(now,koreaDate()),
     db.prepare("UPDATE events SET status='checking',updated_at=? WHERE valid_until<? AND status='published'").bind(now,now),
   ]);
-  const counts=await db.prepare("SELECT COUNT(*) AS discovered,SUM(CASE WHEN checked_at IS NULL THEN 1 ELSE 0 END) AS pending FROM event_candidates").first<{discovered:number;pending:number}>();
-  const published=await db.prepare("SELECT COUNT(*) AS n FROM events WHERE status='published' AND end_date>=? AND valid_until>?").bind(koreaDate(),now).first<{n:number}>();
+  const counts=await db.prepare("SELECT COUNT(*) AS discovered,SUM(CASE WHEN checked_at IS NULL THEN 1 ELSE 0 END) AS pending FROM event_candidates").all<{discovered:number;pending:number}>().then(result=>result.results[0]??null);
+  const published=await db.prepare("SELECT COUNT(*) AS n FROM events WHERE status='published' AND end_date>=? AND valid_until>?").bind(koreaDate(),now).all<{n:number}>().then(result=>result.results[0]??null);
   return {ok:true,sourcesProcessed:due.results.length,discovered:counts?.discovered||0,pending:counts?.pending||0,published:published?.n||0};
 }

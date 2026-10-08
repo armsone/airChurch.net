@@ -10,7 +10,7 @@ export async function GET() {
       (SELECT COUNT(*) FROM visitor_activity WHERE last_seen >= datetime('now','-5 minutes')) AS now,
       (SELECT COUNT(*) FROM visitor_activity WHERE last_seen >= datetime('now','+9 hours','start of day','-9 hours')) AS today,
       (SELECT COUNT(*) FROM page_views WHERE created_at >= datetime('now','+9 hours','start of day','-9 hours')) AS views
-    `).first<{ now: number; today: number; views: number }>();
+    `).all<{ now: number; today: number; views: number }>().then(result=>result.results[0]??null);
     if (!counts) throw new Error("Visit counts unavailable");
     return Response.json(counts, { headers: { "cache-control": "public, max-age=30, s-maxage=30" } });
   } catch {
