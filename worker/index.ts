@@ -60,6 +60,11 @@ const worker = {
     if (wwwHosts.has(url.hostname)) {
       return Response.redirect(`https://${url.hostname.slice(4)}${url.pathname}${url.search}`, 301);
     }
+    // This site has no PHP routes or assets. Scanner probes otherwise render
+    // the full 404 layout, including a D1 theme read for every missing file.
+    if(/\.php(?:\/|$)/i.test(url.pathname)){
+      return new Response("Not found",{status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"public, max-age=300"}});
+    }
     // Derive branding from the actual incoming hostname, including RSC navigation.
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-site-brand-host", url.hostname);
