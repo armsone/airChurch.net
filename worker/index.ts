@@ -81,7 +81,24 @@ const worker = {
       }, allowedWidths);
     }
 
+    // These two endpoints contain public media only and already advertise
+    // cacheable responses. Reuse fresh results instead of repeating the full
+    // weighted catalog sort for each visitor. Never cache failures or sessions.
+    const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age=0/i.test(request.headers.get("cache-control")||"");
+    const cacheKey=cacheableMedia?new Request(url.toString(),{method:"GET"}):null;
+    if(cacheKey){
+      const cached=await caches.default.match(cacheKey).catch(()=>undefined);
+      if(cached){
+        const headers=new Headers(cached.headers);headers.set("x-airchurch-cache","HIT");
+        return new Response(cached.body,{status:cached.status,headers});
+      }
+    }
     const response=await handler.fetch(request, env, ctx);
+    if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")){
+      const copy=response.clone(),headers=new Headers(copy.headers);
+      headers.set("cache-control","public, max-age=60");
+      ctx.waitUntil(caches.default.put(cacheKey,new Response(copy.body,{status:200,headers})).catch(()=>{console.warn("public_media_cache_write_failed");}));
+    }
     if(url.pathname.startsWith("/api/pastor-photo/")&&response.ok&&response.body){
       try{
         const resized=await env.IMAGES.input(response.clone().body!).transform({width:360,height:440,fit:"cover"}).output({format:"image/jpeg",quality:82});
