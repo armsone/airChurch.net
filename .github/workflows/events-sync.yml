@@ -32,7 +32,8 @@ jobs:
                 response = await fetch('https://airchurch.net/api/events/sync', {
                   method: 'POST', redirect: 'error',
                   headers: { authorization: `Bearer ${token}` },
-                  signal: AbortSignal.timeout(55_000),
+                  // Event and news stages now run sequentially against D1.
+                  signal: AbortSignal.timeout(90_000),
                 });
               } catch (error) {
                 if (attempt === 3) throw error;

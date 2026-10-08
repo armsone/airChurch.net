@@ -89,13 +89,21 @@ const publicSources=(states=new Map<string,FeedState>())=>sources.map(source=>{
 // One short batch per lease. Public reads never wait for fifty external servers.
 export async function refreshChurchNewsSnapshot() {
   const db=database(),now=new Date().toISOString(),token=crypto.randomUUID();
+  const readStates=async()=>{
+    const rows=await db.prepare("SELECT key,payload FROM church_news_snapshots WHERE key LIKE 'feed:%'").all<{key:string;payload:string}>();
+    const states=new Map<string,FeedState>();
+    for(const row of rows.results){try{states.set(row.key,JSON.parse(row.payload));}catch{/* Preserve the last aggregate while this feed recovers. */}}
+    return states;
+  };
+  const dueSources=(states:Map<string,FeedState>)=>sources.filter(s=>{const state=states.get(feedKey(s));return !state||state.nextCheckAt<=now||(state.failures>0&&(state.version||0)<FEED_VERSION);}).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
+  // A stale aggregate can contain feeds that are all within their two-hour
+  // check window. Public reads must not acquire/release a write lease then.
+  if(!dueSources(await readStates()).length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
   const claim=await db.prepare("INSERT INTO church_news_snapshots(key,payload,item_count,refreshed_at) VALUES('refresh-lock',?,0,?) ON CONFLICT(key) DO UPDATE SET payload=excluded.payload,refreshed_at=excluded.refreshed_at WHERE church_news_snapshots.refreshed_at<?").bind(token,new Date(Date.now()+60000).toISOString(),now).run();
   if(Number(claim.meta.changes)!==1)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
   try{
-    const rows=await db.prepare("SELECT key,payload FROM church_news_snapshots WHERE key LIKE 'feed:%'").all<{key:string;payload:string}>();
-    const states=new Map<string,FeedState>();
-    for(const row of rows.results){try{states.set(row.key,JSON.parse(row.payload));}catch{/* Retain the last aggregate until this feed can be refreshed. */}}
-    const due=sources.filter(s=>{const state=states.get(feedKey(s));return !state||state.nextCheckAt<=now||(state.failures>0&&(state.version||0)<FEED_VERSION);}).sort((a,b)=>(states.get(feedKey(a))?.nextCheckAt||"").localeCompare(states.get(feedKey(b))?.nextCheckAt||"")).slice(0,6);
+    // Another request may have refreshed feeds before this lease was acquired.
+    const states=await readStates(),due=dueSources(states);
     if(!due.length)return {...(await readChurchNewsSnapshot()||{items:[],sources:publicSources(),target:sources.length}),sourcesProcessed:0};
     const loaded=await mapWithConcurrency(due,3,async source=>({source,state:await loadSource(source,states.get(feedKey(source)))}));
     // Keep bounded health metadata before article bodies for operational reads.

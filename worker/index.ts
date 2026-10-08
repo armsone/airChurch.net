@@ -35,7 +35,15 @@ async function runScheduledMaintenance(env:Env,ctx:ExecutionContext){
     new Request("https://airchurch.internal/api/maintenance/retention",{method:"POST"}),
     new Request("https://airchurch.internal/api/praise-contest/maintenance",{method:"POST"}),
   ];
-  await Promise.allSettled(requests.map((request)=>handler.fetch(request,env,ctx)));
+  // These jobs share D1; simultaneous maintenance batches compete with public
+  // reads and the event scheduler. Keep each job's failure independent.
+  for(const request of requests){
+    try{
+      const response=await handler.fetch(request,env,ctx);
+      if(!response.ok)console.error("scheduled_maintenance_failed",new URL(request.url).pathname,response.status);
+      await response.body?.cancel();
+    }catch(error){console.error("scheduled_maintenance_failed",new URL(request.url).pathname,error instanceof Error?error.message:"unknown_error");}
+  }
 }
 
 // Image security config. SVG sources with .svg extension auto-skip the

@@ -8,7 +8,10 @@ export async function POST(request:Request){
   if(!authorized&&!internalTaskRequestAllowed(request))return Response.json({error:"Not found"},{status:404,headers:{"cache-control":"no-store"}});
   try{
     // The event discovery scheduler also maintains its news-feed inputs.
-    const [events,news]=await Promise.allSettled([syncEvents(),refreshChurchNewsSnapshot()]);
+    // Both stages write to the same single D1 database. Finish one bounded
+    // stage before starting the next, including when the first stage fails.
+    const [events]=await Promise.allSettled([syncEvents()]);
+    const [news]=await Promise.allSettled([refreshChurchNewsSnapshot()]);
     for(const [stage,result] of [["events",events],["news",news]] as const){
       if(result.status==="rejected")console.error("event_sync_stage_failed",stage,result.reason instanceof Error?result.reason.message:"unknown_error");
     }
