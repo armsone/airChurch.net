@@ -55,9 +55,9 @@ let siteSettingsReady = false;
 async function ensureSiteSettings() {
   if (siteSettingsReady) return;
   // Share only completed initialization; pending D1 I/O belongs to this request.
-  await database()
-    .prepare("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)")
-    .run();
+  const db=database();
+  const exists=await db.prepare("SELECT 1 AS ready FROM sqlite_master WHERE type='table' AND name='site_settings' LIMIT 1").first<{ready:number}>();
+  if(!exists)await db.prepare("CREATE TABLE IF NOT EXISTS site_settings (key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
   siteSettingsReady = true;
 }
 

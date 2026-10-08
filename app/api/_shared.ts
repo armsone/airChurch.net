@@ -26,6 +26,8 @@ function memoizeEnsure(run:(db:D1Database)=>Promise<void>) {
   };
 }
 const ensureMaintenanceState=memoizeEnsure(async(db:D1Database)=>{
+  const exists=await db.prepare("SELECT 1 AS ready FROM sqlite_master WHERE type='table' AND name='maintenance_state' LIMIT 1").first<{ready:number}>();
+  if(exists)return;
   await db.prepare("CREATE TABLE IF NOT EXISTS maintenance_state (key TEXT PRIMARY KEY,completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
 });
 export const ensureCommunityTables = memoizeEnsure(async (db: D1Database) => {
