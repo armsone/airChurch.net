@@ -103,15 +103,19 @@ const worker = {
       }
       await cached?.body?.cancel().catch(()=>undefined);
     }
-    const response=await handler.fetch(request, env, ctx);
-    if(cacheKey&&mediaCache&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
-      const copy=response.clone(),headers=new Headers(copy.headers);
+    let response=await handler.fetch(request, env, ctx);
+    if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
+      const headers=new Headers(response.headers);
       const freshUntil=Date.now()+60_000;
       headers.set("cache-control","public, max-age=60, s-maxage=60");
       headers.set("cdn-cache-control","public, max-age=60");
       headers.set("expires",new Date(freshUntil).toUTCString());
-      headers.set("x-airchurch-cache-until",String(freshUntil));
-      ctx.waitUntil(mediaCache.put(cacheKey,new Response(copy.body,{status:200,headers})).catch((error)=>{console.warn("public_media_cache_write_failed",error instanceof Error?error.message.replace(/https?:\/\/[^\s)]+/g,"[url]").slice(0,240):"unknown_error");}));
+      response=new Response(response.body,{status:200,headers});
+      if(mediaCache){
+        const copy=response.clone(),cacheHeaders=new Headers(headers);
+        cacheHeaders.set("x-airchurch-cache-until",String(freshUntil));
+        ctx.waitUntil(mediaCache.put(cacheKey,new Response(copy.body,{status:200,headers:cacheHeaders})).catch((error)=>{console.warn("public_media_cache_write_failed",error instanceof Error?error.message.replace(/https?:\/\/[^\s)]+/g,"[url]").slice(0,240):"unknown_error");}));
+      }
     }
     if(url.pathname.startsWith("/api/pastor-photo/")&&response.ok&&response.body){
       try{
