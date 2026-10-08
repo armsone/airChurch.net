@@ -33,7 +33,7 @@ async function fetchImage(initial:URL){
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
   const id=Number((await params).id);if(!Number.isInteger(id)||id<0)return new Response(null,{status:404});
   const db=database();await ensurePastorPeopleTables(db);
-  const photo=await db.prepare("SELECT photo_url FROM pastor_people WHERE COALESCE(public_id,1000000+id)=? AND review_status='approved' AND photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') LIMIT 1").bind(id).first<PhotoRecord>();
+  const photo=await db.prepare("SELECT photo_url FROM pastor_people WHERE (public_id=? OR (public_id IS NULL AND id=?)) AND review_status='approved' AND photo_review_status='approved' AND photo_usage_basis IN ('permission','open_license','owned','official_public_clergy_profile') LIMIT 1").bind(id,id-1000000).first<PhotoRecord>();
   const url=photo?.photo_url?safeRemoteImage(photo.photo_url):null;if(!url)return new Response(null,{status:404});
   // These verified copies retain the live approval check above. A changed source
   // must never receive an older person's portrait from the recovery collection.

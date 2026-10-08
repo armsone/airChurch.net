@@ -61,7 +61,7 @@ const ensureChurchPublicIdsV6=async(db:D1Database)=>{
 };
 export async function resolveChurchId(db:D1Database,publicId:number){
   if(!Number.isInteger(publicId)||publicId<1)return null;
-  const row=await db.prepare("SELECT id FROM churches WHERE COALESCE(public_id,1000000+id)=? LIMIT 1").bind(publicId).first<{id:number}>();
+  const row=await db.prepare("SELECT id FROM churches WHERE (public_id=? OR (public_id IS NULL AND id=?)) LIMIT 1").bind(publicId,publicId-1000000).first<{id:number}>();
   return row?Number(row.id):null;
 }
 export const ensureSermonTables = memoizeEnsure(async (db:D1Database) => {

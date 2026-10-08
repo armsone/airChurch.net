@@ -51,7 +51,7 @@ function scheduleEvidenceDate(value:string|null){
 
 const publicChurch=cache(async(publicId:number)=>{
   if(!Number.isInteger(publicId)||publicId<1)return null;
-  return database().prepare("SELECT id,COALESCE(public_id,1000000+id) AS public_id,name,pastor,region,denomination,youtube_channel_id,homepage_url,channel_image_url FROM churches WHERE COALESCE(public_id,1000000+id)=? AND review_status='approved' LIMIT 1").bind(publicId).first<ChurchRow>();
+  return database().prepare("SELECT id,COALESCE(public_id,1000000+id) AS public_id,name,pastor,region,denomination,youtube_channel_id,homepage_url,channel_image_url FROM churches WHERE (public_id=? OR (public_id IS NULL AND id=?)) AND review_status='approved' LIMIT 1").bind(publicId,publicId-1000000).first<ChurchRow>();
 });
 
 export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
