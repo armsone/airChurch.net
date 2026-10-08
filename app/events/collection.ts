@@ -152,12 +152,17 @@ async function processSource(source:SourceConfig){
 export async function syncEvents(requestedSource?:string){
   if(requestedSource&&!collectionSources.some(source=>source.id===requestedSource))throw Error("unknown_event_source");
   const db=database(),now=new Date().toISOString();
-  const seeds=collectionSources.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind));
-  await db.batch(seeds);
+  // Scheduler batches share the same catalog. Write only changed configuration,
+  // rather than rewriting every source before each bounded collection request.
+  const existing=await db.prepare("SELECT id,name,homepage,url,kind,collector_version AS collectorVersion,lease_until AS leaseUntil FROM event_sources").all<{id:string;name:string;homepage:string;url:string;kind:string;collectorVersion:number;leaseUntil:string|null}>();
+  const saved=new Map(existing.results.map(source=>[source.id,source]));
+  const changed=collectionSources.filter(source=>{const previous=saved.get(source.id);return !previous||previous.name!==source.name||previous.homepage!==source.homepage||previous.url!==source.url||previous.kind!==source.kind;});
+  if(changed.length)await db.batch(changed.map(s=>db.prepare("INSERT INTO event_sources(id,name,homepage,url,kind) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,homepage=excluded.homepage,url=excluded.url,kind=excluded.kind").bind(s.id,s.name,s.homepage,s.url,s.kind)));
   // Version 9 retries SJS once through its verified public HTTP board.
   // Preserve earlier upgrades for deployments that have not received them yet.
   // Healthy schedules, denied paths and rejected event facts stay untouched.
-  await db.batch([
+  const upgradeRequired=collectionSources.some(source=>!saved.has(source.id))||existing.results.some(source=>source.collectorVersion<COLLECTOR_VERSION&&(!source.leaseUntil||source.leaseUntil<now));
+  if(upgradeRequired)await db.batch([
     // Re-read this reviewed notice after recognizing its colon-free labels.
     db.prepare("UPDATE event_candidates SET checked_at=NULL WHERE source_id='jiguchon' AND event_id='218b9a0534498653c2d66197509d6b97' AND url='https://www.jiguchon.or.kr/bbs/board.php?bo_table=G02&wr_id=1167' AND source_id IN (SELECT id FROM event_sources WHERE collector_version<25 AND (lease_until IS NULL OR lease_until<?))").bind(now),
     // Re-read only the inspected climate film notice for its explicit admission fee.
