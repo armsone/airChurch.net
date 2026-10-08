@@ -97,7 +97,7 @@ const worker = {
     if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
       const copy=response.clone(),headers=new Headers(copy.headers);
       headers.set("cache-control","public, max-age=60");
-      ctx.waitUntil(caches.default.put(cacheKey,new Response(copy.body,{status:200,headers})).catch(()=>{console.warn("public_media_cache_write_failed");}));
+      ctx.waitUntil(caches.default.put(cacheKey,new Response(copy.body,{status:200,headers})).catch((error)=>{console.warn("public_media_cache_write_failed",error instanceof Error?error.message.replace(/https?:\/\/[^\s)]+/g,"[url]").slice(0,240):"unknown_error");}));
     }
     if(url.pathname.startsWith("/api/pastor-photo/")&&response.ok&&response.body){
       try{
