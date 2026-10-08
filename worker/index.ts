@@ -84,7 +84,7 @@ const worker = {
     // These two endpoints contain public media only and already advertise
     // cacheable responses. Reuse fresh results instead of repeating the full
     // weighted catalog sort for each visitor. Never cache failures or sessions.
-    const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age=0/i.test(request.headers.get("cache-control")||"");
+    const cacheableMedia=request.method==="GET"&&["/api/sermons","/api/shorts"].includes(url.pathname)&&!request.headers.has("authorization")&&!request.headers.has("range")&&!/no-cache|no-store|max-age\s*=\s*0/i.test(request.headers.get("cache-control")||"")&&!/no-cache/i.test(request.headers.get("pragma")||"");
     const cacheKey=cacheableMedia?new Request(url.toString(),{method:"GET"}):null;
     if(cacheKey){
       const cached=await caches.default.match(cacheKey).catch(()=>undefined);
@@ -94,7 +94,7 @@ const worker = {
       }
     }
     const response=await handler.fetch(request, env, ctx);
-    if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")){
+    if(cacheKey&&response.status===200&&!response.headers.has("set-cookie")&&/\bpublic\b/i.test(response.headers.get("cache-control")||"")&&!/\b(?:private|no-store|no-cache)\b/i.test(response.headers.get("cache-control")||"")){
       const copy=response.clone(),headers=new Headers(copy.headers);
       headers.set("cache-control","public, max-age=60");
       ctx.waitUntil(caches.default.put(cacheKey,new Response(copy.body,{status:200,headers})).catch(()=>{console.warn("public_media_cache_write_failed");}));
