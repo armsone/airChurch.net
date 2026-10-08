@@ -18,10 +18,12 @@ async function measure<T>(sqls:string[],run:()=>Promise<T>,hasMeta=true):Promise
     try{
     const elapsedMs=Date.now()-started;
     if(error||elapsedMs>=500){
-      const metas=hasMeta?(Array.isArray(result)?result:[result]).map(value=>(value as {meta?:{duration?:number;rows_read?:number;rows_written?:number}}|undefined)?.meta).filter(Boolean):[];
+      const metas=hasMeta?(Array.isArray(result)?result:[result]).map(value=>(value as {meta?:{duration?:number;rows_read?:number;rows_written?:number;total_attempts?:number;size_after?:number;timings?:{sql_duration_ms?:number}}}|undefined)?.meta).filter(Boolean):[];
       const message=error instanceof Error?error.message:"";
       const total=(key:"duration"|"rows_read"|"rows_written")=>metas.length&&metas.every(meta=>Number.isFinite(meta?.[key]))?metas.reduce((sum,meta)=>sum+Number(meta?.[key]),0):undefined;
-      console.warn(error?"d1_query_failed":"d1_query_slow",{queries:sqls.slice(0,4).map(describe),queryCount:sqls.length,elapsedMs,queryDurationMs:total("duration"),rowsRead:total("rows_read"),rowsWritten:total("rows_written"),errorKind:error?(message.includes("overloaded")?"overloaded":"query_failed"):undefined});
+      const maximum=(key:"total_attempts"|"size_after")=>metas.length&&metas.every(meta=>Number.isFinite(meta?.[key]))?Math.max(...metas.map(meta=>Number(meta?.[key]))):undefined;
+      const sqlDurationMs=metas.length&&metas.every(meta=>Number.isFinite(meta?.timings?.sql_duration_ms))?metas.reduce((sum,meta)=>sum+Number(meta?.timings?.sql_duration_ms),0):undefined;
+      console.warn(error?"d1_query_failed":"d1_query_slow",{queries:sqls.slice(0,4).map(describe),queryCount:sqls.length,elapsedMs,queryDurationMs:total("duration"),sqlDurationMs,maxAttempts:maximum("total_attempts"),databaseBytes:maximum("size_after"),rowsRead:total("rows_read"),rowsWritten:total("rows_written"),errorKind:error?(message.includes("overloaded")?"overloaded":"query_failed"):undefined});
     }
     }catch{/* Observation must never change a database result or exception. */}
   }
@@ -32,6 +34,11 @@ function observeStatement(native:D1PreparedStatement,sql:string):D1PreparedState
     get(target,key){
       if(key==="bind")return (...values:unknown[])=>observeStatement(target.bind(...values),sql);
       const value=Reflect.get(target,key,target);
+      // Only observe bounded, zero-argument first() via native all(): this SQL
+      // already limits the returned rows to one. Cloudflare's first() runs the
+      // same SQL without appending a limit, then selects the first object.
+      // Unbounded and named-column calls retain the native first() method.
+      if(key==="first")return (...args:unknown[])=>args.length===0&&/\bLIMIT\s+1\s*;?$/i.test(sql)?measure([sql],()=>target.all()).then(result=>result.results[0]??null):measure([sql],()=>value.apply(target,args),false);
       if(["all","run","first","raw"].includes(String(key))&&typeof value==="function")return (...args:unknown[])=>measure([sql],()=>value.apply(target,args),key==="all"||key==="run");
       return typeof value==="function"?value.bind(target):value;
     },
