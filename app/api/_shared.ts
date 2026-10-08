@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+import { getRequestExecutionContext } from "vinext/shims/request-context";
 import { observeDatabase } from "./_database-observability";
 import { kwangsungOfficialPhotos } from "./kwangsung-photos";
 import { jejakwangsungOfficialPastors } from "./jejakwangsung-pastors";
@@ -19,10 +20,19 @@ async function addColumnIfMissing(db:D1Database,columns:{name:string}[],name:str
 // Worker request and can remain unsettled if that request is canceled.
 function memoizeEnsure(run:(db:D1Database)=>Promise<void>) {
   let completed=false;
+  const requests=new WeakMap<object,Promise<void>>();
   return async(db:D1Database)=>{
     if(completed)return;
-    await run(db);
-    completed=true;
+    const context=getRequestExecutionContext();
+    const existing=context?requests.get(context):undefined;
+    if(existing)return existing;
+    // Nested schema checks within one invocation share its own I/O. Never
+    // give another Worker request a promise owned by this invocation.
+    const pending=run(db).then(()=>{completed=true;}).finally(()=>{
+      if(context)requests.delete(context);
+    });
+    if(context)requests.set(context,pending);
+    await pending;
   };
 }
 const ensureMaintenanceState=memoizeEnsure(async(db:D1Database)=>{
