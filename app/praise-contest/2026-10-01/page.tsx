@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import ContestBoard from "../contest-board";
 import "../contest.css";
-const title = "2026 에어처치 찬양대회 | 총상금 100만 원";
-const description = "곡의 종류·형식, 개인·밴드·팀 여부에 관계없이 창작곡·기성곡 모두 참여할 수 있습니다. 10월 1~15일 유튜브 영상 접수 · 여러분의 좋아요로 수상작이 결정됩니다.";
+const title = "2026 에어처치 찬양대회 | 수상 결과 및 행사 종료 안내";
+const description = "수상자 상금 지급을 마치고 찬양대회를 잘 마무리했습니다. 함께해 주신 모든 분께 감사드립니다. 수상작과 참가 영상을 감상하시고, 다음 이벤트도 기대해 주세요.";
 const poster = "https://airchurch.net/images/praise-contest-2026-open-format.png";
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     siteName: "에어처치",
     type: "website",
     locale: "ko_KR",
-    images: [{ url: poster, width: 1254, height: 1254, alt: "에어처치 찬양대회 포스터 · 2026년 10월 1~15일 참가 접수" }],
+    images: [{ url: poster, width: 1254, height: 1254, alt: "에어처치 찬양대회 포스터 · 2026년 10월 대회 결과 발표 및 행사 종료" }],
   },
   twitter: {
     card: "summary_large_image",
