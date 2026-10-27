@@ -45,7 +45,7 @@ jobs:
                 result = await response.json();
                 break;
               }
-              const retryable = [429, 502, 503, 504].includes(response.status);
+              const retryable = [429, 500, 502, 503, 504].includes(response.status);
               await response.body?.cancel();
               if (!retryable || attempt === 3) throw new Error(`Event collection failed: HTTP ${response.status}`);
               const retryAfter = Number(response.headers.get('retry-after'));
